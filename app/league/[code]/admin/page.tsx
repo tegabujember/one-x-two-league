@@ -13,6 +13,13 @@ type League = {
   owner_id: string | null;
 };
 
+type Player = {
+  id: string;
+  league_id: string;
+  name: string;
+  user_id: string | null;
+};
+
 type Match = {
   id: string;
   league_id: string;
@@ -24,12 +31,156 @@ type Match = {
   status: string;
 };
 
+type ImportedMatch = {
+  home_team: string;
+  away_team: string;
+  start_time: string;
+  home_score?: number;
+  away_score?: number;
+};
+
+type ImportedPrediction = {
+  home_team: string;
+  away_team: string;
+  start_time: string;
+  pick: "1" | "X" | "2";
+};
+
 function formatDateTimeForInput(dateString: string) {
   const date = new Date(dateString);
   const offset = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - offset * 60 * 1000);
 
   return localDate.toISOString().slice(0, 16);
+}
+
+function parseImportDate(dateText: string) {
+  const match = dateText
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+
+  if (!match) {
+    throw new Error(`פורמט תאריך לא תקין: ${dateText}`);
+  }
+
+  const [, year, month, day, hour, minute] = match;
+
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute)
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`תאריך לא תקין: ${dateText}`);
+  }
+
+  return date.toISOString();
+}
+
+function parseMatchesImportText(text: string): ImportedMatch[] {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    throw new Error("לא הודבקו משחקים");
+  }
+
+  return lines.map((line, index) => {
+    const parts = line.split("|").map((part) => part.trim());
+
+    if (parts.length !== 3 && parts.length !== 4) {
+      throw new Error(
+        `שורה ${
+          index + 1
+        } לא תקינה. הפורמט צריך להיות: תאריך | בית | חוץ או תאריך | בית | חוץ | תוצאה`
+      );
+    }
+
+    const [dateText, homeTeam, awayTeam, scoreText] = parts;
+
+    if (!dateText || !homeTeam || !awayTeam) {
+      throw new Error(`שורה ${index + 1} חסרה נתונים`);
+    }
+
+    const importedMatch: ImportedMatch = {
+      home_team: homeTeam,
+      away_team: awayTeam,
+      start_time: parseImportDate(dateText),
+    };
+
+    if (scoreText !== undefined) {
+      const scoreParts = scoreText.split("-").map((part) => part.trim());
+
+      if (scoreParts.length !== 2) {
+        throw new Error(
+          `שורה ${index + 1} עם תוצאה לא תקינה. לדוגמה: 2-0`
+        );
+      }
+
+      const homeScore = Number(scoreParts[0]);
+      const awayScore = Number(scoreParts[1]);
+
+      if (
+        !Number.isInteger(homeScore) ||
+        !Number.isInteger(awayScore) ||
+        homeScore < 0 ||
+        awayScore < 0
+      ) {
+        throw new Error(`שורה ${index + 1} עם תוצאה לא תקינה`);
+      }
+
+      importedMatch.home_score = homeScore;
+      importedMatch.away_score = awayScore;
+    }
+
+    return importedMatch;
+  });
+}
+
+function parsePredictionsImportText(text: string): ImportedPrediction[] {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    throw new Error("לא הודבקו ניחושים");
+  }
+
+  return lines.map((line, index) => {
+    const parts = line.split("|").map((part) => part.trim());
+
+    if (parts.length !== 4) {
+      throw new Error(
+        `שורה ${index + 1} לא תקינה. הפורמט צריך להיות: תאריך | בית | חוץ | סימון`
+      );
+    }
+
+    const [dateText, homeTeam, awayTeam, pickText] = parts;
+    const pick = pickText.toUpperCase();
+
+    if (!dateText || !homeTeam || !awayTeam || !pick) {
+      throw new Error(`שורה ${index + 1} חסרה נתונים`);
+    }
+
+    if (pick !== "1" && pick !== "X" && pick !== "2") {
+      throw new Error(
+        `שורה ${index + 1} עם סימון לא תקין. מותר רק 1 / X / 2`
+      );
+    }
+
+    return {
+      home_team: homeTeam,
+      away_team: awayTeam,
+      start_time: parseImportDate(dateText),
+      pick,
+    };
+  });
 }
 
 export default function LeagueAdminPage() {
@@ -40,12 +191,20 @@ export default function LeagueAdminPage() {
   const code = String(params.code).toUpperCase();
 
   const [league, setLeague] = useState<League | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [adminEmail, setAdminEmail] = useState("");
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const [startTime, setStartTime] = useState("");
+
+  const [importText, setImportText] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
+
+  const [predictionPlayerId, setPredictionPlayerId] = useState("");
+  const [predictionImportText, setPredictionImportText] = useState("");
+  const [isImportingPredictions, setIsImportingPredictions] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
@@ -93,6 +252,21 @@ export default function LeagueAdminPage() {
     }
 
     setLeague(leagueData);
+
+    const { data: playersData, error: playersError } = await supabase
+      .from("players")
+      .select("*")
+      .eq("league_id", leagueData.id)
+      .order("created_at", { ascending: true });
+
+    if (playersError) {
+      console.error(playersError);
+      alert("שגיאה בטעינת השחקנים");
+      setIsLoadingPage(false);
+      return;
+    }
+
+    setPlayers(playersData || []);
 
     const { data: matchesData, error: matchesError } = await supabase
       .from("matches")
@@ -165,6 +339,153 @@ export default function LeagueAdminPage() {
 
     await loadLeagueAndMatches();
     alert("המשחק נוסף בהצלחה");
+  }
+
+  async function importMatchesFromText() {
+    if (!importText.trim()) {
+      alert("צריך להדביק רשימת משחקים");
+      return;
+    }
+
+    let parsedMatches: ImportedMatch[];
+
+    try {
+      parsedMatches = parseMatchesImportText(importText);
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "שגיאה בקריאת הרשימה");
+      return;
+    }
+
+    const shouldImport = confirm(
+      `נמצאו ${parsedMatches.length} משחקים. לייבא אותם לליגה?`
+    );
+
+    if (!shouldImport) {
+      return;
+    }
+
+    setIsImporting(true);
+
+    const response = await fetch(`/api/leagues/${code}/matches/import`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        matches: parsedMatches,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי לייבא משחקים");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לייבא משחקים לליגה הזאת");
+      } else {
+        alert("שגיאה בייבוא המשחקים");
+      }
+
+      setIsImporting(false);
+      return;
+    }
+
+    const data = await response.json();
+
+    setImportText("");
+    setIsImporting(false);
+
+    await loadLeagueAndMatches();
+
+    alert(
+      `יובאו ${data.imported} משחקים בהצלחה.\nהסתיימו: ${
+        data.finished ?? 0
+      }\nעתידיים: ${data.upcoming ?? 0}`
+    );
+  }
+
+  async function importPredictionsFromText() {
+    if (!predictionPlayerId) {
+      alert("צריך לבחור שחקן");
+      return;
+    }
+
+    if (!predictionImportText.trim()) {
+      alert("צריך להדביק רשימת ניחושים");
+      return;
+    }
+
+    let parsedPredictions: ImportedPrediction[];
+
+    try {
+      parsedPredictions = parsePredictionsImportText(predictionImportText);
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "שגיאה בקריאת הניחושים");
+      return;
+    }
+
+    const selectedPlayer = players.find(
+      (player) => player.id === predictionPlayerId
+    );
+
+    const shouldImport = confirm(
+      `נמצאו ${parsedPredictions.length} ניחושים${
+        selectedPlayer ? ` עבור ${selectedPlayer.name}` : ""
+      }. לייבא אותם?`
+    );
+
+    if (!shouldImport) {
+      return;
+    }
+
+    setIsImportingPredictions(true);
+
+    const response = await fetch(`/api/leagues/${code}/predictions/import`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        player_id: predictionPlayerId,
+        predictions: parsedPredictions,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי לייבא ניחושים");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לייבא ניחושים לליגה הזאת");
+      } else if (response.status === 400) {
+        alert(
+          "חלק מהניחושים לא תואמים משחקים קיימים או שיש שגיאה בפורמט. בדוק את הקונסול."
+        );
+      } else {
+        alert("שגיאה בייבוא הניחושים");
+      }
+
+      setIsImportingPredictions(false);
+      return;
+    }
+
+    const data = await response.json();
+
+    setPredictionImportText("");
+    setPredictionPlayerId("");
+    setIsImportingPredictions(false);
+
+    alert(
+      `יובאו ${data.imported} ניחושים.\nדולגו קיימים: ${
+        data.skippedExisting ?? 0
+      }\nדולגו משחקים נעולים: ${data.skippedLocked ?? 0}`
+    );
   }
 
   async function updateScore(
@@ -421,6 +742,106 @@ export default function LeagueAdminPage() {
               {isLoading ? "מוסיף משחק..." : "הוסף משחק"}
             </button>
           </form>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-black sm:text-2xl">
+              ייבוא משחקים מרשימה
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              הדבק משחקים בפורמט הבא. אפשר להדביק משחקים בלי תוצאה או משחקים עם
+              תוצאה.
+            </p>
+
+            <div className="mt-3 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-xs leading-6 text-yellow-100">
+              <p>2026-06-11 22:00 | Mexico | South Africa | 2-0</p>
+              <p>2026-06-12 05:00 | South Korea | Czechia | 2-1</p>
+              <p>2026-06-17 20:00 | Portugal | DR Congo</p>
+            </div>
+          </div>
+
+          <textarea
+            value={importText}
+            onChange={(event) => setImportText(event.target.value)}
+            placeholder={`2026-06-11 22:00 | Mexico | South Africa | 2-0
+2026-06-12 05:00 | South Korea | Czechia | 2-1
+2026-06-17 20:00 | Portugal | DR Congo`}
+            rows={8}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+          />
+
+          <button
+            type="button"
+            onClick={importMatchesFromText}
+            disabled={isImporting || !importText.trim()}
+            className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-700 px-4 py-3 text-sm font-bold shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-purple-400 hover:to-fuchsia-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+          >
+            {isImporting ? "מייבא משחקים..." : "ייבא משחקים"}
+          </button>
+        </div>
+
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-black sm:text-2xl">
+              ייבוא ניחושים לשחקן
+            </h2>
+
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              בחר שחקן והדבק ניחושים. אם לשחקן כבר יש ניחוש לאותו משחק, לא
+              נדרוס אותו.
+            </p>
+
+            <div className="mt-3 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-xs leading-6 text-yellow-100">
+              <p>2026-06-11 22:00 | Mexico | South Africa | 1</p>
+              <p>2026-06-12 19:00 | Argentina | Spain | X</p>
+              <p>2026-06-12 22:00 | France | Germany | 2</p>
+            </div>
+          </div>
+
+          <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+            בחר שחקן
+          </label>
+
+          <select
+            value={predictionPlayerId}
+            onChange={(event) => setPredictionPlayerId(event.target.value)}
+            className="mb-4 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
+          >
+            <option value="">בחר שחקן</option>
+
+            {players.map((player) => (
+              <option key={player.id} value={player.id}>
+                {player.name}
+              </option>
+            ))}
+          </select>
+
+          <textarea
+            value={predictionImportText}
+            onChange={(event) => setPredictionImportText(event.target.value)}
+            placeholder={`2026-06-11 22:00 | Mexico | South Africa | 1
+2026-06-12 19:00 | Argentina | Spain | X
+2026-06-12 22:00 | France | Germany | 2`}
+            rows={8}
+            className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+          />
+
+          <button
+            type="button"
+            onClick={importPredictionsFromText}
+            disabled={
+              isImportingPredictions ||
+              !predictionImportText.trim() ||
+              !predictionPlayerId
+            }
+            className="mt-4 w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-700 px-4 py-3 text-sm font-bold shadow-lg shadow-red-950/40 transition hover:scale-[1.02] hover:from-orange-400 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+          >
+            {isImportingPredictions
+              ? "מייבא ניחושים..."
+              : "ייבא ניחושים לשחקן"}
+          </button>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
