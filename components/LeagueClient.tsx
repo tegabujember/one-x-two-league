@@ -87,7 +87,11 @@ export default function LeagueClient({
 
     const savedAdminCode = localStorage.getItem(adminStorageKey);
 
-    if (savedAdminCode && league.admin_code && savedAdminCode === league.admin_code) {
+    if (
+      savedAdminCode &&
+      league.admin_code &&
+      savedAdminCode === league.admin_code
+    ) {
       setIsAdmin(true);
     }
   }, [players, selectedPlayerStorageKey, adminStorageKey, league.admin_code]);
@@ -142,7 +146,7 @@ export default function LeagueClient({
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
     if (!selectedPlayerId) {
-      alert("קודם צריך לבחור שחקן");
+      alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
       return;
     }
 
@@ -206,7 +210,9 @@ export default function LeagueClient({
 
   function handleAdminLogin() {
     if (!league.admin_code) {
-      alert("לליגה הזאת אין קוד מנהל. כנראה היא נוצרה לפני שהוספנו את הפיצ׳ר הזה.");
+      alert(
+        "לליגה הזאת אין קוד מנהל. כנראה היא נוצרה לפני שהוספנו את הפיצ׳ר הזה."
+      );
       return;
     }
 
@@ -236,6 +242,18 @@ export default function LeagueClient({
       console.error(error);
       alert("לא הצלחתי להעתיק את הלינק");
     }
+  }
+
+  function shareOnWhatsApp() {
+    const leagueUrl = `${window.location.origin}/league/${league.code}`;
+
+    const message = `הצטרף לליגת הניחושים שלי:
+${league.name}
+${leagueUrl}`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+    window.open(whatsappUrl, "_blank");
   }
 
   return (
@@ -276,32 +294,62 @@ export default function LeagueClient({
           >
             העתק לינק להזמנה
           </button>
+
+          <button
+            type="button"
+            onClick={shareOnWhatsApp}
+            className="w-full text-center mt-3 rounded-xl bg-green-700 py-3 font-semibold hover:bg-green-800"
+          >
+            שתף בוואטסאפ
+          </button>
         </div>
 
         <div className="rounded-2xl bg-slate-900 p-6 shadow-xl border border-slate-800 mb-6">
-          <h2 className="text-xl font-bold mb-4">בחר שחקן</h2>
+          {selectedPlayer ? (
+            <div>
+              <p className="text-slate-400 text-sm mb-1">מחובר כשחקן:</p>
 
-          <select
-            value={selectedPlayerId}
-            onChange={(event) => handlePlayerChange(event.target.value)}
-            className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
-          >
-            <option value="">בחר את השם שלך</option>
+              <p className="text-xl font-bold">{selectedPlayer.name}</p>
+            </div>
+          ) : (
+            <div>
+              <h2 className="text-xl font-bold mb-3">עדיין לא הצטרפת לליגה</h2>
 
-            {players.map((player) => (
-              <option key={player.id} value={player.id}>
-                {player.name}
-              </option>
-            ))}
-          </select>
+              <p className="text-slate-400 mb-4">
+                כדי לשלוח ניחושים צריך להצטרף עם שם שחקן.
+              </p>
 
-          {selectedPlayer && (
-            <p className="text-sm text-slate-400 mt-3">
-              אתה ממלא ניחושים בשם:{" "}
-              <span className="text-white font-semibold">
-                {selectedPlayer.name}
-              </span>
-            </p>
+              <Link
+                href={`/join-league?code=${league.code}`}
+                className="block text-center rounded-xl bg-green-700 py-3 font-semibold hover:bg-green-800"
+              >
+                הצטרף לליגה הזאת
+              </Link>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div className="mt-5 border-t border-slate-800 pt-5">
+              <h2 className="text-lg font-bold mb-3">בחירת שחקן לאדמין</h2>
+
+              <select
+                value={selectedPlayerId}
+                onChange={(event) => handlePlayerChange(event.target.value)}
+                className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
+              >
+                <option value="">בחר שחקן</option>
+
+                {players.map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name}
+                  </option>
+                ))}
+              </select>
+
+              <p className="text-xs text-slate-400 mt-3">
+                האפשרות הזאת מוצגת רק למנהל.
+              </p>
+            </div>
           )}
         </div>
 
@@ -437,7 +485,7 @@ export default function LeagueClient({
           href="/"
           className="block text-center text-sm text-slate-400 mt-6 hover:text-white"
         >
-          חזור לדף הבית
+          צור / הצטרף לליגה אחרת
         </Link>
       </div>
     </main>

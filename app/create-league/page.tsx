@@ -58,19 +58,23 @@ export default function CreateLeaguePage() {
       .select()
       .single();
 
-    if (leagueError) {
+    if (leagueError || !leagueData) {
       console.error(leagueError);
       alert("שגיאה ביצירת הליגה");
       setIsLoading(false);
       return;
     }
 
-    const { error: playerError } = await supabase.from("players").insert({
-      league_id: leagueData.id,
-      name: adminName.trim(),
-    });
+    const { data: playerData, error: playerError } = await supabase
+      .from("players")
+      .insert({
+        league_id: leagueData.id,
+        name: adminName.trim(),
+      })
+      .select()
+      .single();
 
-    if (playerError) {
+    if (playerError || !playerData) {
       console.error(playerError);
       alert("הליגה נוצרה, אבל הייתה שגיאה ביצירת השחקן");
       setIsLoading(false);
@@ -78,6 +82,8 @@ export default function CreateLeaguePage() {
     }
 
     localStorage.setItem(`league-admin-${newCode}`, newAdminCode);
+    localStorage.setItem("last-league-code", newCode);
+    localStorage.setItem(`selected-player-${newCode}`, playerData.id);
 
     alert(`הליגה נוצרה בהצלחה!\nקוד מנהל: ${newAdminCode}\nשמור אותו אצלך.`);
 

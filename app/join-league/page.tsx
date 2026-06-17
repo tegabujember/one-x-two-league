@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -11,6 +11,15 @@ export default function JoinLeaguePage() {
   const [playerName, setPlayerName] = useState("");
   const [leagueCode, setLeagueCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeFromUrl = params.get("code");
+
+    if (codeFromUrl) {
+      setLeagueCode(codeFromUrl.trim().toUpperCase());
+    }
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,17 +46,24 @@ export default function JoinLeaguePage() {
       return;
     }
 
-    const { error: playerError } = await supabase.from("players").insert({
-      league_id: leagueData.id,
-      name: playerName.trim(),
-    });
+    const { data: playerData, error: playerError } = await supabase
+      .from("players")
+      .insert({
+        league_id: leagueData.id,
+        name: playerName.trim(),
+      })
+      .select()
+      .single();
 
-    if (playerError) {
+    if (playerError || !playerData) {
       console.error(playerError);
       alert("שגיאה בהצטרפות לליגה");
       setIsLoading(false);
       return;
     }
+
+    localStorage.setItem("last-league-code", cleanCode);
+    localStorage.setItem(`selected-player-${cleanCode}`, playerData.id);
 
     router.push(`/league/${cleanCode}`);
   }
