@@ -1,35 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 
-function generateLeagueCode() {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-
-  for (let i = 0; i < 5; i++) {
-    code += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-
-  return code;
-}
-
-function generateAdminCode() {
-  const numbers = "0123456789";
-  let code = "";
-
-  for (let i = 0; i < 4; i++) {
-    code += numbers.charAt(Math.floor(Math.random() * numbers.length));
-  }
-
-  return code;
-}
+type CreateLeagueResponse = {
+  league: {
+    id: string;
+    name: string;
+    code: string;
+    admin_code: string | null;
+    owner_id: string | null;
+  };
+  player: {
+    id: string;
+    league_id: string;
+    name: string;
+    user_id: string | null;
+  };
+  admin_code: string;
+};
 
 export default function CreateLeaguePage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [leagueName, setLeagueName] = useState("");
   const [adminName, setAdminName] = useState("");
@@ -45,6 +40,8 @@ export default function CreateLeaguePage() {
 
       if (user?.email) {
         setUserEmail(user.email);
+      } else {
+        setUserEmail("");
       }
 
       setIsCheckingUser(false);
@@ -73,52 +70,43 @@ export default function CreateLeaguePage() {
 
     setIsLoading(true);
 
-    const newCode = generateLeagueCode();
-    const newAdminCode = generateAdminCode();
-
-    const { data: leagueData, error: leagueError } = await supabase
-      .from("leagues")
-      .insert({
-        name: leagueName.trim(),
-        code: newCode,
+    const response = await fetch("/api/leagues", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        league_name: leagueName.trim(),
         admin_name: adminName.trim(),
-        admin_code: newAdminCode,
-        owner_id: user.id,
-      })
-      .select()
-      .single();
+      }),
+    });
 
-    if (leagueError || !leagueData) {
-      console.error(leagueError);
-      alert("שגיאה ביצירת הליגה");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("כדי ליצור ליגה צריך להתחבר עם Google");
+        router.push("/login");
+      } else {
+        alert("שגיאה ביצירת הליגה");
+      }
+
       setIsLoading(false);
       return;
     }
 
-    const { data: playerData, error: playerError } = await supabase
-      .from("players")
-      .insert({
-        league_id: leagueData.id,
-        name: adminName.trim(),
-        user_id: user.id,
-      })
-      .select()
-      .single();
+    const data = (await response.json()) as CreateLeagueResponse;
 
-    if (playerError || !playerData) {
-      console.error(playerError);
-      alert("הליגה נוצרה, אבל הייתה שגיאה ביצירת השחקן");
-      setIsLoading(false);
-      return;
-    }
+    localStorage.setItem(`league-admin-${data.league.code}`, data.admin_code);
+    localStorage.setItem("last-league-code", data.league.code);
+    localStorage.setItem(`selected-player-${data.league.code}`, data.player.id);
 
-    localStorage.setItem(`league-admin-${newCode}`, newAdminCode);
-    localStorage.setItem("last-league-code", newCode);
-    localStorage.setItem(`selected-player-${newCode}`, playerData.id);
+    alert(
+      `הליגה נוצרה בהצלחה!\nקוד מנהל: ${data.admin_code}\nשמור אותו אצלך.`
+    );
 
-    alert(`הליגה נוצרה בהצלחה!\nקוד מנהל: ${newAdminCode}\nשמור אותו אצלך.`);
-
-    router.push(`/league/${newCode}`);
+    router.push(`/league/${data.league.code}`);
   }
 
   return (
@@ -184,7 +172,8 @@ export default function CreateLeaguePage() {
                 value={leagueName}
                 onChange={(event) => setLeagueName(event.target.value)}
                 placeholder="לדוגמה: מונדיאל חברים"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                disabled={!userEmail || isCheckingUser}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
               />
             </div>
 
@@ -198,13 +187,14 @@ export default function CreateLeaguePage() {
                 value={adminName}
                 onChange={(event) => setAdminName(event.target.value)}
                 placeholder="לדוגמה: Tegabu"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                disabled={!userEmail || isCheckingUser}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              disabled={isLoading || isCheckingUser}
+              disabled={isLoading || isCheckingUser || !userEmail}
               className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isLoading ? "יוצר ליגה..." : "צור ליגה"}
@@ -213,8 +203,8 @@ export default function CreateLeaguePage() {
 
           <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
             <p className="text-sm leading-6 text-yellow-100">
-              אחרי יצירת הליגה תקבל קוד מנהל. בגרסה החדשה הליגה גם תיקשר
-              לחשבון ה־Google שלך.
+              יצירת הליגה מתבצעת עכשיו דרך API מאובטח. הליגה תיקשר לחשבון
+              ה־Google שלך והשחקן הראשון ייווצר עבורך אוטומטית.
             </p>
           </div>
 

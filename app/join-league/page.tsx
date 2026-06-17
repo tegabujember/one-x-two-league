@@ -5,6 +5,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 
+type PlayerResponse = {
+  player: {
+    id: string;
+    league_id: string;
+    name: string;
+    user_id: string | null;
+  };
+  alreadyJoined: boolean;
+};
+
 export default function JoinLeaguePage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -77,62 +87,41 @@ export default function JoinLeaguePage() {
 
     const cleanCode = leagueCode.trim().toUpperCase();
 
-    const { data: leagueData, error: leagueError } = await supabase
-      .from("leagues")
-      .select("*")
-      .eq("code", cleanCode)
-      .single();
-
-    if (leagueError || !leagueData) {
-      console.error(leagueError);
-      alert("לא נמצאה ליגה עם הקוד הזה");
-      setIsLoading(false);
-      return;
-    }
-
-    const { data: existingPlayer, error: existingPlayerError } = await supabase
-      .from("players")
-      .select("*")
-      .eq("league_id", leagueData.id)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (existingPlayerError) {
-      console.error(existingPlayerError);
-      alert("שגיאה בבדיקת שחקן קיים");
-      setIsLoading(false);
-      return;
-    }
-
-    if (existingPlayer) {
-      localStorage.setItem("last-league-code", cleanCode);
-      localStorage.setItem(`selected-player-${cleanCode}`, existingPlayer.id);
-
-      alert("כבר הצטרפת לליגה הזאת. מחזיר אותך לשחקן הקיים שלך.");
-
-      router.push(`/league/${cleanCode}`);
-      return;
-    }
-
-    const { data: playerData, error: playerError } = await supabase
-      .from("players")
-      .insert({
-        league_id: leagueData.id,
+    const response = await fetch(`/api/leagues/${cleanCode}/players`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         name: playerName.trim(),
-        user_id: userId,
-      })
-      .select()
-      .single();
+      }),
+    });
 
-    if (playerError || !playerData) {
-      console.error(playerError);
-      alert("שגיאה בהצטרפות לליגה");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי להצטרף לליגה");
+        router.push("/login");
+      } else if (response.status === 404) {
+        alert("לא נמצאה ליגה עם הקוד הזה");
+      } else {
+        alert("שגיאה בהצטרפות לליגה");
+      }
+
       setIsLoading(false);
       return;
     }
+
+    const data = (await response.json()) as PlayerResponse;
 
     localStorage.setItem("last-league-code", cleanCode);
-    localStorage.setItem(`selected-player-${cleanCode}`, playerData.id);
+    localStorage.setItem(`selected-player-${cleanCode}`, data.player.id);
+
+    if (data.alreadyJoined) {
+      alert("כבר הצטרפת לליגה הזאת. מחזיר אותך לשחקן הקיים שלך.");
+    }
 
     router.push(`/league/${cleanCode}`);
   }
