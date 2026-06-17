@@ -91,54 +91,83 @@ export default function CreateLeaguePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4">
-      <div className="w-full max-w-md rounded-2xl bg-slate-900 p-6 shadow-xl border border-slate-800">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          צור ליגה חדשה
-        </h1>
+    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
+      <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
+      <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-2 text-sm text-slate-300">
-              שם הליגה
-            </label>
-            <input
-              type="text"
-              value={leagueName}
-              onChange={(event) => setLeagueName(event.target.value)}
-              placeholder="לדוגמה: מונדיאל חברים"
-              className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
-            />
+      <div className="relative w-full max-w-md">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-2xl shadow-yellow-900/30">
+            <span className="text-4xl">🏆</span>
           </div>
 
-          <div>
-            <label className="block mb-2 text-sm text-slate-300">
-              השם שלך
-            </label>
-            <input
-              type="text"
-              value={adminName}
-              onChange={(event) => setAdminName(event.target.value)}
-              placeholder="לדוגמה: Tegabu"
-              className="w-full rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 outline-none focus:border-blue-500"
-            />
+          <p className="text-sm font-semibold tracking-[0.35em] text-green-300">
+            CREATE LEAGUE
+          </p>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
+          <h1 className="text-center text-3xl font-black tracking-tight">
+            צור ליגה חדשה
+          </h1>
+
+          <p className="mt-3 text-center text-sm leading-6 text-slate-400">
+            פתח ליגת ניחושים, קבל קוד מנהל, ושתף את הלינק לחברים.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">
+                שם הליגה
+              </label>
+
+              <input
+                type="text"
+                value={leagueName}
+                onChange={(event) => setLeagueName(event.target.value)}
+                placeholder="לדוגמה: מונדיאל חברים"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-300">
+                השם שלך
+              </label>
+
+              <input
+                type="text"
+                value={adminName}
+                onChange={(event) => setAdminName(event.target.value)}
+                placeholder="לדוגמה: Tegabu"
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {isLoading ? "יוצר ליגה..." : "צור ליגה"}
+            </button>
+          </form>
+
+          <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
+            <p className="text-sm leading-6 text-yellow-100">
+              אחרי יצירת הליגה תקבל קוד מנהל. שמור אותו — איתו תוכל להוסיף
+              משחקים ולעדכן תוצאות.
+            </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-xl bg-blue-600 py-3 font-semibold hover:bg-blue-700 disabled:opacity-50"
+          <Link
+            href="/"
+            className="mt-6 block text-center text-sm text-slate-400 hover:text-white"
           >
-            {isLoading ? "יוצר ליגה..." : "צור ליגה"}
-          </button>
-        </form>
-
-        <Link
-          href="/"
-          className="block text-center text-sm text-slate-400 mt-6 hover:text-white"
-        >
-          חזור
-        </Link>
+            חזור לדף הבית
+          </Link>
+        </div>
       </div>
     </main>
   );
