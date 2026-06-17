@@ -23,6 +23,14 @@ type Match = {
   status: string;
 };
 
+function formatDateTimeForInput(dateString: string) {
+  const date = new Date(dateString);
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - offset * 60 * 1000);
+
+  return localDate.toISOString().slice(0, 16);
+}
+
 export default function LeagueAdminPage() {
   const params = useParams();
   const router = useRouter();
@@ -99,7 +107,7 @@ export default function LeagueAdminPage() {
     }
 
     if (!homeTeam.trim() || !awayTeam.trim() || !startTime.trim()) {
-      alert("צריך למלא קבוצה א, קבוצה ב ותאריך/שעה");
+      alert("צריך למלא קבוצה ביתית, קבוצה אורחת ותאריך/שעה");
       return;
     }
 
@@ -171,6 +179,61 @@ export default function LeagueAdminPage() {
     alert("התוצאה עודכנה בהצלחה");
   }
 
+  async function updateMatchDetails(
+    matchId: string,
+    homeTeamValue: string,
+    awayTeamValue: string,
+    startTimeValue: string
+  ) {
+    if (
+      !homeTeamValue.trim() ||
+      !awayTeamValue.trim() ||
+      !startTimeValue.trim()
+    ) {
+      alert("צריך למלא קבוצה ביתית, קבוצה אורחת ותאריך/שעה");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("matches")
+      .update({
+        home_team: homeTeamValue.trim(),
+        away_team: awayTeamValue.trim(),
+        start_time: new Date(startTimeValue).toISOString(),
+      })
+      .eq("id", matchId);
+
+    if (error) {
+      console.error(error);
+      alert("שגיאה בעדכון המשחק");
+      return;
+    }
+
+    await loadLeagueAndMatches();
+    alert("המשחק עודכן בהצלחה");
+  }
+
+  async function deleteMatch(matchId: string) {
+    const shouldDelete = confirm(
+      "אתה בטוח שאתה רוצה למחוק את המשחק? כל הניחושים של המשחק הזה יימחקו גם."
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    const { error } = await supabase.from("matches").delete().eq("id", matchId);
+
+    if (error) {
+      console.error(error);
+      alert("שגיאה במחיקת המשחק");
+      return;
+    }
+
+    await loadLeagueAndMatches();
+    alert("המשחק נמחק בהצלחה");
+  }
+
   if (isLoadingPage) {
     return (
       <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4">
@@ -188,34 +251,38 @@ export default function LeagueAdminPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-4 py-8">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
-      <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
-      <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
+    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
+      <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
+      <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
 
       <div className="relative mx-auto w-full max-w-3xl">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-2xl shadow-yellow-900/30">
-            <span className="text-4xl">🛠️</span>
+        <div className="mb-4 text-center sm:mb-6">
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-2xl shadow-yellow-900/30 sm:h-16 sm:w-16">
+            <span className="text-2xl sm:text-3xl">🛠️</span>
           </div>
 
-          <p className="text-sm font-semibold tracking-[0.35em] text-green-300">
+          <p className="text-[10px] font-semibold tracking-[0.28em] text-green-300 sm:text-xs sm:tracking-[0.35em]">
             ADMIN PANEL
           </p>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl mb-6">
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
-            <p className="text-slate-400 text-sm mb-2">ניהול ליגה</p>
+            <p className="mb-1 text-xs text-slate-400 sm:text-sm">
+              ניהול ליגה
+            </p>
 
-            <h1 className="text-4xl font-black tracking-tight">
+            <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
               הוספת משחקים
             </h1>
 
             {league && (
-              <div className="mt-5 inline-flex flex-col items-center rounded-2xl border border-white/10 bg-slate-950/60 px-5 py-3">
-                <span className="text-lg font-bold">{league.name}</span>
-                <span className="mt-1 text-sm text-slate-400">
+              <div className="mt-4 inline-flex flex-col items-center rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
+                <span className="text-base font-bold sm:text-lg">
+                  {league.name}
+                </span>
+                <span className="mt-1 text-xs text-slate-400 sm:text-sm">
                   קוד ליגה:{" "}
                   <span className="font-black tracking-widest text-green-300">
                     {league.code}
@@ -225,37 +292,43 @@ export default function LeagueAdminPage() {
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                קבוצה ביתית
-              </label>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:mt-8 sm:space-y-5">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+                  קבוצה ביתית
+                </label>
 
-              <input
-                type="text"
-                value={homeTeam}
-                onChange={(event) => setHomeTeam(event.target.value)}
-                placeholder="לדוגמה: מקסיקו"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
-              />
+                <input
+                  type="text"
+                  value={homeTeam}
+                  onChange={(event) => setHomeTeam(event.target.value)}
+                  placeholder="בית"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-center text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
+                />
+              </div>
+
+              <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-xs font-black text-yellow-300 sm:mb-2 sm:h-12 sm:w-12">
+                נגד
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+                  קבוצה אורחת
+                </label>
+
+                <input
+                  type="text"
+                  value={awayTeam}
+                  onChange={(event) => setAwayTeam(event.target.value)}
+                  placeholder="חוץ"
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-center text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                קבוצה אורחת
-              </label>
-
-              <input
-                type="text"
-                value={awayTeam}
-                onChange={(event) => setAwayTeam(event.target.value)}
-                placeholder="לדוגמה: דרום אפריקה"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
-              />
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
+              <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
                 תאריך ושעה
               </label>
 
@@ -263,38 +336,40 @@ export default function LeagueAdminPage() {
                 type="datetime-local"
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition focus:border-green-400"
+                className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
               {isLoading ? "מוסיף משחק..." : "הוסף משחק"}
             </button>
           </form>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-2xl font-black">עדכון תוצאות</h2>
+        <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
+          <div className="mb-4 flex items-center justify-between sm:mb-5">
+            <h2 className="text-xl font-black sm:text-2xl">ניהול משחקים</h2>
 
-            <span className="rounded-full bg-slate-950/70 px-4 py-2 text-xs text-slate-400 border border-white/10">
+            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
               {matches.length} משחקים
             </span>
           </div>
 
           {matches.length === 0 ? (
-            <p className="text-slate-400">עדיין אין משחקים לעדכן.</p>
+            <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {matches.map((match) => (
-                <ScoreForm
+                <MatchAdminCard
                   key={match.id}
                   match={match}
-                  onUpdate={updateScore}
+                  onUpdateScore={updateScore}
+                  onUpdateMatch={updateMatchDetails}
+                  onDeleteMatch={deleteMatch}
                 />
               ))}
             </div>
@@ -303,7 +378,7 @@ export default function LeagueAdminPage() {
 
         <Link
           href={`/league/${code}`}
-          className="block text-center text-sm text-slate-400 mt-6 hover:text-white"
+          className="mt-5 block text-center text-xs text-slate-400 hover:text-white sm:mt-6 sm:text-sm"
         >
           חזור לעמוד הליגה
         </Link>
@@ -312,12 +387,21 @@ export default function LeagueAdminPage() {
   );
 }
 
-function ScoreForm({
+function MatchAdminCard({
   match,
-  onUpdate,
+  onUpdateScore,
+  onUpdateMatch,
+  onDeleteMatch,
 }: {
   match: Match;
-  onUpdate: (matchId: string, homeScore: string, awayScore: string) => void;
+  onUpdateScore: (matchId: string, homeScore: string, awayScore: string) => void;
+  onUpdateMatch: (
+    matchId: string,
+    homeTeam: string,
+    awayTeam: string,
+    startTime: string
+  ) => void;
+  onDeleteMatch: (matchId: string) => void;
 }) {
   const [homeScore, setHomeScore] = useState(
     match.home_score !== null ? String(match.home_score) : ""
@@ -326,48 +410,152 @@ function ScoreForm({
     match.away_score !== null ? String(match.away_score) : ""
   );
 
+  const [editHomeTeam, setEditHomeTeam] = useState(match.home_team);
+  const [editAwayTeam, setEditAwayTeam] = useState(match.away_team);
+  const [editStartTime, setEditStartTime] = useState(
+    formatDateTimeForInput(match.start_time)
+  );
+
+  const [isEditing, setIsEditing] = useState(false);
+
   const isFinished = match.status === "finished";
 
   return (
-    <div className="rounded-3xl bg-slate-950/60 border border-white/10 p-4">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <span
-            className={`mb-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-              isFinished
-                ? "bg-green-500/20 text-green-300"
-                : "bg-blue-500/20 text-blue-300"
-            }`}
-          >
-            {isFinished ? "הסתיים" : "טרם שוחק"}
-          </span>
+    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-3 sm:rounded-3xl sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
+        <span
+          className={`rounded-full px-2 py-1 text-[11px] font-bold sm:px-3 sm:text-xs ${
+            isFinished
+              ? "bg-green-500/20 text-green-300"
+              : "bg-blue-500/20 text-blue-300"
+          }`}
+        >
+          {isFinished ? "הסתיים" : "טרם שוחק"}
+        </span>
 
-          <p className="text-xl font-black">{match.home_team}</p>
-          <p className="my-1 text-sm text-slate-500">נגד</p>
-          <p className="text-xl font-black">{match.away_team}</p>
-
-          <p className="text-sm text-slate-400 mt-3">
-            {new Date(match.start_time).toLocaleString("he-IL")}
-          </p>
-        </div>
-
-        <div className="rounded-2xl bg-slate-900 border border-white/10 px-4 py-3 text-center min-w-20">
-          <p className="text-xs text-slate-500 mb-1">תוצאה</p>
-
-          <p className="text-xl font-black">
+        <div className="min-w-16 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
+          <p className="text-[10px] text-slate-500 sm:text-xs">תוצאה</p>
+          <p className="text-lg font-black sm:text-xl">
             {isFinished ? `${match.home_score} - ${match.away_score}` : "-"}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      {!isEditing ? (
+        <>
+          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3">
+            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
+              <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+                בית
+              </p>
+              <p className="truncate text-base font-black sm:text-2xl">
+                {match.home_team}
+              </p>
+            </div>
+
+            <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-[10px] font-black text-yellow-300 sm:h-12 sm:w-12 sm:text-sm">
+              נגד
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
+              <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+                חוץ
+              </p>
+              <p className="truncate text-base font-black sm:text-2xl">
+                {match.away_team}
+              </p>
+            </div>
+          </div>
+
+          <p className="mb-3 text-center text-xs text-slate-400 sm:mb-4 sm:text-sm">
+            {new Date(match.start_time).toLocaleString("he-IL")}
+          </p>
+        </>
+      ) : (
+        <div className="mb-3 space-y-3 sm:mb-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
+            <div>
+              <label className="mb-1 block text-[11px] text-slate-400">
+                בית
+              </label>
+              <input
+                type="text"
+                value={editHomeTeam}
+                onChange={(event) => setEditHomeTeam(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
+              />
+            </div>
+
+            <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-[10px] font-black text-yellow-300 sm:h-11 sm:w-11">
+              נגד
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[11px] text-slate-400">
+                חוץ
+              </label>
+              <input
+                type="text"
+                value={editAwayTeam}
+                onChange={(event) => setEditAwayTeam(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-[11px] text-slate-400">
+              תאריך ושעה
+            </label>
+            <input
+              type="datetime-local"
+              value={editStartTime}
+              onChange={(event) => setEditStartTime(event.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none focus:border-green-400 sm:text-base"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onUpdateMatch(
+                  match.id,
+                  editHomeTeam,
+                  editAwayTeam,
+                  editStartTime
+                );
+                setIsEditing(false);
+              }}
+              className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
+            >
+              שמור עריכה
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEditHomeTeam(match.home_team);
+                setEditAwayTeam(match.away_team);
+                setEditStartTime(formatDateTimeForInput(match.start_time));
+                setIsEditing(false);
+              }}
+              className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-bold transition hover:bg-slate-800"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-3 grid grid-cols-2 gap-2">
         <input
           type="number"
           min="0"
           value={homeScore}
           onChange={(event) => setHomeScore(event.target.value)}
           placeholder="בית"
-          className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-4 text-center text-xl font-black outline-none transition focus:border-green-400"
+          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
 
         <input
@@ -376,17 +564,35 @@ function ScoreForm({
           value={awayScore}
           onChange={(event) => setAwayScore(event.target.value)}
           placeholder="חוץ"
-          className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-4 text-center text-xl font-black outline-none transition focus:border-green-400"
+          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
       </div>
 
-      <button
-        type="button"
-        onClick={() => onUpdate(match.id, homeScore, awayScore)}
-        className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
-      >
-        עדכן תוצאה
-      </button>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => onUpdateScore(match.id, homeScore, awayScore)}
+          className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
+        >
+          עדכן תוצאה
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsEditing((current) => !current)}
+          className="rounded-xl border border-white/10 bg-blue-600/80 px-4 py-3 text-sm font-bold transition hover:bg-blue-600"
+        >
+          {isEditing ? "סגור עריכה" : "ערוך משחק"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onDeleteMatch(match.id)}
+          className="rounded-xl border border-red-400/20 bg-red-600/80 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
+        >
+          מחק משחק
+        </button>
+      </div>
     </div>
   );
 }
