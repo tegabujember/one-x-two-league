@@ -26,6 +26,7 @@ type League = {
   code: string;
   admin_code: string | null;
   owner_id: string | null;
+  predictions_locked: boolean;
 };
 
 type Prediction = {
@@ -114,7 +115,9 @@ export default function LeagueClient({
       const savedAdminCode = localStorage.getItem(adminStorageKey);
 
       const isGoogleOwner =
-        Boolean(user?.id) && Boolean(league.owner_id) && user?.id === league.owner_id;
+        Boolean(user?.id) &&
+        Boolean(league.owner_id) &&
+        user?.id === league.owner_id;
 
       const isLegacyAdmin =
         Boolean(savedAdminCode) &&
@@ -217,66 +220,75 @@ export default function LeagueClient({
     return null;
   }
 
- async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
-  if (!selectedPlayerId) {
-    alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
-    return;
-  }
-
-  setIsSaving(true);
-
-  const response = await fetch(`/api/leagues/${league.code}/predictions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      match_id: matchId,
-      player_id: selectedPlayerId,
-      pick,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    console.error(errorData);
-
-    if (response.status === 401) {
-      alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
-    } else if (response.status === 403) {
-      alert("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר");
-    } else {
-      alert("שגיאה בשמירת הניחוש");
+  async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
+    if (!selectedPlayerId) {
+      alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
+      return;
     }
+
+    if (league.predictions_locked) {
+      alert("הניחושים נסגרו על ידי מנהל הליגה");
+      return;
+    }
+
+    setIsSaving(true);
+
+    const response = await fetch(`/api/leagues/${league.code}/predictions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        match_id: matchId,
+        player_id: selectedPlayerId,
+        pick,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
+      } else if (response.status === 403) {
+        if (errorData?.error === "League predictions are locked") {
+          alert("הניחושים נסגרו על ידי מנהל הליגה");
+        } else {
+          alert("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר");
+        }
+      } else {
+        alert("שגיאה בשמירת הניחוש");
+      }
+
+      setIsSaving(false);
+      return;
+    }
+
+    const data = await response.json();
+    const savedPrediction = data.prediction as Prediction;
+
+    setLocalPredictions((current) => {
+      const existingPrediction = current.find(
+        (prediction) =>
+          prediction.match_id === savedPrediction.match_id &&
+          prediction.player_id === savedPrediction.player_id
+      );
+
+      if (existingPrediction) {
+        return current.map((prediction) =>
+          prediction.match_id === savedPrediction.match_id &&
+          prediction.player_id === savedPrediction.player_id
+            ? savedPrediction
+            : prediction
+        );
+      }
+
+      return [...current, savedPrediction];
+    });
 
     setIsSaving(false);
-    return;
   }
-
-  const data = await response.json();
-  const savedPrediction = data.prediction as Prediction;
-
-  setLocalPredictions((current) => {
-    const existingPrediction = current.find(
-      (prediction) =>
-        prediction.match_id === savedPrediction.match_id &&
-        prediction.player_id === savedPrediction.player_id
-    );
-
-    if (existingPrediction) {
-      return current.map((prediction) =>
-        prediction.match_id === savedPrediction.match_id &&
-        prediction.player_id === savedPrediction.player_id
-          ? savedPrediction
-          : prediction
-      );
-    }
-
-    return [...current, savedPrediction];
-  });
-
-  setIsSaving(false);
-}
 
   function handlePlayerChange(playerId: string) {
     setSelectedPlayerId(playerId);
@@ -365,6 +377,12 @@ ${leagueUrl}`;
                 {league.code}
               </span>
             </div>
+
+            {league.predictions_locked && (
+              <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
+                🔒 הניחושים נסגרו על ידי מנהל הליגה
+              </div>
+            )}
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-3">
@@ -547,8 +565,9 @@ ${leagueUrl}`;
               <div className="space-y-3 sm:space-y-4">
                 {matchesToShow.map((match) => {
                   const currentPrediction = getPredictionForMatch(match.id);
-                  const isMatchLocked =
+                  const isTimeLocked =
                     new Date(match.start_time) <= new Date();
+                  const isMatchLocked = league.predictions_locked || isTimeLocked;
                   const matchResult = getMatchResult(match);
                   const featuredLabel = getFeaturedMatchLabel(match);
 
@@ -688,7 +707,13 @@ ${leagueUrl}`;
                         </p>
                       )}
 
-                      {isMatchLocked && (
+                      {league.predictions_locked && match.status !== "finished" && (
+                        <p className="mt-2 text-center text-xs text-red-300">
+                          הניחושים נסגרו על ידי מנהל הליגה
+                        </p>
+                      )}
+
+                      {!league.predictions_locked && isTimeLocked && (
                         <p className="mt-2 text-center text-xs text-red-300">
                           הניחוש למשחק הזה נסגר
                         </p>

@@ -11,6 +11,7 @@ type League = {
   code: string;
   admin_code: string | null;
   owner_id: string | null;
+  predictions_locked: boolean;
 };
 
 type Player = {
@@ -488,6 +489,58 @@ export default function LeagueAdminPage() {
     );
   }
 
+  async function toggleLeaguePredictionsLock() {
+  if (!league) {
+    alert("הליגה לא נטענה");
+    return;
+  }
+
+  const nextLockedValue = !league.predictions_locked;
+
+  const message = nextLockedValue
+    ? "אתה בטוח שאתה רוצה לנעול ניחושים לכל הליגה?"
+    : "אתה בטוח שאתה רוצה לפתוח מחדש ניחושים למשחקים עתידיים?";
+
+  const shouldUpdate = confirm(message);
+
+  if (!shouldUpdate) {
+    return;
+  }
+
+  const response = await fetch(`/api/leagues/${code}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      predictions_locked: nextLockedValue,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    console.error(errorData);
+
+    if (response.status === 401) {
+      alert("צריך להתחבר עם Google");
+    } else if (response.status === 403) {
+      alert("אין לך הרשאה לשנות את מצב הניחושים");
+    } else {
+      alert("שגיאה בעדכון מצב הניחושים");
+    }
+
+    return;
+  }
+
+  await loadLeagueAndMatches();
+
+  alert(
+    nextLockedValue
+      ? "הניחושים ננעלו לכולם"
+      : "הניחושים נפתחו למשחקים עתידיים"
+  );
+}
+
   async function updateScore(
     matchId: string,
     homeScore: string,
@@ -679,6 +732,32 @@ export default function LeagueAdminPage() {
                     מנהל מחובר: {adminEmail}
                   </span>
                 )}
+                <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3">
+                  <p className="mb-3 text-xs font-bold text-slate-300">
+                    מצב ניחושים:{" "}
+                    <span
+                      className={
+                        league.predictions_locked ? "text-red-300" : "text-green-300"
+                      }
+                    >
+                      {league.predictions_locked ? "נעולים" : "פתוחים"}
+                    </span>
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={toggleLeaguePredictionsLock}
+                    className={`w-full rounded-xl px-4 py-3 text-sm font-black transition hover:scale-[1.02] ${
+                      league.predictions_locked
+                        ? "bg-gradient-to-r from-green-500 to-emerald-700 text-white"
+                        : "bg-gradient-to-r from-red-500 to-rose-700 text-white"
+                    }`}
+                  >
+                    {league.predictions_locked
+                      ? "פתח ניחושים למשחקים עתידיים"
+                      : "נעל ניחושים לכל הליגה"}
+                  </button>
+                </div>
               </div>
             )}
           </div>

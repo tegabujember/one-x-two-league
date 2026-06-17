@@ -1,5 +1,3 @@
-
-
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
@@ -47,12 +45,19 @@ export async function POST(
 
   const { data: league, error: leagueError } = await supabaseAdmin
     .from("leagues")
-    .select("id")
+    .select("id, predictions_locked")
     .eq("code", cleanCode)
     .single();
 
   if (leagueError || !league) {
     return NextResponse.json({ error: "League not found" }, { status: 404 });
+  }
+
+  if (league.predictions_locked) {
+    return NextResponse.json(
+      { error: "League predictions are locked" },
+      { status: 403 }
+    );
   }
 
   const { data: player, error: playerError } = await supabaseAdmin
