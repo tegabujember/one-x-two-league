@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabaseBrowser";
 
 export default function JoinLeaguePage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const [playerName, setPlayerName] = useState("");
   const [leagueCode, setLeagueCode] = useState("");
+  const [userId, setUserId] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingUser, setIsCheckingUser] = useState(true);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -19,10 +23,50 @@ export default function JoinLeaguePage() {
     if (codeFromUrl) {
       setLeagueCode(codeFromUrl.trim().toUpperCase());
     }
-  }, []);
+
+    async function loadUser() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        setUserId(session.user.id);
+        setUserEmail(session.user.email || "");
+      } else {
+        setUserId("");
+        setUserEmail("");
+      }
+
+      setIsCheckingUser(false);
+    }
+
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        setUserEmail(session.user.email || "");
+      } else {
+        setUserId("");
+        setUserEmail("");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!userId) {
+      alert("כדי להצטרף לליגה צריך להתחבר עם Google");
+      router.push("/login");
+      return;
+    }
 
     if (!playerName.trim() || !leagueCode.trim()) {
       alert("צריך למלא שם וקוד ליגה");
@@ -46,11 +90,36 @@ export default function JoinLeaguePage() {
       return;
     }
 
+    const { data: existingPlayer, error: existingPlayerError } = await supabase
+      .from("players")
+      .select("*")
+      .eq("league_id", leagueData.id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingPlayerError) {
+      console.error(existingPlayerError);
+      alert("שגיאה בבדיקת שחקן קיים");
+      setIsLoading(false);
+      return;
+    }
+
+    if (existingPlayer) {
+      localStorage.setItem("last-league-code", cleanCode);
+      localStorage.setItem(`selected-player-${cleanCode}`, existingPlayer.id);
+
+      alert("כבר הצטרפת לליגה הזאת. מחזיר אותך לשחקן הקיים שלך.");
+
+      router.push(`/league/${cleanCode}`);
+      return;
+    }
+
     const { data: playerData, error: playerError } = await supabase
       .from("players")
       .insert({
         league_id: leagueData.id,
         name: playerName.trim(),
+        user_id: userId,
       })
       .select()
       .single();
@@ -94,6 +163,35 @@ export default function JoinLeaguePage() {
             הכנס שם שחקן וקוד ליגה, ותוכל להתחיל לשלוח ניחושים.
           </p>
 
+          {isCheckingUser ? (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-center">
+              <p className="text-sm text-slate-300">בודק התחברות...</p>
+            </div>
+          ) : userId ? (
+            <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
+              <p className="text-xs text-slate-400">מחובר עם Google</p>
+              <p className="mt-1 text-sm font-bold text-green-300">
+                {userEmail}
+              </p>
+              <p className="mt-2 text-[11px] text-slate-500">
+                user_id: {userId.slice(0, 8)}...
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
+              <p className="text-sm text-red-200">
+                כדי להצטרף לליגה צריך להתחבר עם Google.
+              </p>
+
+              <Link
+                href="/login"
+                className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
+              >
+                התחבר עם Google
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-300">
@@ -105,7 +203,8 @@ export default function JoinLeaguePage() {
                 value={playerName}
                 onChange={(event) => setPlayerName(event.target.value)}
                 placeholder="לדוגמה: Tegabu"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                disabled={!userId || isCheckingUser}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
               />
             </div>
 
@@ -121,13 +220,14 @@ export default function JoinLeaguePage() {
                   setLeagueCode(event.target.value.toUpperCase())
                 }
                 placeholder="לדוגמה: AB72K"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                disabled={!userId || isCheckingUser}
+                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
               />
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isCheckingUser || !userId}
               className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isLoading ? "מצטרף לליגה..." : "הצטרף לליגה"}
@@ -142,6 +242,13 @@ export default function JoinLeaguePage() {
               </p>
             </div>
           )}
+
+          <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
+            <p className="text-sm leading-6 text-yellow-100">
+              השחקן שלך נשמר לחשבון ה־Google שלך. אותו חשבון לא יכול להצטרף
+              פעמיים לאותה ליגה.
+            </p>
+          </div>
 
           <Link
             href="/"

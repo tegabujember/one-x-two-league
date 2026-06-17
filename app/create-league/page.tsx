@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabaseBrowser";
 
 function generateLeagueCode() {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -29,13 +29,42 @@ function generateAdminCode() {
 
 export default function CreateLeaguePage() {
   const router = useRouter();
+  const supabase = createClient();
 
   const [leagueName, setLeagueName] = useState("");
   const [adminName, setAdminName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingUser, setIsCheckingUser] = useState(true);
+
+  useEffect(() => {
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+
+      setIsCheckingUser(false);
+    }
+
+    loadUser();
+  }, [supabase]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("כדי ליצור ליגה צריך להתחבר עם Google");
+      router.push("/login");
+      return;
+    }
 
     if (!leagueName.trim() || !adminName.trim()) {
       alert("צריך למלא שם ליגה ואת השם שלך");
@@ -54,6 +83,7 @@ export default function CreateLeaguePage() {
         code: newCode,
         admin_name: adminName.trim(),
         admin_code: newAdminCode,
+        owner_id: user.id,
       })
       .select()
       .single();
@@ -70,6 +100,7 @@ export default function CreateLeaguePage() {
       .insert({
         league_id: leagueData.id,
         name: adminName.trim(),
+        user_id: user.id,
       })
       .select()
       .single();
@@ -116,6 +147,32 @@ export default function CreateLeaguePage() {
             פתח ליגת ניחושים, קבל קוד מנהל, ושתף את הלינק לחברים.
           </p>
 
+          {isCheckingUser ? (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-center">
+              <p className="text-sm text-slate-300">בודק התחברות...</p>
+            </div>
+          ) : userEmail ? (
+            <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
+              <p className="text-xs text-slate-400">מחובר עם Google</p>
+              <p className="mt-1 text-sm font-bold text-green-300">
+                {userEmail}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
+              <p className="text-sm text-red-200">
+                כדי ליצור ליגה צריך להתחבר עם Google.
+              </p>
+
+              <Link
+                href="/login"
+                className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
+              >
+                התחבר עם Google
+              </Link>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-300">
@@ -147,7 +204,7 @@ export default function CreateLeaguePage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isCheckingUser}
               className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
             >
               {isLoading ? "יוצר ליגה..." : "צור ליגה"}
@@ -156,8 +213,8 @@ export default function CreateLeaguePage() {
 
           <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
             <p className="text-sm leading-6 text-yellow-100">
-              אחרי יצירת הליגה תקבל קוד מנהל. שמור אותו — איתו תוכל להוסיף
-              משחקים ולעדכן תוצאות.
+              אחרי יצירת הליגה תקבל קוד מנהל. בגרסה החדשה הליגה גם תיקשר
+              לחשבון ה־Google שלך.
             </p>
           </div>
 
