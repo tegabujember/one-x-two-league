@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabaseBrowser";
 
 type League = {
   id: string;
   name: string;
   code: string;
   admin_code: string | null;
+  owner_id: string | null;
 };
 
 type Match = {
@@ -34,11 +35,13 @@ function formatDateTimeForInput(dateString: string) {
 export default function LeagueAdminPage() {
   const params = useParams();
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const code = String(params.code).toUpperCase();
 
   const [league, setLeague] = useState<League | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [adminEmail, setAdminEmail] = useState("");
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -49,6 +52,10 @@ export default function LeagueAdminPage() {
 
   const loadLeagueAndMatches = useCallback(async () => {
     setIsLoadingPage(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     const { data: leagueData, error: leagueError } = await supabase
       .from("leagues")
@@ -65,14 +72,24 @@ export default function LeagueAdminPage() {
 
     const savedAdminCode = localStorage.getItem(`league-admin-${code}`);
 
-    if (
-      !leagueData.admin_code ||
-      !savedAdminCode ||
-      savedAdminCode !== leagueData.admin_code
-    ) {
+    const isGoogleOwner =
+      Boolean(user?.id) &&
+      Boolean(leagueData.owner_id) &&
+      user?.id === leagueData.owner_id;
+
+    const isLegacyAdmin =
+      Boolean(leagueData.admin_code) &&
+      Boolean(savedAdminCode) &&
+      savedAdminCode === leagueData.admin_code;
+
+    if (!isGoogleOwner && !isLegacyAdmin) {
       alert("אין לך הרשאת מנהל לליגה הזאת");
       router.replace(`/league/${code}`);
       return;
+    }
+
+    if (user?.email) {
+      setAdminEmail(user.email);
     }
 
     setLeague(leagueData);
@@ -92,7 +109,7 @@ export default function LeagueAdminPage() {
 
     setMatches(matchesData || []);
     setIsLoadingPage(false);
-  }, [code, router]);
+  }, [code, router, supabase]);
 
   useEffect(() => {
     loadLeagueAndMatches();
@@ -113,17 +130,30 @@ export default function LeagueAdminPage() {
 
     setIsLoading(true);
 
-    const { error: matchError } = await supabase.from("matches").insert({
-      league_id: league.id,
-      home_team: homeTeam.trim(),
-      away_team: awayTeam.trim(),
-      start_time: new Date(startTime).toISOString(),
-      status: "upcoming",
+    const response = await fetch(`/api/leagues/${code}/matches`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        home_team: homeTeam.trim(),
+        away_team: awayTeam.trim(),
+        start_time: new Date(startTime).toISOString(),
+      }),
     });
 
-    if (matchError) {
-      console.error(matchError);
-      alert("שגיאה בהוספת משחק");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי להוסיף משחק");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה להוסיף משחק לליגה הזאת");
+      } else {
+        alert("שגיאה בהוספת משחק");
+      }
+
       setIsLoading(false);
       return;
     }
@@ -160,18 +190,29 @@ export default function LeagueAdminPage() {
       return;
     }
 
-    const { error } = await supabase
-      .from("matches")
-      .update({
+    const response = await fetch(`/api/leagues/${code}/matches/${matchId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         home_score: homeScoreNumber,
         away_score: awayScoreNumber,
-        status: "finished",
-      })
-      .eq("id", matchId);
+      }),
+    });
 
-    if (error) {
-      console.error(error);
-      alert("שגיאה בעדכון התוצאה");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי לעדכן תוצאה");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לעדכן תוצאה בליגה הזאת");
+      } else {
+        alert("שגיאה בעדכון התוצאה");
+      }
+
       return;
     }
 
@@ -194,18 +235,30 @@ export default function LeagueAdminPage() {
       return;
     }
 
-    const { error } = await supabase
-      .from("matches")
-      .update({
+    const response = await fetch(`/api/leagues/${code}/matches/${matchId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         home_team: homeTeamValue.trim(),
         away_team: awayTeamValue.trim(),
         start_time: new Date(startTimeValue).toISOString(),
-      })
-      .eq("id", matchId);
+      }),
+    });
 
-    if (error) {
-      console.error(error);
-      alert("שגיאה בעדכון המשחק");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי לערוך משחק");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לערוך משחק בליגה הזאת");
+      } else {
+        alert("שגיאה בעדכון המשחק");
+      }
+
       return;
     }
 
@@ -222,11 +275,22 @@ export default function LeagueAdminPage() {
       return;
     }
 
-    const { error } = await supabase.from("matches").delete().eq("id", matchId);
+    const response = await fetch(`/api/leagues/${code}/matches/${matchId}`, {
+      method: "DELETE",
+    });
 
-    if (error) {
-      console.error(error);
-      alert("שגיאה במחיקת המשחק");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google כדי למחוק משחק");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה למחוק משחק בליגה הזאת");
+      } else {
+        alert("שגיאה במחיקת המשחק");
+      }
+
       return;
     }
 
@@ -288,11 +352,20 @@ export default function LeagueAdminPage() {
                     {league.code}
                   </span>
                 </span>
+
+                {adminEmail && (
+                  <span className="mt-2 rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1 text-[11px] font-bold text-green-300">
+                    מנהל מחובר: {adminEmail}
+                  </span>
+                )}
               </div>
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4 sm:mt-8 sm:space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            className="mt-6 space-y-4 sm:mt-8 sm:space-y-5"
+          >
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
               <div>
                 <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">

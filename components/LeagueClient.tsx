@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabaseBrowser";
 
 type Player = {
   id: string;
   name: string;
+  user_id: string | null;
 };
 
 type Match = {
@@ -24,6 +25,7 @@ type League = {
   name: string;
   code: string;
   admin_code: string | null;
+  owner_id: string | null;
 };
 
 type Prediction = {
@@ -68,6 +70,8 @@ export default function LeagueClient({
   matches,
   predictions,
 }: LeagueClientProps) {
+  const supabase = useMemo(() => createClient(), []);
+
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [localPredictions, setLocalPredictions] = useState(predictions);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,26 +82,59 @@ export default function LeagueClient({
   const adminStorageKey = `league-admin-${league.code}`;
 
   useEffect(() => {
-    const savedPlayerId = localStorage.getItem(selectedPlayerStorageKey);
+    async function loadUserAndLocalState() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (savedPlayerId) {
-      const playerExists = players.some((player) => player.id === savedPlayerId);
+      const savedPlayerId = localStorage.getItem(selectedPlayerStorageKey);
 
-      if (playerExists) {
-        setSelectedPlayerId(savedPlayerId);
+      if (savedPlayerId) {
+        const playerExists = players.some(
+          (player) => player.id === savedPlayerId
+        );
+
+        if (playerExists) {
+          setSelectedPlayerId(savedPlayerId);
+        }
+      } else if (user?.id) {
+        const playerByGoogleUser = players.find(
+          (player) => player.user_id === user.id
+        );
+
+        if (playerByGoogleUser) {
+          setSelectedPlayerId(playerByGoogleUser.id);
+          localStorage.setItem(
+            selectedPlayerStorageKey,
+            playerByGoogleUser.id
+          );
+        }
+      }
+
+      const savedAdminCode = localStorage.getItem(adminStorageKey);
+
+      const isGoogleOwner =
+        Boolean(user?.id) && Boolean(league.owner_id) && user?.id === league.owner_id;
+
+      const isLegacyAdmin =
+        Boolean(savedAdminCode) &&
+        Boolean(league.admin_code) &&
+        savedAdminCode === league.admin_code;
+
+      if (isGoogleOwner || isLegacyAdmin) {
+        setIsAdmin(true);
       }
     }
 
-    const savedAdminCode = localStorage.getItem(adminStorageKey);
-
-    if (
-      savedAdminCode &&
-      league.admin_code &&
-      savedAdminCode === league.admin_code
-    ) {
-      setIsAdmin(true);
-    }
-  }, [players, selectedPlayerStorageKey, adminStorageKey, league.admin_code]);
+    loadUserAndLocalState();
+  }, [
+    players,
+    supabase,
+    selectedPlayerStorageKey,
+    adminStorageKey,
+    league.admin_code,
+    league.owner_id,
+  ]);
 
   const selectedPlayer = players.find(
     (player) => player.id === selectedPlayerId
@@ -180,59 +217,66 @@ export default function LeagueClient({
     return null;
   }
 
-  async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
-    if (!selectedPlayerId) {
-      alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
-      return;
-    }
+ async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
+  if (!selectedPlayerId) {
+    alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
+    return;
+  }
 
-    setIsSaving(true);
+  setIsSaving(true);
 
-    const existingPrediction = getPredictionForMatch(matchId);
+  const response = await fetch(`/api/leagues/${league.code}/predictions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      match_id: matchId,
+      player_id: selectedPlayerId,
+      pick,
+    }),
+  });
 
-    if (existingPrediction) {
-      const { data, error } = await supabase
-        .from("predictions")
-        .update({ pick })
-        .eq("id", existingPrediction.id)
-        .select()
-        .single();
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    console.error(errorData);
 
-      if (error) {
-        console.error(error);
-        alert("שגיאה בעדכון הניחוש");
-        setIsSaving(false);
-        return;
-      }
-
-      setLocalPredictions((current) =>
-        current.map((prediction) =>
-          prediction.id === existingPrediction.id ? data : prediction
-        )
-      );
+    if (response.status === 401) {
+      alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
+    } else if (response.status === 403) {
+      alert("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר");
     } else {
-      const { data, error } = await supabase
-        .from("predictions")
-        .insert({
-          match_id: matchId,
-          player_id: selectedPlayerId,
-          pick,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error(error);
-        alert("שגיאה בשמירת הניחוש");
-        setIsSaving(false);
-        return;
-      }
-
-      setLocalPredictions((current) => [...current, data]);
+      alert("שגיאה בשמירת הניחוש");
     }
 
     setIsSaving(false);
+    return;
   }
+
+  const data = await response.json();
+  const savedPrediction = data.prediction as Prediction;
+
+  setLocalPredictions((current) => {
+    const existingPrediction = current.find(
+      (prediction) =>
+        prediction.match_id === savedPrediction.match_id &&
+        prediction.player_id === savedPrediction.player_id
+    );
+
+    if (existingPrediction) {
+      return current.map((prediction) =>
+        prediction.match_id === savedPrediction.match_id &&
+        prediction.player_id === savedPrediction.player_id
+          ? savedPrediction
+          : prediction
+      );
+    }
+
+    return [...current, savedPrediction];
+  });
+
+  setIsSaving(false);
+}
 
   function handlePlayerChange(playerId: string) {
     setSelectedPlayerId(playerId);
