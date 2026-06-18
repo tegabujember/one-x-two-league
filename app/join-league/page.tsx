@@ -22,6 +22,16 @@ type ExistingPlayerResponse = {
   alreadyJoined: boolean;
 };
 
+function getSafeJoinRedirect(code: string) {
+  const cleanCode = code.trim();
+
+  if (!cleanCode) {
+    return "/join-league";
+  }
+
+  return `/join-league?code=${encodeURIComponent(cleanCode)}`;
+}
+
 export default function JoinLeaguePage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -41,7 +51,7 @@ export default function JoinLeaguePage() {
     const codeFromUrl = params.get("code");
 
     if (codeFromUrl) {
-      setLeagueCode(codeFromUrl.trim().toUpperCase());
+      setLeagueCode(codeFromUrl.trim());
     }
 
     async function loadUser() {
@@ -87,19 +97,25 @@ export default function JoinLeaguePage() {
     let isCancelled = false;
 
     async function checkExistingPlayer() {
-      const cleanCode = leagueCode.trim().toUpperCase();
+      const cleanCode = leagueCode.trim();
 
       setIsCheckingExistingPlayer(true);
       setAutoLoginMessage("בודק אם כבר הצטרפת לליגה הזאת...");
 
       try {
-        const response = await fetch(`/api/leagues/${cleanCode}/players`, {
-          method: "GET",
-        });
+        const response = await fetch(
+          `/api/leagues/${encodeURIComponent(cleanCode)}/players`,
+          {
+            method: "GET",
+          }
+        );
 
         if (!response.ok) {
-          setAutoLoginMessage("");
-          setIsCheckingExistingPlayer(false);
+          if (!isCancelled) {
+            setAutoLoginMessage("");
+            setIsCheckingExistingPlayer(false);
+          }
+
           return;
         }
 
@@ -119,7 +135,7 @@ export default function JoinLeaguePage() {
           );
 
           setTimeout(() => {
-            router.replace(`/league/${cleanCode}`);
+            router.replace(`/league/${encodeURIComponent(cleanCode)}`);
           }, 900);
 
           return;
@@ -145,47 +161,49 @@ export default function JoinLeaguePage() {
   }, [userId, leagueCode, router]);
 
   function saveRedirectBeforeLogin() {
-    const cleanCode = leagueCode.trim().toUpperCase();
+    const cleanCode = leagueCode.trim();
+    const redirectPath = getSafeJoinRedirect(cleanCode);
+
+    localStorage.setItem("redirect-after-login", redirectPath);
 
     if (cleanCode) {
-      localStorage.setItem(
-        "redirect-after-login",
-        `/join-league?code=${cleanCode}`
-      );
       localStorage.setItem("last-league-code", cleanCode);
-    } else {
-      localStorage.setItem("redirect-after-login", "/join-league");
     }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const cleanCode = leagueCode.trim();
+
     if (!userId) {
       alert("כדי להצטרף לליגה צריך להתחבר עם Google");
       saveRedirectBeforeLogin();
-      router.push("/login");
+      router.push(
+        `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
+      );
       return;
     }
 
-    if (!playerName.trim() || !leagueCode.trim()) {
+    if (!playerName.trim() || !cleanCode) {
       alert("צריך למלא שם וקוד ליגה");
       return;
     }
 
     setIsLoading(true);
 
-    const cleanCode = leagueCode.trim().toUpperCase();
-
-    const response = await fetch(`/api/leagues/${cleanCode}/players`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: playerName.trim(),
-      }),
-    });
+    const response = await fetch(
+      `/api/leagues/${encodeURIComponent(cleanCode)}/players`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: playerName.trim(),
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => null);
@@ -194,7 +212,9 @@ export default function JoinLeaguePage() {
       if (response.status === 401) {
         alert("צריך להתחבר עם Google כדי להצטרף לליגה");
         saveRedirectBeforeLogin();
-        router.push("/login");
+        router.push(
+          `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
+        );
       } else if (response.status === 404) {
         alert("לא נמצאה ליגה עם הקוד הזה");
       } else {
@@ -211,11 +231,15 @@ export default function JoinLeaguePage() {
     localStorage.setItem(`selected-player-${cleanCode}`, data.player.id);
     localStorage.removeItem("redirect-after-login");
 
-    router.push(`/league/${cleanCode}`);
+    router.push(`/league/${encodeURIComponent(cleanCode)}`);
   }
 
   const isFormDisabled =
     !userId || isCheckingUser || isCheckingExistingPlayer || isLoading;
+
+  const loginHref = `/login?next=${encodeURIComponent(
+    getSafeJoinRedirect(leagueCode)
+  )}`;
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
@@ -261,7 +285,7 @@ export default function JoinLeaguePage() {
               </p>
 
               <Link
-                href="/login"
+                href={loginHref}
                 onClick={saveRedirectBeforeLogin}
                 className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
@@ -302,9 +326,7 @@ export default function JoinLeaguePage() {
               <input
                 type="text"
                 value={leagueCode}
-                onChange={(event) =>
-                  setLeagueCode(event.target.value.toUpperCase())
-                }
+                onChange={(event) => setLeagueCode(event.target.value.trim())}
                 placeholder="לדוגמה: AB72K"
                 disabled={isFormDisabled}
                 className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
@@ -327,7 +349,7 @@ export default function JoinLeaguePage() {
           {leagueCode && (
             <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
               <p className="text-xs text-slate-400 mb-1">אתה מצטרף לליגה</p>
-              <p className="text-2xl font-black tracking-widest text-green-300">
+              <p className="break-words text-2xl font-black tracking-widest text-green-300">
                 {leagueCode}
               </p>
             </div>
