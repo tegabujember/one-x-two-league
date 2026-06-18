@@ -532,118 +532,57 @@ ${leagueUrl}`;
 
         {selectedPlayer && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-black sm:text-3xl">
-                  הניחושים שלי
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  תקציר אישי קצר של מצב הניחושים שלך
-                </p>
-              </div>
-
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-green-400/20 bg-green-500/10 text-3xl shadow-lg shadow-green-950/30">
-                🎯
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-                  <p className="text-xs font-bold text-slate-400">ניחשתי</p>
-                  <p className="mt-2 text-4xl font-black text-green-300">
-                    {selectedPlayerPredictionMatchIds.size}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    מתוך {matches.length}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4 text-center">
-                  <p className="text-xs font-bold text-slate-400">
-                    דיוק נוכחי
-                  </p>
-                  <p className="mt-2 text-4xl font-black text-green-300">
-                    {predictionAccuracy}%
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    לפי משחקים שהסתיימו
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5">
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-bold text-slate-300">התקדמות</span>
-                  <span className="font-black text-green-300">
-                    {selectedPlayerPredictionMatchIds.size}/{matches.length}
-                  </span>
-                </div>
-
-                <div className="h-4 overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
-                    style={{ width: `${predictionProgress}%` }}
-                  />
-                </div>
-
-                <p className="mt-2 text-xs font-bold text-green-300">
-                  {predictionProgress}% הושלמו
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3">
-                <p className="text-2xl font-black text-green-300">
+            <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
+              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">✓</p>
+                <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
                   {correctPredictions.length}
                 </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400">
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
                   נכונים
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3">
-                <p className="text-2xl font-black text-red-300">
+              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">×</p>
+                <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
                   {wrongPredictions.length}
                 </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400">
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
                   שגויים
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-400/20 bg-slate-500/10 p-3">
-                <p className="text-2xl font-black text-slate-200">
+              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">⌛</p>
+                <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
                   {pendingPredictions.length}
                 </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400">
-                  טרם התקיימו
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  ממתינים
                 </p>
               </div>
             </div>
 
-            {missingOpenMatches.length > 0 ? (
-              <div className="mt-4 rounded-2xl border border-orange-400/20 bg-orange-500/10 p-4 text-center">
-                <p className="text-sm font-bold text-orange-300">
-                  נשארו לך {missingOpenMatches.length} משחקים פתוחים לניחוש
-                </p>
+            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
+              <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
+                <span className="font-black text-white">התקדמות כללית</span>
+                <span className="font-black text-green-300">
+                  {selectedPlayerPredictionMatchIds.size}/{matches.length}
+                </span>
               </div>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-                <p className="text-sm font-bold text-green-300">
-                  סימנת את כל המשחקים הפתוחים ✅
-                </p>
-              </div>
-            )}
 
-            <button
-              type="button"
-              onClick={() => setShowAllMatches(true)}
-              className="mt-4 w-full rounded-2xl border border-green-400/30 bg-green-500/10 px-5 py-4 text-center text-sm font-black text-green-300 transition hover:bg-green-500/20"
-            >
-              עבור למשחקים וניחושים
-            </button>
+              <div className="h-4 overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
+                  style={{ width: `${predictionProgress}%` }}
+                />
+              </div>
+
+              <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
+                {predictionProgress}% הושלמו
+              </p>
+            </div>
           </div>
         )}
 
