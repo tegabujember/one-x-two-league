@@ -1,6 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
+
+type ToastType = "success" | "error" | "warning" | "info";
+
+type ToastState = {
+  message: string;
+  type: ToastType;
+};
 
 function getSafeRedirect(value: string | null) {
   if (!value) return "/";
@@ -13,6 +21,15 @@ function getSafeRedirect(value: string | null) {
 
 export default function LoginPage() {
   const supabase = createClient();
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  function showToast(message: string, type: ToastType = "info") {
+    setToast({ message, type });
+
+    window.setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  }
 
   async function signInWithGoogle() {
     const origin = window.location.origin;
@@ -37,12 +54,30 @@ export default function LoginPage() {
 
     if (error) {
       console.error(error);
-      alert("שגיאה בהתחברות עם Google");
+      showToast("שגיאה בהתחברות עם Google", "error");
     }
   }
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-4">
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+              toast.type === "success"
+                ? "border-green-400/30 bg-green-500/20 text-green-100"
+                : toast.type === "error"
+                  ? "border-red-400/30 bg-red-500/20 text-red-100"
+                  : toast.type === "warning"
+                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl text-center">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600">
           <span className="text-3xl">🏆</span>

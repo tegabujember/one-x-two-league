@@ -22,6 +22,13 @@ type ExistingPlayerResponse = {
   alreadyJoined: boolean;
 };
 
+type ToastType = "success" | "error" | "warning" | "info";
+
+type ToastState = {
+  message: string;
+  type: ToastType;
+};
+
 function isUuidLike(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
     value.trim()
@@ -65,6 +72,7 @@ export default function JoinLeaguePage() {
   const [isCheckingExistingPlayer, setIsCheckingExistingPlayer] =
     useState(false);
   const [autoLoginMessage, setAutoLoginMessage] = useState("");
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -193,6 +201,14 @@ export default function JoinLeaguePage() {
     };
   }, [userId, leagueCode, router]);
 
+  function showToast(message: string, type: ToastType = "info") {
+  setToast({ message, type });
+
+  window.setTimeout(() => {
+    setToast(null);
+  }, 3000);
+}
+
   function saveRedirectBeforeLogin() {
   const cleanCode = getCleanLeagueCode(leagueCode);
   const redirectPath = getSafeJoinRedirect(cleanCode);
@@ -210,7 +226,7 @@ export default function JoinLeaguePage() {
     const cleanCode = getCleanLeagueCode(leagueCode);
 
     if (!userId) {
-      alert("כדי להצטרף לליגה צריך להתחבר עם Google");
+      showToast("כדי להצטרף לליגה צריך להתחבר עם Google", "warning");
       saveRedirectBeforeLogin();
       router.push(
         `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
@@ -219,7 +235,7 @@ export default function JoinLeaguePage() {
     }
 
     if (!playerName.trim() || !cleanCode) {
-      alert("צריך למלא שם וקוד ליגה");
+      showToast("צריך למלא שם וקוד ליגה", "warning");
       return;
     }
 
@@ -243,15 +259,15 @@ export default function JoinLeaguePage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר עם Google כדי להצטרף לליגה");
+        showToast("צריך להתחבר עם Google כדי להצטרף לליגה", "warning");
         saveRedirectBeforeLogin();
         router.push(
           `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
         );
       } else if (response.status === 404) {
-        alert("לא נמצאה ליגה עם הקוד הזה");
+        showToast("לא נמצאה ליגה עם הקוד הזה", "error");
       } else {
-        alert("שגיאה בהצטרפות לליגה");
+        showToast("שגיאה בהצטרפות לליגה", "error");
       }
 
       setIsLoading(false);
@@ -276,6 +292,23 @@ export default function JoinLeaguePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+              toast.type === "success"
+                ? "border-green-400/30 bg-green-500/20 text-green-100"
+                : toast.type === "error"
+                  ? "border-red-400/30 bg-red-500/20 text-red-100"
+                  : toast.type === "warning"
+                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
       <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
       <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />

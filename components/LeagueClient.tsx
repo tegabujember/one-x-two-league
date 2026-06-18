@@ -36,6 +36,13 @@ type Prediction = {
   pick: string;
 };
 
+type ToastType = "success" | "error" | "warning" | "info";
+
+type ToastState = {
+  message: string;
+  type: ToastType;
+};
+
 type LeagueClientProps = {
   league: League;
   players: Player[];
@@ -82,6 +89,7 @@ export default function LeagueClient({
   const [authEmail, setAuthEmail] = useState("");
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const selectedPlayerStorageKey = `selected-player-${league.code}`;
 
@@ -287,19 +295,27 @@ export default function LeagueClient({
     return null;
   }
 
+  function showToast(message: string, type: ToastType = "info") {
+  setToast({ message, type });
+
+  window.setTimeout(() => {
+    setToast(null);
+  }, 3000);
+}
+
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
     if (!authEmail) {
-      alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
+      showToast("צריך להתחבר עם Google כדי לשלוח ניחוש", "warning");
       return;
     }
 
     if (!selectedPlayerId) {
-      alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
+      showToast("צריך להתחבר עם Google כדי לשלוח ניחוש", "warning");
       return;
     }
 
     if (league.predictions_locked) {
-      alert("הניחושים נסגרו על ידי מנהל הליגה");
+      showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
       return;
     }
 
@@ -322,15 +338,15 @@ export default function LeagueClient({
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
+        showToast("כדי לשלוח ניחוש צריך קודם להצטרף לליגה", "warning");
       } else if (response.status === 403) {
         if (errorData?.error === "League predictions are locked") {
-          alert("הניחושים נסגרו על ידי מנהל הליגה");
+          showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
         } else {
-          alert("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר");
+          showToast("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר", "error");
         }
       } else {
-        alert("שגיאה בשמירת הניחוש");
+        showToast("שגיאה בשמירת הניחוש", "error");
       }
 
       setIsSaving(false);
@@ -377,10 +393,10 @@ export default function LeagueClient({
 
     try {
       await navigator.clipboard.writeText(leagueUrl);
-      alert("הלינק הועתק");
+      showToast("הלינק הועתק", "success");
     } catch (error) {
       console.error(error);
-      alert("לא הצלחתי להעתיק את הלינק");
+      showToast("לא הצלחתי להעתיק את הלינק", "error");
     }
   }
 
@@ -414,7 +430,7 @@ ${leagueUrl}`;
 
   if (error) {
     console.error(error);
-    alert("שגיאה בהתנתקות");
+    showToast("שגיאה בהתנתקות", "error");
     setIsSigningOut(false);
     return;
   }
@@ -432,6 +448,23 @@ ${leagueUrl}`;
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+      {toast && (
+      <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+        <div
+          className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+            toast.type === "success"
+              ? "border-green-400/30 bg-green-500/20 text-green-100"
+              : toast.type === "error"
+                ? "border-red-400/30 bg-red-500/20 text-red-100"
+                : toast.type === "warning"
+                  ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                  : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+          }`}
+        >
+          {toast.message}
+        </div>
+      </div>
+    )}
       {authEmail && (
         <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
           <button

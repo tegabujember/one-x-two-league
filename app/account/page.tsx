@@ -5,6 +5,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 
+type ToastType = "success" | "error" | "warning" | "info";
+
+type ToastState = {
+  message: string;
+  type: ToastType;
+};
+
 export default function AccountPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -12,6 +19,8 @@ export default function AccountPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -29,23 +38,39 @@ export default function AccountPage() {
     loadUser();
   }, [supabase]);
 
+  function showToast(message: string, type: ToastType = "info") {
+    setToast({ message, type });
+
+    window.setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  }
+
+  function clearAppLocalStorage() {
+    localStorage.removeItem("redirect-after-login");
+
+    Object.keys(localStorage)
+      .filter(
+        (key) =>
+          key.startsWith("selected-player-") ||
+          key.startsWith("league-admin-")
+      )
+      .forEach((key) => localStorage.removeItem(key));
+  }
+
   async function signOut() {
-    const shouldSignOut = confirm("אתה בטוח שאתה רוצה להתנתק?");
-
-    if (!shouldSignOut) {
-      return;
-    }
-
     setIsSigningOut(true);
 
     const { error } = await supabase.auth.signOut();
 
     if (error) {
       console.error(error);
-      alert("שגיאה בהתנתקות");
+      showToast("שגיאה בהתנתקות", "error");
       setIsSigningOut(false);
       return;
     }
+
+    clearAppLocalStorage();
 
     router.replace("/");
   }
@@ -68,6 +93,24 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-4 py-8">
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+              toast.type === "success"
+                ? "border-green-400/30 bg-green-500/20 text-green-100"
+                : toast.type === "error"
+                  ? "border-red-400/30 bg-red-500/20 text-red-100"
+                  : toast.type === "warning"
+                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
+
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
       <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
@@ -96,14 +139,42 @@ export default function AccountPage() {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={signOut}
-                disabled={isSigningOut}
-                className="w-full rounded-2xl bg-gradient-to-r from-red-500 to-rose-700 px-5 py-4 text-base font-black shadow-lg shadow-red-950/40 transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isSigningOut ? "מתנתק..." : "התנתק"}
-              </button>
+              {!showSignOutConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSignOutConfirm(true)}
+                  disabled={isSigningOut}
+                  className="w-full rounded-2xl bg-gradient-to-r from-red-500 to-rose-700 px-5 py-4 text-base font-black shadow-lg shadow-red-950/40 transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  התנתק
+                </button>
+              ) : (
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
+                  <p className="text-sm font-bold text-red-100">
+                    אתה בטוח שאתה רוצה להתנתק?
+                  </p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowSignOutConfirm(false)}
+                      disabled={isSigningOut}
+                      className="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm font-bold text-slate-100 transition hover:bg-slate-800 disabled:opacity-50"
+                    >
+                      ביטול
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      disabled={isSigningOut}
+                      className="rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                    >
+                      {isSigningOut ? "מתנתק..." : "כן, התנתק"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>

@@ -47,6 +47,14 @@ type ImportedPrediction = {
   pick: "1" | "X" | "2";
 };
 
+type ToastType = "success" | "error" | "warning" | "info";
+
+type ToastState = {
+  message: string;
+  type: ToastType;
+};
+
+
 function formatDateTimeForInput(dateString: string) {
   const date = new Date(dateString);
   const offset = date.getTimezoneOffset();
@@ -211,6 +219,62 @@ export default function LeagueAdminPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
+  const [toast, setToast] = useState<ToastState | null>(null);
+
+  function getToastTypeFromMessage(message: string): ToastType {
+  if (
+    message.includes("בהצלחה") ||
+    message.includes("עודכנה") ||
+    message.includes("נוסף") ||
+    message.includes("נמחק") ||
+    message.includes("יובאו") ||
+    message.includes("נפתחו") ||
+    message.includes("ננעלו")
+  ) {
+    return "success";
+  }
+
+  if (
+    message.includes("שגיאה") ||
+    message.includes("אין לך") ||
+    message.includes("לא נמצאה") ||
+    message.includes("לא נטענה") ||
+    message.includes("לא תקין")
+  ) {
+    return "error";
+  }
+
+  if (
+    message.includes("צריך") ||
+    message.includes("חייבת") ||
+    message.includes("חסרה")
+  ) {
+    return "warning";
+  }
+
+  return "info";
+}
+
+function showToast(message: string, type: ToastType = "info") {
+  setToast({ message, type });
+
+  window.setTimeout(() => {
+    setToast(null);
+  }, 3000);
+}
+
+useEffect(() => {
+  const originalAlert = window.alert;
+
+  window.alert = (message?: unknown) => {
+    const text = String(message ?? "");
+    showToast(text, getToastTypeFromMessage(text));
+  };
+
+  return () => {
+    window.alert = originalAlert;
+  };
+}, []);
 
   const loadLeagueAndMatches = useCallback(async () => {
     setIsLoadingPage(true);
@@ -726,6 +790,23 @@ export default function LeagueAdminPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+      {toast && (
+        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+              toast.type === "success"
+                ? "border-green-400/30 bg-green-500/20 text-green-100"
+                : toast.type === "error"
+                  ? "border-red-400/30 bg-red-500/20 text-red-100"
+                  : toast.type === "warning"
+                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+            }`}
+          >
+            {toast.message}
+          </div>
+        </div>
+      )}
       {adminEmail && (
         <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
           <button
