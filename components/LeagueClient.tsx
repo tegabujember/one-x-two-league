@@ -84,7 +84,6 @@ export default function LeagueClient({
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const selectedPlayerStorageKey = `selected-player-${league.code}`;
-  const adminStorageKey = `league-admin-${league.code}`;
 
   useEffect(() => {
     async function loadUserAndLocalState() {
@@ -97,7 +96,7 @@ export default function LeagueClient({
         setSelectedPlayerId("");
         setIsAdmin(false);
         localStorage.removeItem(selectedPlayerStorageKey);
-        localStorage.removeItem(adminStorageKey);
+        localStorage.removeItem(`league-admin-${league.code}`);
         return;
       }
 
@@ -127,23 +126,12 @@ export default function LeagueClient({
         }
       }
 
-      const savedAdminCode = localStorage.getItem(adminStorageKey);
-
       const isGoogleOwner =
         Boolean(user.id) &&
         Boolean(league.owner_id) &&
         user.id === league.owner_id;
 
-      const isLegacyAdmin =
-        Boolean(savedAdminCode) &&
-        Boolean(league.admin_code) &&
-        savedAdminCode === league.admin_code;
-
-      if (isGoogleOwner || isLegacyAdmin) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
+      setIsAdmin(isGoogleOwner);
     }
 
     loadUserAndLocalState();
@@ -151,8 +139,7 @@ export default function LeagueClient({
     players,
     supabase,
     selectedPlayerStorageKey,
-    adminStorageKey,
-    league.admin_code,
+    league.code,
     league.owner_id,
   ]);
 
@@ -322,28 +309,6 @@ export default function LeagueClient({
     }
   }
 
-  function handleAdminLogin() {
-    if (!league.admin_code) {
-      alert(
-        "לליגה הזאת אין קוד מנהל. כנראה היא נוצרה לפני שהוספנו את הפיצ׳ר הזה."
-      );
-      return;
-    }
-
-    const codeFromUser = prompt("הכנס קוד מנהל");
-
-    if (!codeFromUser) return;
-
-    if (codeFromUser.trim() !== league.admin_code) {
-      alert("קוד מנהל שגוי");
-      return;
-    }
-
-    localStorage.setItem(adminStorageKey, league.admin_code);
-    setIsAdmin(true);
-    alert("נכנסת כמנהל");
-  }
-
   async function copyLeagueLink() {
     const leagueUrl = `${window.location.origin}/league/${league.code}`;
 
@@ -381,7 +346,7 @@ ${leagueUrl}`;
     }
 
     localStorage.removeItem(selectedPlayerStorageKey);
-    localStorage.removeItem(adminStorageKey);
+    localStorage.removeItem(`league-admin-${league.code}`);
 
     setSelectedPlayerId("");
     setIsAdmin(false);
@@ -464,21 +429,13 @@ ${leagueUrl}`;
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-3">
-            {isAdmin ? (
+            {isAdmin && (
               <Link
                 href={`/league/${league.code}/admin`}
-                className="block rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                className="block rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 sm:col-span-2 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
               >
                 ניהול ליגה
               </Link>
-            ) : (
-              <button
-                type="button"
-                onClick={handleAdminLogin}
-                className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
-              >
-                כניסת מנהל
-              </button>
             )}
 
             <button
@@ -492,7 +449,7 @@ ${leagueUrl}`;
             <button
               type="button"
               onClick={copyLeagueLink}
-              className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:col-span-2 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+              className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
               העתק לינק להזמנה
             </button>
