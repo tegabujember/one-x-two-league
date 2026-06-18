@@ -8,10 +8,16 @@ export default function LoginPage() {
   async function signInWithGoogle() {
     const origin = window.location.origin;
 
+    const redirectAfterLogin =
+      localStorage.getItem("redirect-after-login") || "/";
+
+    const callbackUrl = new URL("/auth/callback", origin);
+    callbackUrl.searchParams.set("next", redirectAfterLogin);
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: callbackUrl.toString(),
       },
     });
 
@@ -39,7 +45,7 @@ export default function LoginPage() {
           onClick={signInWithGoogle}
           className="w-full rounded-2xl bg-white px-5 py-4 font-bold text-slate-950 transition hover:scale-[1.02]"
         >
-          התחבר עם Google
+          התחבר / הירשם עם Google
         </button>
       </div>
     </main>

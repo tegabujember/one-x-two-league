@@ -1,18 +1,76 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabaseBrowser";
 
 export default function Home() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
   const [lastLeagueCode, setLastLeagueCode] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+  const [isCheckingUser, setIsCheckingUser] = useState(true);
 
   useEffect(() => {
-    const savedLeagueCode = localStorage.getItem("last-league-code");
+    async function loadHomeState() {
+      const savedLeagueCode = localStorage.getItem("last-league-code");
 
-    if (savedLeagueCode) {
-      setLastLeagueCode(savedLeagueCode);
+      if (savedLeagueCode) {
+        setLastLeagueCode(savedLeagueCode);
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user?.email) {
+        setUserEmail(user.email);
+      } else {
+        setUserEmail("");
+      }
+
+      const redirectAfterLogin = localStorage.getItem("redirect-after-login");
+
+      if (redirectAfterLogin && user) {
+        localStorage.removeItem("redirect-after-login");
+        router.replace(redirectAfterLogin);
+        return;
+      }
+
+      setIsCheckingUser(false);
     }
-  }, []);
+
+    loadHomeState();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      } else {
+        setUserEmail("");
+      }
+
+      setIsCheckingUser(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
+
+  function saveRedirectBeforeLogin() {
+    if (lastLeagueCode) {
+      localStorage.setItem(
+        "redirect-after-login",
+        `/league/${lastLeagueCode}`
+      );
+    } else {
+      localStorage.removeItem("redirect-after-login");
+    }
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
@@ -44,6 +102,27 @@ export default function Home() {
           <p className="mt-2 text-center text-sm leading-6 text-slate-400">
             צור ליגה, שתף לחברים, נחשו 1 / X / 2 וצברו נקודות לאורך הטורניר.
           </p>
+
+          {!isCheckingUser && (
+            <div className="mt-6">
+              {userEmail ? (
+                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
+                  <p className="text-xs text-slate-400">מחובר בתור</p>
+                  <p className="mt-1 break-all text-sm font-bold text-green-300">
+                    {userEmail}
+                  </p>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={saveRedirectBeforeLogin}
+                  className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
+                >
+                  התחבר / הירשם עם Google
+                </Link>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 space-y-4">
             {lastLeagueCode && (

@@ -195,6 +195,8 @@ export default function LeagueAdminPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [adminEmail, setAdminEmail] = useState("");
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -489,57 +491,78 @@ export default function LeagueAdminPage() {
     );
   }
 
-  async function toggleLeaguePredictionsLock() {
-  if (!league) {
-    alert("הליגה לא נטענה");
-    return;
-  }
+  async function signOut() {
+    setIsSigningOut(true);
 
-  const nextLockedValue = !league.predictions_locked;
+    const { error } = await supabase.auth.signOut();
 
-  const message = nextLockedValue
-    ? "אתה בטוח שאתה רוצה לנעול ניחושים לכל הליגה?"
-    : "אתה בטוח שאתה רוצה לפתוח מחדש ניחושים למשחקים עתידיים?";
-
-  const shouldUpdate = confirm(message);
-
-  if (!shouldUpdate) {
-    return;
-  }
-
-  const response = await fetch(`/api/leagues/${code}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      predictions_locked: nextLockedValue,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    console.error(errorData);
-
-    if (response.status === 401) {
-      alert("צריך להתחבר עם Google");
-    } else if (response.status === 403) {
-      alert("אין לך הרשאה לשנות את מצב הניחושים");
-    } else {
-      alert("שגיאה בעדכון מצב הניחושים");
+    if (error) {
+      console.error(error);
+      alert("שגיאה בהתנתקות");
+      setIsSigningOut(false);
+      return;
     }
 
-    return;
+    localStorage.removeItem(`league-admin-${code}`);
+
+    setAdminEmail("");
+    setIsAccountMenuOpen(false);
+    setIsSigningOut(false);
+
+    window.location.href = "/";
   }
 
-  await loadLeagueAndMatches();
+  async function toggleLeaguePredictionsLock() {
+    if (!league) {
+      alert("הליגה לא נטענה");
+      return;
+    }
 
-  alert(
-    nextLockedValue
-      ? "הניחושים ננעלו לכולם"
-      : "הניחושים נפתחו למשחקים עתידיים"
-  );
-}
+    const nextLockedValue = !league.predictions_locked;
+
+    const message = nextLockedValue
+      ? "אתה בטוח שאתה רוצה לנעול ניחושים לכל הליגה?"
+      : "אתה בטוח שאתה רוצה לפתוח מחדש ניחושים למשחקים עתידיים?";
+
+    const shouldUpdate = confirm(message);
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    const response = await fetch(`/api/leagues/${code}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        predictions_locked: nextLockedValue,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר עם Google");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לשנות את מצב הניחושים");
+      } else {
+        alert("שגיאה בעדכון מצב הניחושים");
+      }
+
+      return;
+    }
+
+    await loadLeagueAndMatches();
+
+    alert(
+      nextLockedValue
+        ? "הניחושים ננעלו לכולם"
+        : "הניחושים נפתחו למשחקים עתידיים"
+    );
+  }
 
   async function updateScore(
     matchId: string,
@@ -690,6 +713,38 @@ export default function LeagueAdminPage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+      {adminEmail && (
+        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+          <button
+            type="button"
+            title="החשבון שלי"
+            onClick={() => setIsAccountMenuOpen((current) => !current)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-slate-900/80 text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105 hover:bg-slate-800"
+          >
+            👤
+          </button>
+
+          {isAccountMenuOpen && (
+            <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-4 text-right shadow-2xl shadow-black/40 backdrop-blur">
+              <p className="mb-1 text-xs text-slate-400">מחובר בתור</p>
+
+              <p className="mb-4 break-all text-sm font-bold text-green-300">
+                {adminEmail}
+              </p>
+
+              <button
+                type="button"
+                onClick={signOut}
+                disabled={isSigningOut}
+                className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isSigningOut ? "מתנתק..." : "התנתק"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
       <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
@@ -720,6 +775,7 @@ export default function LeagueAdminPage() {
                 <span className="text-base font-bold sm:text-lg">
                   {league.name}
                 </span>
+
                 <span className="mt-1 text-xs text-slate-400 sm:text-sm">
                   קוד ליגה:{" "}
                   <span className="font-black tracking-widest text-green-300">
@@ -732,12 +788,15 @@ export default function LeagueAdminPage() {
                     מנהל מחובר: {adminEmail}
                   </span>
                 )}
+
                 <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                   <p className="mb-3 text-xs font-bold text-slate-300">
                     מצב ניחושים:{" "}
                     <span
                       className={
-                        league.predictions_locked ? "text-red-300" : "text-green-300"
+                        league.predictions_locked
+                          ? "text-red-300"
+                          : "text-green-300"
                       }
                     >
                       {league.predictions_locked ? "נעולים" : "פתוחים"}

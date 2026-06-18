@@ -79,6 +79,10 @@ export default function LeagueClient({
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAllMatches, setShowAllMatches] = useState(false);
 
+  const [authEmail, setAuthEmail] = useState("");
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   const selectedPlayerStorageKey = `selected-player-${league.code}`;
   const adminStorageKey = `league-admin-${league.code}`;
 
@@ -87,6 +91,17 @@ export default function LeagueClient({
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
+      if (!user) {
+        setAuthEmail("");
+        setSelectedPlayerId("");
+        setIsAdmin(false);
+        localStorage.removeItem(selectedPlayerStorageKey);
+        localStorage.removeItem(adminStorageKey);
+        return;
+      }
+
+      setAuthEmail(user.email || "");
 
       const savedPlayerId = localStorage.getItem(selectedPlayerStorageKey);
 
@@ -98,7 +113,7 @@ export default function LeagueClient({
         if (playerExists) {
           setSelectedPlayerId(savedPlayerId);
         }
-      } else if (user?.id) {
+      } else if (user.id) {
         const playerByGoogleUser = players.find(
           (player) => player.user_id === user.id
         );
@@ -115,9 +130,9 @@ export default function LeagueClient({
       const savedAdminCode = localStorage.getItem(adminStorageKey);
 
       const isGoogleOwner =
-        Boolean(user?.id) &&
+        Boolean(user.id) &&
         Boolean(league.owner_id) &&
-        user?.id === league.owner_id;
+        user.id === league.owner_id;
 
       const isLegacyAdmin =
         Boolean(savedAdminCode) &&
@@ -126,6 +141,8 @@ export default function LeagueClient({
 
       if (isGoogleOwner || isLegacyAdmin) {
         setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
       }
     }
 
@@ -221,6 +238,11 @@ export default function LeagueClient({
   }
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
+    if (!authEmail) {
+      alert("צריך להתחבר עם Google כדי לשלוח ניחוש");
+      return;
+    }
+
     if (!selectedPlayerId) {
       alert("כדי לשלוח ניחוש צריך קודם להצטרף לליגה");
       return;
@@ -346,8 +368,64 @@ ${leagueUrl}`;
     window.open(whatsappUrl, "_blank");
   }
 
+  async function signOut() {
+    setIsSigningOut(true);
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error(error);
+      alert("שגיאה בהתנתקות");
+      setIsSigningOut(false);
+      return;
+    }
+
+    localStorage.removeItem(selectedPlayerStorageKey);
+    localStorage.removeItem(adminStorageKey);
+
+    setSelectedPlayerId("");
+    setIsAdmin(false);
+    setAuthEmail("");
+    setIsAccountMenuOpen(false);
+    setIsSigningOut(false);
+
+    window.location.href = "/";
+  }
+
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+      {authEmail && (
+        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+          <button
+            type="button"
+            title="החשבון שלי"
+            onClick={() => setIsAccountMenuOpen((current) => !current)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-slate-900/80 text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105 hover:bg-slate-800"
+          >
+            👤
+          </button>
+
+          {isAccountMenuOpen && (
+            <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-4 text-right shadow-2xl shadow-black/40 backdrop-blur">
+              <p className="mb-1 text-xs text-slate-400">מחובר בתור</p>
+
+              <p className="mb-4 break-all text-sm font-bold text-green-300">
+                {authEmail}
+              </p>
+
+              <button
+                type="button"
+                onClick={signOut}
+                disabled={isSigningOut}
+                className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isSigningOut ? "מתנתק..." : "התנתק"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
       <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
@@ -421,67 +499,70 @@ ${leagueUrl}`;
           </div>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-          {selectedPlayer ? (
-            <div className="flex items-center justify-between gap-3">
+        {(!selectedPlayer || isAdmin) && (
+          <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+            {!selectedPlayer && (
               <div>
-                <p className="mb-1 text-xs text-slate-400 sm:text-sm">
-                  מחובר כשחקן
+                <h2 className="mb-2 text-xl font-black sm:text-2xl">
+                  עדיין לא הצטרפת לליגה
+                </h2>
+
+                <p className="mb-4 text-sm leading-6 text-slate-400 sm:mb-5">
+                  כדי לשלוח ניחושים צריך להתחבר ולהצטרף עם שם שחקן.
                 </p>
-                <p className="text-xl font-black sm:text-2xl">
-                  {selectedPlayer.name}
+
+                <Link
+                  href={`/join-league?code=${league.code}`}
+                  onClick={() => {
+                    localStorage.setItem(
+                      "redirect-after-login",
+                      `/join-league?code=${league.code}`
+                    );
+                  }}
+                  className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+                >
+                  התחבר / הצטרף לליגה הזאת
+                </Link>
+
+                <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                  אם כבר הצטרפת בעבר, נחבר אותך אוטומטית לשחקן הקיים שלך.
                 </p>
               </div>
+            )}
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-green-400/20 bg-green-500/20 sm:h-14 sm:w-14 sm:rounded-2xl">
-                <span className="text-xl sm:text-2xl">⚽</span>
+            {isAdmin && (
+              <div
+                className={
+                  !selectedPlayer
+                    ? "mt-4 border-t border-white/10 pt-4 sm:mt-6 sm:pt-5"
+                    : ""
+                }
+              >
+                <h2 className="mb-2 text-base font-bold sm:mb-3 sm:text-lg">
+                  בחירת שחקן לאדמין
+                </h2>
+
+                <select
+                  value={selectedPlayerId}
+                  onChange={(event) => handlePlayerChange(event.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
+                >
+                  <option value="">בחר שחקן</option>
+
+                  {players.map((player) => (
+                    <option key={player.id} value={player.id}>
+                      {player.name}
+                    </option>
+                  ))}
+                </select>
+
+                <p className="mt-2 text-xs text-slate-400 sm:mt-3">
+                  האפשרות הזאת מוצגת רק למנהל.
+                </p>
               </div>
-            </div>
-          ) : (
-            <div>
-              <h2 className="mb-2 text-xl font-black sm:text-2xl">
-                עדיין לא הצטרפת לליגה
-              </h2>
-
-              <p className="mb-4 text-sm leading-6 text-slate-400 sm:mb-5">
-                כדי לשלוח ניחושים צריך להצטרף עם שם שחקן.
-              </p>
-
-              <Link
-                href={`/join-league?code=${league.code}`}
-                className="block rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
-              >
-                הצטרף לליגה הזאת
-              </Link>
-            </div>
-          )}
-
-          {isAdmin && (
-            <div className="mt-4 border-t border-white/10 pt-4 sm:mt-6 sm:pt-5">
-              <h2 className="mb-2 text-base font-bold sm:mb-3 sm:text-lg">
-                בחירת שחקן לאדמין
-              </h2>
-
-              <select
-                value={selectedPlayerId}
-                onChange={(event) => handlePlayerChange(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
-              >
-                <option value="">בחר שחקן</option>
-
-                {players.map((player) => (
-                  <option key={player.id} value={player.id}>
-                    {player.name}
-                  </option>
-                ))}
-              </select>
-
-              <p className="mt-2 text-xs text-slate-400 sm:mt-3">
-                האפשרות הזאת מוצגת רק למנהל.
-              </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
@@ -567,7 +648,8 @@ ${leagueUrl}`;
                   const currentPrediction = getPredictionForMatch(match.id);
                   const isTimeLocked =
                     new Date(match.start_time) <= new Date();
-                  const isMatchLocked = league.predictions_locked || isTimeLocked;
+                  const isMatchLocked =
+                    league.predictions_locked || isTimeLocked;
                   const matchResult = getMatchResult(match);
                   const featuredLabel = getFeaturedMatchLabel(match);
 
@@ -641,64 +723,67 @@ ${leagueUrl}`;
                         {new Date(match.start_time).toLocaleString("he-IL")}
                       </p>
 
-                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                        {(["1", "X", "2"] as const).map((pick) => {
-                          const isSelected = currentPrediction?.pick === pick;
-                          const isCorrect =
-                            matchResult !== null &&
-                            isSelected &&
-                            pick === matchResult;
-                          const isWrong =
-                            matchResult !== null &&
-                            isSelected &&
-                            pick !== matchResult;
+                      {!authEmail || !selectedPlayer ? null : (
+                        <>
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                            {(["1", "X", "2"] as const).map((pick) => {
+                              const isSelected =
+                                currentPrediction?.pick === pick;
+                              const isCorrect =
+                                matchResult !== null &&
+                                isSelected &&
+                                pick === matchResult;
+                              const isWrong =
+                                matchResult !== null &&
+                                isSelected &&
+                                pick !== matchResult;
 
-                          const pickLabel =
-                            pick === "1"
-                              ? match.home_team
-                              : pick === "2"
-                                ? match.away_team
-                                : "תיקו";
+                              const pickLabel =
+                                pick === "1"
+                                  ? match.home_team
+                                  : pick === "2"
+                                    ? match.away_team
+                                    : "תיקו";
 
-                          return (
-                            <button
-                              key={pick}
-                              type="button"
-                              disabled={
-                                isSaving || !selectedPlayerId || isMatchLocked
-                              }
-                              onClick={() => savePrediction(match.id, pick)}
-                              className={`rounded-xl border px-1 py-2 font-black transition sm:rounded-2xl sm:px-2 sm:py-4 ${
-                                isCorrect
-                                  ? "border-green-400 bg-green-600 text-white"
-                                  : isWrong
-                                    ? "border-red-500 bg-red-700 text-white"
-                                    : isSelected
-                                      ? "border-blue-400 bg-blue-600 text-white"
-                                      : "border-white/10 bg-slate-900 text-slate-300 hover:bg-slate-800"
-                              } disabled:opacity-40`}
-                            >
-                              <span className="block text-2xl sm:text-3xl">
-                                {pick}
-                                {isCorrect && " ✅"}
-                                {isWrong && " ❌"}
+                              return (
+                                <button
+                                  key={pick}
+                                  type="button"
+                                  disabled={isSaving || isMatchLocked}
+                                  onClick={() => savePrediction(match.id, pick)}
+                                  className={`rounded-xl border px-1 py-2 font-black transition sm:rounded-2xl sm:px-2 sm:py-4 ${
+                                    isCorrect
+                                      ? "border-green-400 bg-green-600 text-white"
+                                      : isWrong
+                                        ? "border-red-500 bg-red-700 text-white"
+                                        : isSelected
+                                          ? "border-blue-400 bg-blue-600 text-white"
+                                          : "border-white/10 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                                  } disabled:opacity-40`}
+                                >
+                                  <span className="block text-2xl sm:text-3xl">
+                                    {pick}
+                                    {isCorrect && " ✅"}
+                                    {isWrong && " ❌"}
+                                  </span>
+
+                                  <span className="mt-1 block truncate text-[10px] font-semibold text-slate-300 sm:mt-2 sm:text-xs">
+                                    {pickLabel}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {currentPrediction && (
+                            <p className="mt-3 text-center text-xs text-slate-400">
+                              הניחוש שלך:{" "}
+                              <span className="font-bold text-white">
+                                {currentPrediction.pick}
                               </span>
-
-                              <span className="mt-1 block truncate text-[10px] font-semibold text-slate-300 sm:mt-2 sm:text-xs">
-                                {pickLabel}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {currentPrediction && (
-                        <p className="mt-3 text-center text-xs text-slate-400">
-                          הניחוש שלך:{" "}
-                          <span className="font-bold text-white">
-                            {currentPrediction.pick}
-                          </span>
-                        </p>
+                            </p>
+                          )}
+                        </>
                       )}
 
                       {matchResult && (
@@ -707,11 +792,12 @@ ${leagueUrl}`;
                         </p>
                       )}
 
-                      {league.predictions_locked && match.status !== "finished" && (
-                        <p className="mt-2 text-center text-xs text-red-300">
-                          הניחושים נסגרו על ידי מנהל הליגה
-                        </p>
-                      )}
+                      {league.predictions_locked &&
+                        match.status !== "finished" && (
+                          <p className="mt-2 text-center text-xs text-red-300">
+                            הניחושים נסגרו על ידי מנהל הליגה
+                          </p>
+                        )}
 
                       {!league.predictions_locked && isTimeLocked && (
                         <p className="mt-2 text-center text-xs text-red-300">
