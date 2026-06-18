@@ -13,6 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://one-x-two-league.vercel.app"),
+
   title: "1X2 League - ליגת ניחושים",
   description:
     "ליגת ניחושים 1X2 - מתחברים עם Google, מצטרפים לליגה ומנחשים 1 / X / 2.",
@@ -23,6 +25,7 @@ export const metadata = {
       "הצטרפו לליגת ניחושים 1X2, נחשו תוצאות משחקים וצברו נקודות לאורך הטורניר.",
     siteName: "1X2 League",
     type: "website",
+    url: "https://one-x-two-league.vercel.app",
     images: [
       {
         url: "/og-image.png",
