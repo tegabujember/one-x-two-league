@@ -5,11 +5,44 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 
+type MyLeague = {
+  playerId: string;
+  playerName: string;
+  leagueId: string;
+  leagueName: string;
+  leagueCode: string;
+};
+
+type MyLeaguesResponse = {
+  leagues: MyLeague[];
+};
+
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim()
+  );
+}
+
+function getCleanLeagueCode(code: string) {
+  const cleanCode = code.trim();
+
+  if (!cleanCode) {
+    return "";
+  }
+
+  if (isUuidLike(cleanCode)) {
+    return "";
+  }
+
+  return cleanCode;
+}
+
 export default function Home() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [lastLeagueCode, setLastLeagueCode] = useState("");
+  const [lastLeagueName, setLastLeagueName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [isCheckingUser, setIsCheckingUser] = useState(true);
 
@@ -19,7 +52,7 @@ export default function Home() {
       const codeFromUrl = params.get("code");
 
       if (codeFromUrl) {
-        const cleanCode = codeFromUrl.trim();
+        const cleanCode = getCleanLeagueCode(codeFromUrl);
 
         if (cleanCode) {
           const joinLeagueUrl = `/join-league?code=${encodeURIComponent(
@@ -30,12 +63,10 @@ export default function Home() {
           router.replace(joinLeagueUrl);
           return;
         }
-      }
 
-      const savedLeagueCode = localStorage.getItem("last-league-code");
-
-      if (savedLeagueCode) {
-        setLastLeagueCode(savedLeagueCode);
+        localStorage.removeItem("redirect-after-login");
+        router.replace("/join-league");
+        return;
       }
 
       const {
@@ -46,6 +77,10 @@ export default function Home() {
         setUserEmail(user.email);
       } else {
         setUserEmail("");
+        setLastLeagueCode("");
+        setLastLeagueName("");
+        setIsCheckingUser(false);
+        return;
       }
 
       const redirectAfterLogin = localStorage.getItem("redirect-after-login");
@@ -53,12 +88,39 @@ export default function Home() {
       if (
         redirectAfterLogin &&
         redirectAfterLogin.startsWith("/") &&
-        !redirectAfterLogin.startsWith("//") &&
-        user
+        !redirectAfterLogin.startsWith("//")
       ) {
         localStorage.removeItem("redirect-after-login");
         router.replace(redirectAfterLogin);
         return;
+      }
+
+      try {
+        const response = await fetch("/api/my-leagues", {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          setLastLeagueCode("");
+          setLastLeagueName("");
+          setIsCheckingUser(false);
+          return;
+        }
+
+        const data = (await response.json()) as MyLeaguesResponse;
+        const firstLeague = data.leagues[0];
+
+        if (firstLeague?.leagueCode) {
+          setLastLeagueCode(firstLeague.leagueCode);
+          setLastLeagueName(firstLeague.leagueName);
+        } else {
+          setLastLeagueCode("");
+          setLastLeagueName("");
+        }
+      } catch (error) {
+        console.error(error);
+        setLastLeagueCode("");
+        setLastLeagueName("");
       }
 
       setIsCheckingUser(false);
@@ -73,6 +135,8 @@ export default function Home() {
         setUserEmail(session.user.email);
       } else {
         setUserEmail("");
+        setLastLeagueCode("");
+        setLastLeagueName("");
       }
 
       setIsCheckingUser(false);
@@ -84,14 +148,7 @@ export default function Home() {
   }, [router, supabase]);
 
   function saveRedirectBeforeLogin() {
-    if (lastLeagueCode) {
-      localStorage.setItem(
-        "redirect-after-login",
-        `/league/${lastLeagueCode}`
-      );
-    } else {
-      localStorage.removeItem("redirect-after-login");
-    }
+    localStorage.removeItem("redirect-after-login");
   }
 
   return (
@@ -136,13 +193,7 @@ export default function Home() {
                 </div>
               ) : (
                 <Link
-                  href={
-                    lastLeagueCode
-                      ? `/login?next=${encodeURIComponent(
-                          `/league/${lastLeagueCode}`
-                        )}`
-                      : "/login"
-                  }
+                  href="/login"
                   onClick={saveRedirectBeforeLogin}
                   className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
                 >
@@ -158,7 +209,9 @@ export default function Home() {
                 href={`/league/${lastLeagueCode}`}
                 className="block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
               >
-                המשך לליגה האחרונה
+                {lastLeagueName
+                  ? `המשך לליגה: ${lastLeagueName}`
+                  : "המשך לליגה שלך"}
               </Link>
             )}
 

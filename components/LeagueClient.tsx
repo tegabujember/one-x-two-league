@@ -396,7 +396,6 @@ ${leagueUrl}`;
     window.open(whatsappUrl, "_blank");
   }
   function clearAppLocalStorage() {
-  localStorage.removeItem("last-league-code");
   localStorage.removeItem("redirect-after-login");
 
   Object.keys(localStorage)
