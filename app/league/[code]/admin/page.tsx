@@ -491,26 +491,39 @@ export default function LeagueAdminPage() {
     );
   }
 
+  function clearAppLocalStorage() {
+  localStorage.removeItem("last-league-code");
+  localStorage.removeItem("redirect-after-login");
+
+  Object.keys(localStorage)
+    .filter(
+      (key) =>
+        key.startsWith("selected-player-") ||
+        key.startsWith("league-admin-")
+    )
+    .forEach((key) => localStorage.removeItem(key));
+}
+
   async function signOut() {
-    setIsSigningOut(true);
+  setIsSigningOut(true);
 
-    const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-      console.error(error);
-      alert("שגיאה בהתנתקות");
-      setIsSigningOut(false);
-      return;
-    }
-
-    localStorage.removeItem(`league-admin-${code}`);
-
-    setAdminEmail("");
-    setIsAccountMenuOpen(false);
+  if (error) {
+    console.error(error);
+    alert("שגיאה בהתנתקות");
     setIsSigningOut(false);
-
-    window.location.href = "/";
+    return;
   }
+
+  clearAppLocalStorage();
+
+  setAdminEmail("");
+  setIsAccountMenuOpen(false);
+  setIsSigningOut(false);
+
+  window.location.href = "/";
+}
 
   async function toggleLeaguePredictionsLock() {
     if (!league) {

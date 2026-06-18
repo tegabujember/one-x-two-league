@@ -395,30 +395,41 @@ ${leagueUrl}`;
 
     window.open(whatsappUrl, "_blank");
   }
+  function clearAppLocalStorage() {
+  localStorage.removeItem("last-league-code");
+  localStorage.removeItem("redirect-after-login");
+
+  Object.keys(localStorage)
+    .filter(
+      (key) =>
+        key.startsWith("selected-player-") ||
+        key.startsWith("league-admin-")
+    )
+    .forEach((key) => localStorage.removeItem(key));
+}
 
   async function signOut() {
-    setIsSigningOut(true);
+  setIsSigningOut(true);
 
-    const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
 
-    if (error) {
-      console.error(error);
-      alert("שגיאה בהתנתקות");
-      setIsSigningOut(false);
-      return;
-    }
-
-    localStorage.removeItem(selectedPlayerStorageKey);
-    localStorage.removeItem(`league-admin-${league.code}`);
-
-    setSelectedPlayerId("");
-    setIsAdmin(false);
-    setAuthEmail("");
-    setIsAccountMenuOpen(false);
+  if (error) {
+    console.error(error);
+    alert("שגיאה בהתנתקות");
     setIsSigningOut(false);
-
-    window.location.href = "/";
+    return;
   }
+
+  clearAppLocalStorage();
+
+  setSelectedPlayerId("");
+  setIsAdmin(false);
+  setAuthEmail("");
+  setIsAccountMenuOpen(false);
+  setIsSigningOut(false);
+
+  window.location.href = "/";
+}
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">

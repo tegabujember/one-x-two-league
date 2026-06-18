@@ -22,8 +22,28 @@ type ExistingPlayerResponse = {
   alreadyJoined: boolean;
 };
 
-function getSafeJoinRedirect(code: string) {
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim()
+  );
+}
+
+function getCleanLeagueCode(code: string) {
   const cleanCode = code.trim();
+
+  if (!cleanCode) {
+    return "";
+  }
+
+  if (isUuidLike(cleanCode)) {
+    return "";
+  }
+
+  return cleanCode;
+}
+
+function getSafeJoinRedirect(code: string) {
+  const cleanCode = getCleanLeagueCode(code);
 
   if (!cleanCode) {
     return "/join-league";
@@ -51,7 +71,18 @@ export default function JoinLeaguePage() {
     const codeFromUrl = params.get("code");
 
     if (codeFromUrl) {
-      setLeagueCode(codeFromUrl.trim());
+      const cleanCode = getCleanLeagueCode(codeFromUrl);
+
+      if (cleanCode) {
+        setLeagueCode(cleanCode);
+      } else {
+        setLeagueCode("");
+        localStorage.removeItem("redirect-after-login");
+
+        setAutoLoginMessage(
+          "קישור ההזמנה לא תקין. צריך להשתמש בקוד ליגה קצר, לדוגמה UL9D3."
+        );
+      }
     }
 
     async function loadUser() {
@@ -90,14 +121,16 @@ export default function JoinLeaguePage() {
   }, [supabase]);
 
   useEffect(() => {
-    if (!userId || !leagueCode.trim()) {
+    const safeLeagueCode = getCleanLeagueCode(leagueCode);
+
+    if (!userId || !safeLeagueCode) {
       return;
     }
 
     let isCancelled = false;
 
     async function checkExistingPlayer() {
-      const cleanCode = leagueCode.trim();
+      const cleanCode = safeLeagueCode;
 
       setIsCheckingExistingPlayer(true);
       setAutoLoginMessage("בודק אם כבר הצטרפת לליגה הזאת...");
@@ -161,20 +194,20 @@ export default function JoinLeaguePage() {
   }, [userId, leagueCode, router]);
 
   function saveRedirectBeforeLogin() {
-    const cleanCode = leagueCode.trim();
-    const redirectPath = getSafeJoinRedirect(cleanCode);
+  const cleanCode = getCleanLeagueCode(leagueCode);
+  const redirectPath = getSafeJoinRedirect(cleanCode);
 
-    localStorage.setItem("redirect-after-login", redirectPath);
+  localStorage.setItem("redirect-after-login", redirectPath);
 
-    if (cleanCode) {
-      localStorage.setItem("last-league-code", cleanCode);
-    }
+  if (cleanCode) {
+    localStorage.setItem("last-league-code", cleanCode);
   }
+}
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const cleanCode = leagueCode.trim();
+    const cleanCode = getCleanLeagueCode(leagueCode);
 
     if (!userId) {
       alert("כדי להצטרף לליגה צריך להתחבר עם Google");
