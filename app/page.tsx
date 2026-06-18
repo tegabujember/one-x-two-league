@@ -43,38 +43,52 @@ export default function Home() {
 
   const [lastLeagueCode, setLastLeagueCode] = useState("");
   const [lastLeagueName, setLastLeagueName] = useState("");
+  const [myLeagues, setMyLeagues] = useState<MyLeague[]>([]);
+  const [selectedLeagueCode, setSelectedLeagueCode] = useState("");
+
+
+
   const [userEmail, setUserEmail] = useState("");
   const [isCheckingUser, setIsCheckingUser] = useState(true);
 
   useEffect(() => {
   async function loadMyLeaguesFromServer() {
-    try {
-      const response = await fetch("/api/my-leagues", {
-        method: "GET",
-      });
+  try {
+    const response = await fetch("/api/my-leagues", {
+      method: "GET",
+    });
 
-      if (!response.ok) {
-        setLastLeagueCode("");
-        setLastLeagueName("");
-        return;
-      }
+    if (!response.ok) {
+      setMyLeagues([]);
+      setSelectedLeagueCode("");
+      setLastLeagueCode("");
+      setLastLeagueName("");
+      return;
+    }
 
-      const data = (await response.json()) as MyLeaguesResponse;
-      const firstLeague = data.leagues[0];
+    const data = (await response.json()) as MyLeaguesResponse;
+    const leagues = data.leagues ?? [];
+    const firstLeague = leagues[0];
 
-      if (firstLeague?.leagueCode) {
-        setLastLeagueCode(firstLeague.leagueCode);
-        setLastLeagueName(firstLeague.leagueName);
-      } else {
-        setLastLeagueCode("");
-        setLastLeagueName("");
-      }
-    } catch (error) {
-      console.error(error);
+    setMyLeagues(leagues);
+
+    if (firstLeague?.leagueCode) {
+      setSelectedLeagueCode(firstLeague.leagueCode);
+      setLastLeagueCode(firstLeague.leagueCode);
+      setLastLeagueName(firstLeague.leagueName);
+    } else {
+      setSelectedLeagueCode("");
       setLastLeagueCode("");
       setLastLeagueName("");
     }
+  } catch (error) {
+    console.error(error);
+    setMyLeagues([]);
+    setSelectedLeagueCode("");
+    setLastLeagueCode("");
+    setLastLeagueName("");
   }
+}
 
   async function loadHomeState() {
     const params = new URLSearchParams(window.location.search);
@@ -141,6 +155,8 @@ export default function Home() {
       setUserEmail("");
       setLastLeagueCode("");
       setLastLeagueName("");
+      setMyLeagues([]);
+      setSelectedLeagueCode("");
     }
 
     setIsCheckingUser(false);
@@ -207,16 +223,47 @@ export default function Home() {
           )}
 
           <div className="mt-8 space-y-4">
-            {lastLeagueCode && (
-              <Link
-                href={`/league/${lastLeagueCode}`}
-                className="block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+            {myLeagues.length === 1 && lastLeagueCode && (
+            <Link
+              href={`/league/${lastLeagueCode}`}
+              className="block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+            >
+              {lastLeagueName
+                ? `המשך לליגה: ${lastLeagueName}`
+                : "המשך לליגה שלך"}
+            </Link>
+          )}
+
+          {myLeagues.length > 1 && (
+            <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4">
+              <label className="mb-2 block text-sm font-bold text-green-300">
+                הליגות שלי
+              </label>
+
+              <select
+                value={selectedLeagueCode}
+                onChange={(event) => setSelectedLeagueCode(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm font-bold text-white outline-none focus:border-green-400"
               >
-                {lastLeagueName
-                  ? `המשך לליגה: ${lastLeagueName}`
-                  : "המשך לליגה שלך"}
+                {myLeagues.map((league) => (
+                  <option key={league.leagueId} value={league.leagueCode}>
+                    {league.leagueName} — {league.playerName}
+                  </option>
+                ))}
+              </select>
+
+              <Link
+                href={
+                  selectedLeagueCode
+                    ? `/league/${selectedLeagueCode}`
+                    : "/"
+                }
+                className="mt-3 block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+              >
+                כניסה לליגה שנבחרה
               </Link>
-            )}
+            </div>
+          )}
 
             <Link
               href="/create-league"
