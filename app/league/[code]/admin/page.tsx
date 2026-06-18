@@ -219,7 +219,9 @@ export default function LeagueAdminPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
+  const [showAllAdminMatches, setShowAllAdminMatches] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+
 
   function getToastTypeFromMessage(message: string): ToastType {
   if (
@@ -589,6 +591,22 @@ useEffect(() => {
   window.location.href = "/";
 }
 
+  const now = new Date();
+
+const matchesWaitingForScore = matches.filter((match) => {
+  const matchTime = new Date(match.start_time);
+
+  return (
+    matchTime <= now &&
+    (match.status !== "finished" ||
+      match.home_score === null ||
+      match.away_score === null)
+  );
+});
+
+const adminMatchesToShow = showAllAdminMatches
+  ? matches
+  : matchesWaitingForScore.slice(0, 4);
   async function toggleLeaguePredictionsLock() {
     if (!league) {
       alert("הליגה לא נטענה");
@@ -1077,30 +1095,88 @@ useEffect(() => {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
-          <div className="mb-4 flex items-center justify-between sm:mb-5">
-            <h2 className="text-xl font-black sm:text-2xl">ניהול משחקים</h2>
+    <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
+      <div>
+        <h2 className="text-xl font-black sm:text-2xl">ניהול משחקים</h2>
 
-            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
-              {matches.length} משחקים
-            </span>
-          </div>
+        <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+          {showAllAdminMatches
+            ? "מציג את כל המשחקים בליגה"
+            : "מציג משחקים שעבר הזמן שלהם ועדיין צריכים תוצאה"}
+        </p>
+      </div>
 
-          {matches.length === 0 ? (
-            <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
-          ) : (
-            <div className="space-y-3 sm:space-y-4">
-              {matches.map((match) => (
-                <MatchAdminCard
-                  key={match.id}
-                  match={match}
-                  onUpdateScore={updateScore}
-                  onUpdateMatch={updateMatchDetails}
-                  onDeleteMatch={deleteMatch}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+      <span className="shrink-0 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
+        {showAllAdminMatches
+          ? `${matches.length} משחקים`
+          : `${matchesWaitingForScore.length} לעדכון`}
+      </span>
+    </div>
+
+  <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <button
+      type="button"
+      onClick={() => setShowAllAdminMatches(false)}
+      className={`rounded-xl px-4 py-3 text-sm font-bold transition sm:rounded-2xl ${
+        !showAllAdminMatches
+          ? "bg-gradient-to-r from-green-500 to-emerald-700 text-white shadow-lg shadow-green-950/40"
+          : "border border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
+      }`}
+    >
+      רק משחקים לעדכון
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setShowAllAdminMatches(true)}
+      className={`rounded-xl px-4 py-3 text-sm font-bold transition sm:rounded-2xl ${
+        showAllAdminMatches
+          ? "bg-gradient-to-r from-blue-500 to-indigo-700 text-white shadow-lg shadow-blue-950/40"
+          : "border border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
+      }`}
+    >
+      כל המשחקים
+    </button>
+  </div>
+
+  {matches.length === 0 ? (
+    <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
+  ) : !showAllAdminMatches && matchesWaitingForScore.length === 0 ? (
+    <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-5 text-center">
+      <p className="text-2xl">✅</p>
+      <p className="mt-2 text-sm font-bold text-green-300">
+        אין כרגע משחקים שממתינים לעדכון תוצאה
+      </p>
+      <p className="mt-1 text-xs text-slate-400">
+        אפשר ללחוץ על “כל המשחקים” כדי לערוך משחקים עתידיים או קיימים.
+      </p>
+    </div>
+  ) : (
+    <>
+      <div className="space-y-3 sm:space-y-4">
+        {adminMatchesToShow.map((match) => (
+          <MatchAdminCard
+            key={match.id}
+            match={match}
+            onUpdateScore={updateScore}
+            onUpdateMatch={updateMatchDetails}
+            onDeleteMatch={deleteMatch}
+          />
+        ))}
+      </div>
+
+      {!showAllAdminMatches && matchesWaitingForScore.length > 4 && (
+        <button
+          type="button"
+          onClick={() => setShowAllAdminMatches(true)}
+          className="mt-4 w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:rounded-2xl"
+        >
+          הצג את כל המשחקים
+        </button>
+      )}
+    </>
+  )}
+</div>
 
         <Link
           href={`/league/${code}`}
