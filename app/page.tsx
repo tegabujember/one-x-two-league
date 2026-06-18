@@ -15,6 +15,23 @@ export default function Home() {
 
   useEffect(() => {
     async function loadHomeState() {
+      const params = new URLSearchParams(window.location.search);
+      const codeFromUrl = params.get("code");
+
+      if (codeFromUrl) {
+        const cleanCode = codeFromUrl.trim();
+
+        if (cleanCode) {
+          const joinLeagueUrl = `/join-league?code=${encodeURIComponent(
+            cleanCode
+          )}`;
+
+          localStorage.setItem("redirect-after-login", joinLeagueUrl);
+          router.replace(joinLeagueUrl);
+          return;
+        }
+      }
+
       const savedLeagueCode = localStorage.getItem("last-league-code");
 
       if (savedLeagueCode) {
@@ -33,7 +50,12 @@ export default function Home() {
 
       const redirectAfterLogin = localStorage.getItem("redirect-after-login");
 
-      if (redirectAfterLogin && user) {
+      if (
+        redirectAfterLogin &&
+        redirectAfterLogin.startsWith("/") &&
+        !redirectAfterLogin.startsWith("//") &&
+        user
+      ) {
         localStorage.removeItem("redirect-after-login");
         router.replace(redirectAfterLogin);
         return;
@@ -114,7 +136,13 @@ export default function Home() {
                 </div>
               ) : (
                 <Link
-                  href="/login"
+                  href={
+                    lastLeagueCode
+                      ? `/login?next=${encodeURIComponent(
+                          `/league/${lastLeagueCode}`
+                        )}`
+                      : "/login"
+                  }
                   onClick={saveRedirectBeforeLogin}
                   className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
                 >

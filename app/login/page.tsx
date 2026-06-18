@@ -2,14 +2,28 @@
 
 import { createClient } from "@/lib/supabaseBrowser";
 
+function getSafeRedirect(value: string | null) {
+  if (!value) return "/";
+
+  if (!value.startsWith("/")) return "/";
+  if (value.startsWith("//")) return "/";
+
+  return value;
+}
+
 export default function LoginPage() {
   const supabase = createClient();
 
   async function signInWithGoogle() {
     const origin = window.location.origin;
 
-    const redirectAfterLogin =
-      localStorage.getItem("redirect-after-login") || "/";
+    const params = new URLSearchParams(window.location.search);
+    const nextFromUrl = params.get("next");
+    const nextFromStorage = localStorage.getItem("redirect-after-login");
+
+    const redirectAfterLogin = getSafeRedirect(nextFromUrl || nextFromStorage);
+
+    localStorage.setItem("redirect-after-login", redirectAfterLogin);
 
     const callbackUrl = new URL("/auth/callback", origin);
     callbackUrl.searchParams.set("next", redirectAfterLogin);

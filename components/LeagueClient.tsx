@@ -214,6 +214,93 @@ export default function LeagueClient({
 
   const matchesToShow = showAllMatches ? sortedMatches : featuredMatches;
 
+  const selectedPlayerPredictions = selectedPlayer
+    ? localPredictions.filter(
+        (prediction) => prediction.player_id === selectedPlayer.id
+      )
+    : [];
+
+  const selectedPlayerPredictionMatchIds = new Set(
+    selectedPlayerPredictions.map((prediction) => prediction.match_id)
+  );
+
+  const openMatches = matches.filter(
+    (match) =>
+      new Date(match.start_time) > now &&
+      !league.predictions_locked &&
+      match.status !== "finished"
+  );
+
+  const missingOpenMatches = openMatches.filter(
+    (match) => !selectedPlayerPredictionMatchIds.has(match.id)
+  );
+
+  const closedMatches = matches.filter(
+    (match) =>
+      new Date(match.start_time) <= now ||
+      league.predictions_locked ||
+      match.status === "finished"
+  );
+
+  const correctPredictions = selectedPlayerPredictions.filter((prediction) => {
+    const match = matches.find(
+      (currentMatch) => currentMatch.id === prediction.match_id
+    );
+    const result = match ? getMatchResult(match) : null;
+
+    return result !== null && prediction.pick === result;
+  });
+
+  const wrongPredictions = selectedPlayerPredictions.filter((prediction) => {
+    const match = matches.find(
+      (currentMatch) => currentMatch.id === prediction.match_id
+    );
+    const result = match ? getMatchResult(match) : null;
+
+    return result !== null && prediction.pick !== result;
+  });
+
+  const pendingPredictions = selectedPlayerPredictions.filter((prediction) => {
+    const match = matches.find(
+      (currentMatch) => currentMatch.id === prediction.match_id
+    );
+    const result = match ? getMatchResult(match) : null;
+
+    return result === null;
+  });
+
+  const finishedPredictionsCount =
+    correctPredictions.length + wrongPredictions.length;
+
+  const predictionAccuracy =
+    finishedPredictionsCount > 0
+      ? Math.round((correctPredictions.length / finishedPredictionsCount) * 100)
+      : 0;
+
+  const predictionProgress =
+    matches.length > 0
+      ? Math.round((selectedPlayerPredictionMatchIds.size / matches.length) * 100)
+      : 0;
+
+  const myPredictionRows = selectedPlayerPredictions
+    .map((prediction) => ({
+      prediction,
+      match: matches.find((match) => match.id === prediction.match_id),
+    }))
+    .filter(
+      (
+        row
+      ): row is {
+        prediction: Prediction;
+        match: Match;
+      } => Boolean(row.match)
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.match.start_time).getTime() -
+        new Date(b.match.start_time).getTime()
+    );
+
   function getFeaturedMatchLabel(match: Match) {
     if (showAllMatches) return null;
 
@@ -456,6 +543,230 @@ ${leagueUrl}`;
           </div>
         </div>
 
+        {selectedPlayer && (
+          <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black sm:text-3xl">
+                  הניחושים שלי
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-400">
+                  המעקב האישי שלך אחרי הניחושים במשחקים
+                </p>
+              </div>
+
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-green-400/20 bg-green-500/10 text-3xl shadow-lg shadow-green-950/30">
+                🎯
+              </div>
+            </div>
+
+            <div className="mb-5 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+                  <p className="text-[11px] font-bold text-slate-400">
+                    סה״כ משחקים
+                  </p>
+                  <p className="mt-2 text-3xl font-black text-white">
+                    {matches.length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 text-center">
+                  <p className="text-[11px] font-bold text-slate-400">
+                    ניחשתי
+                  </p>
+                  <p className="mt-2 text-3xl font-black text-green-300">
+                    {selectedPlayerPredictionMatchIds.size}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-orange-400/20 bg-orange-500/10 p-3 text-center">
+                  <p className="text-[11px] font-bold text-slate-400">
+                    נותרו פתוחים
+                  </p>
+                  <p className="mt-2 text-3xl font-black text-orange-300">
+                    {missingOpenMatches.length}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-3 text-center">
+                  <p className="text-[11px] font-bold text-slate-400">
+                    דיוק נוכחי
+                  </p>
+                  <p className="mt-2 text-3xl font-black text-green-300">
+                    {predictionAccuracy}%
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="font-bold text-slate-300">התקדמות</span>
+                  <span className="font-black text-green-300">
+                    {selectedPlayerPredictionMatchIds.size} מתוך {matches.length}
+                  </span>
+                </div>
+
+                <div className="h-4 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
+                    style={{ width: `${predictionProgress}%` }}
+                  />
+                </div>
+
+                <p className="mt-2 text-xs font-bold text-green-300">
+                  {predictionProgress}% הושלמו
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-3 text-center text-sm font-black text-green-300">
+                ✅ נכונים ({correctPredictions.length})
+              </div>
+
+              <div className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-3 text-center text-sm font-black text-red-300">
+                ❌ שגויים ({wrongPredictions.length})
+              </div>
+
+              <div className="rounded-full border border-slate-400/20 bg-slate-500/10 px-3 py-3 text-center text-sm font-black text-slate-300">
+                🕒 טרם התקיימו ({pendingPredictions.length})
+              </div>
+
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-3 text-center text-sm font-black text-white">
+                הכל ({selectedPlayerPredictionMatchIds.size})
+              </div>
+            </div>
+
+            {myPredictionRows.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-center">
+                <p className="text-sm font-bold text-slate-300">
+                  עדיין לא סימנת ניחושים.
+                </p>
+
+                <p className="mt-2 text-xs text-slate-500">
+                  גלול למטה למשחקים ובחר 1 / X / 2.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myPredictionRows.slice(0, 3).map(({ prediction, match }) => {
+                  const matchResult = getMatchResult(match);
+                  const isCorrect =
+                    matchResult !== null && prediction.pick === matchResult;
+                  const isWrong =
+                    matchResult !== null && prediction.pick !== matchResult;
+
+                  const statusLabel =
+                    matchResult === null
+                      ? "טרם התקיים"
+                      : isCorrect
+                        ? "נכון"
+                        : "שגוי";
+
+                  const pickLabel =
+                    prediction.pick === "1"
+                      ? match.home_team
+                      : prediction.pick === "2"
+                        ? match.away_team
+                        : "תיקו";
+
+                  return (
+                    <div
+                      key={prediction.id}
+                      className="rounded-2xl border border-white/10 bg-slate-950/60 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-bold text-slate-400">
+                            {new Date(match.start_time).toLocaleString("he-IL")}
+                          </p>
+
+                          <p className="mt-1 text-sm font-black text-white sm:text-base">
+                            {match.home_team} נגד {match.away_team}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`rounded-xl px-3 py-2 text-xs font-black ${
+                            isCorrect
+                              ? "border border-green-400/20 bg-green-500/10 text-green-300"
+                              : isWrong
+                                ? "border border-red-400/20 bg-red-500/10 text-red-300"
+                                : "border border-slate-400/20 bg-slate-500/10 text-slate-300"
+                          }`}
+                        >
+                          {isCorrect && "✅ "}
+                          {isWrong && "❌ "}
+                          {!isCorrect && !isWrong && "🕒 "}
+                          {statusLabel}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 items-center gap-2 text-center">
+                        <div className="rounded-xl border border-white/10 bg-slate-900/80 p-3">
+                          <p className="text-[10px] text-slate-500">בית</p>
+                          <p className="mt-1 truncate text-sm font-black">
+                            {match.home_team}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-yellow-400/20 bg-yellow-500/10 p-3">
+                          <p className="text-[10px] text-slate-400">
+                            הניחוש שלי
+                          </p>
+                          <p className="mt-1 text-2xl font-black text-yellow-300">
+                            {prediction.pick}
+                          </p>
+                          <p className="truncate text-[10px] text-slate-400">
+                            {pickLabel}
+                          </p>
+                        </div>
+
+                        <div className="rounded-xl border border-white/10 bg-slate-900/80 p-3">
+                          <p className="text-[10px] text-slate-500">חוץ</p>
+                          <p className="mt-1 truncate text-sm font-black">
+                            {match.away_team}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 text-center text-xs text-slate-400">
+                        תוצאה:{" "}
+                        <span className="font-black text-white">
+                          {match.status === "finished"
+                            ? `${match.home_score} - ${match.away_score}`
+                            : "-"}
+                        </span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {myPredictionRows.length > 3 && (
+              <p className="mt-3 text-center text-xs text-slate-400">
+                מוצגים 3 ניחושים ראשונים מתוך {myPredictionRows.length}.
+                כל השאר מופיעים באזור המשחקים.
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowAllMatches(true)}
+              className="mt-5 w-full rounded-2xl border border-green-400/30 bg-green-500/10 px-5 py-4 text-center text-sm font-black text-green-300 transition hover:bg-green-500/20"
+            >
+              צפה בכל המשחקים והניחושים שלי
+            </button>
+
+            <p className="mt-3 text-center text-xs text-slate-500">
+              סגורים: {closedMatches.length} | פתוחים: {openMatches.length}
+            </p>
+          </div>
+        )}
+
         {(!selectedPlayer || isAdmin) && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
             {!selectedPlayer && (
@@ -469,7 +780,9 @@ ${leagueUrl}`;
                 </p>
 
                 <Link
-                  href={`/join-league?code=${league.code}`}
+                  href={`/login?next=${encodeURIComponent(
+                    `/join-league?code=${league.code}`
+                  )}`}
                   onClick={() => {
                     localStorage.setItem(
                       "redirect-after-login",
