@@ -47,106 +47,109 @@ export default function Home() {
   const [isCheckingUser, setIsCheckingUser] = useState(true);
 
   useEffect(() => {
-    async function loadHomeState() {
-      const params = new URLSearchParams(window.location.search);
-      const codeFromUrl = params.get("code");
+  async function loadMyLeaguesFromServer() {
+    try {
+      const response = await fetch("/api/my-leagues", {
+        method: "GET",
+      });
 
-      if (codeFromUrl) {
-        const cleanCode = getCleanLeagueCode(codeFromUrl);
-
-        if (cleanCode) {
-          const joinLeagueUrl = `/join-league?code=${encodeURIComponent(
-            cleanCode
-          )}`;
-
-          localStorage.setItem("redirect-after-login", joinLeagueUrl);
-          router.replace(joinLeagueUrl);
-          return;
-        }
-
-        localStorage.removeItem("redirect-after-login");
-        router.replace("/join-league");
+      if (!response.ok) {
+        setLastLeagueCode("");
+        setLastLeagueName("");
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const data = (await response.json()) as MyLeaguesResponse;
+      const firstLeague = data.leagues[0];
 
-      if (user?.email) {
-        setUserEmail(user.email);
+      if (firstLeague?.leagueCode) {
+        setLastLeagueCode(firstLeague.leagueCode);
+        setLastLeagueName(firstLeague.leagueName);
       } else {
-        setUserEmail("");
-        setLastLeagueCode("");
-        setLastLeagueName("");
-        setIsCheckingUser(false);
-        return;
-      }
-
-      const redirectAfterLogin = localStorage.getItem("redirect-after-login");
-
-      if (
-        redirectAfterLogin &&
-        redirectAfterLogin.startsWith("/") &&
-        !redirectAfterLogin.startsWith("//")
-      ) {
-        localStorage.removeItem("redirect-after-login");
-        router.replace(redirectAfterLogin);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/my-leagues", {
-          method: "GET",
-        });
-
-        if (!response.ok) {
-          setLastLeagueCode("");
-          setLastLeagueName("");
-          setIsCheckingUser(false);
-          return;
-        }
-
-        const data = (await response.json()) as MyLeaguesResponse;
-        const firstLeague = data.leagues[0];
-
-        if (firstLeague?.leagueCode) {
-          setLastLeagueCode(firstLeague.leagueCode);
-          setLastLeagueName(firstLeague.leagueName);
-        } else {
-          setLastLeagueCode("");
-          setLastLeagueName("");
-        }
-      } catch (error) {
-        console.error(error);
         setLastLeagueCode("");
         setLastLeagueName("");
       }
+    } catch (error) {
+      console.error(error);
+      setLastLeagueCode("");
+      setLastLeagueName("");
+    }
+  }
 
-      setIsCheckingUser(false);
+  async function loadHomeState() {
+    const params = new URLSearchParams(window.location.search);
+    const codeFromUrl = params.get("code");
+
+    if (codeFromUrl) {
+      const cleanCode = getCleanLeagueCode(codeFromUrl);
+
+      if (cleanCode) {
+        const joinLeagueUrl = `/join-league?code=${encodeURIComponent(
+          cleanCode
+        )}`;
+
+        localStorage.setItem("redirect-after-login", joinLeagueUrl);
+        router.replace(joinLeagueUrl);
+        return;
+      }
+
+      localStorage.removeItem("redirect-after-login");
+      router.replace("/join-league");
+      return;
     }
 
-    loadHomeState();
-
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.email) {
-        setUserEmail(session.user.email);
-      } else {
-        setUserEmail("");
-        setLastLeagueCode("");
-        setLastLeagueName("");
-      }
+      data: { user },
+    } = await supabase.auth.getUser();
 
+    if (user?.email) {
+      setUserEmail(user.email);
+    } else {
+      setUserEmail("");
+      setLastLeagueCode("");
+      setLastLeagueName("");
       setIsCheckingUser(false);
-    });
+      return;
+    }
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router, supabase]);
+    const redirectAfterLogin = localStorage.getItem("redirect-after-login");
 
+    if (
+      redirectAfterLogin &&
+      redirectAfterLogin.startsWith("/") &&
+      !redirectAfterLogin.startsWith("//")
+    ) {
+      localStorage.removeItem("redirect-after-login");
+      router.replace(redirectAfterLogin);
+      return;
+    }
+
+    await loadMyLeaguesFromServer();
+
+    setIsCheckingUser(false);
+  }
+
+  loadHomeState();
+
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (session?.user?.email) {
+      setUserEmail(session.user.email);
+      await loadMyLeaguesFromServer();
+    } else {
+      setUserEmail("");
+      setLastLeagueCode("");
+      setLastLeagueName("");
+    }
+
+    setIsCheckingUser(false);
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, [router, supabase]);
   function saveRedirectBeforeLogin() {
     localStorage.removeItem("redirect-after-login");
   }
