@@ -23,13 +23,22 @@ export const metadata = {
       "הצטרפו לליגת ניחושים 1X2, נחשו תוצאות משחקים וצברו נקודות לאורך הטורניר.",
     siteName: "1X2 League",
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "1X2 League - ליגת ניחושים",
+      },
+    ],
   },
 
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "1X2 League - ליגת ניחושים",
     description:
       "הצטרפו לליגת ניחושים 1X2, נחשו 1 / X / 2 וצברו נקודות.",
+    images: ["/og-image.png"],
   },
 };
 
