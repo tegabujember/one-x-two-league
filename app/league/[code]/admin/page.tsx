@@ -593,20 +593,27 @@ useEffect(() => {
 
   const now = new Date();
 
-const matchesWaitingForScore = matches.filter((match) => {
-  const matchTime = new Date(match.start_time);
-
-  return (
-    matchTime <= now &&
-    (match.status !== "finished" ||
-      match.home_score === null ||
-      match.away_score === null)
+  const matchesWithoutScore = matches.filter(
+    (match) => match.home_score === null || match.away_score === null
   );
-});
 
-const adminMatchesToShow = showAllAdminMatches
-  ? matches
-  : matchesWaitingForScore.slice(0, 4);
+  const pastMatchesWithoutScore = matchesWithoutScore.filter(
+    (match) => new Date(match.start_time) <= now
+  );
+
+  const upcomingMatchesWithoutScore = matchesWithoutScore.filter(
+    (match) => new Date(match.start_time) > now
+  );
+
+  const priorityMatchesWithoutScore =
+    pastMatchesWithoutScore.length > 0
+      ? pastMatchesWithoutScore
+      : upcomingMatchesWithoutScore;
+
+  const adminMatchesToShow = showAllAdminMatches
+    ? matches
+    : priorityMatchesWithoutScore.slice(0, 4);
+    
   async function toggleLeaguePredictionsLock() {
     if (!league) {
       alert("הליגה לא נטענה");
@@ -1102,14 +1109,20 @@ const adminMatchesToShow = showAllAdminMatches
         <p className="mt-1 text-xs text-slate-400 sm:text-sm">
           {showAllAdminMatches
             ? "מציג את כל המשחקים בליגה"
-            : "מציג משחקים שעבר הזמן שלהם ועדיין צריכים תוצאה"}
+            : pastMatchesWithoutScore.length > 0
+            ? "מציג משחקים שעברו ועדיין אין להם תוצאה"
+            : "אין משחקים שעברו ללא תוצאה — מציג את הקרובים ביותר ללא תוצאה"
+            }
         </p>
       </div>
 
       <span className="shrink-0 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
         {showAllAdminMatches
           ? `${matches.length} משחקים`
-          : `${matchesWaitingForScore.length} לעדכון`}
+          :pastMatchesWithoutScore.length > 0
+          ? `${pastMatchesWithoutScore.length} עברו ללא תוצאה`
+          : `${upcomingMatchesWithoutScore.length} קרובים ללא תוצאה`
+          }
       </span>
     </div>
 
@@ -1123,7 +1136,7 @@ const adminMatchesToShow = showAllAdminMatches
           : "border border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
       }`}
     >
-      רק משחקים לעדכון
+      משחקים שצריכים עדכון 
     </button>
 
     <button
@@ -1141,7 +1154,7 @@ const adminMatchesToShow = showAllAdminMatches
 
   {matches.length === 0 ? (
     <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
-  ) : !showAllAdminMatches && matchesWaitingForScore.length === 0 ? (
+  ) : !showAllAdminMatches && priorityMatchesWithoutScore.length === 0 ? (
     <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-5 text-center">
       <p className="text-2xl">✅</p>
       <p className="mt-2 text-sm font-bold text-green-300">
@@ -1165,7 +1178,7 @@ const adminMatchesToShow = showAllAdminMatches
         ))}
       </div>
 
-      {!showAllAdminMatches && matchesWaitingForScore.length > 4 && (
+      {!showAllAdminMatches && priorityMatchesWithoutScore.length > 4 && (
         <button
           type="button"
           onClick={() => setShowAllAdminMatches(true)}
