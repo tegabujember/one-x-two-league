@@ -389,7 +389,7 @@ export default function LeagueClient({
   }
 
   async function copyLeagueLink() {
-    const leagueUrl = `${window.location.origin}/league/${league.code}`;
+    const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
 
     try {
       await navigator.clipboard.writeText(leagueUrl);
@@ -401,7 +401,7 @@ export default function LeagueClient({
   }
 
   function shareOnWhatsApp() {
-    const leagueUrl = `${window.location.origin}/league/${league.code}`;
+    const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
 
     const message = `הצטרף לליגת הניחושים שלי:
 ${league.name}
