@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
+import UserMenu from "@/components/auth/UserMenu";
+
 
 type Player = {
   id: string;
@@ -87,8 +89,8 @@ export default function LeagueClient({
   const [showAllMatches, setShowAllMatches] = useState(false);
 
   const [authEmail, setAuthEmail] = useState("");
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  // const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  // const [isSigningOut, setIsSigningOut] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
   const selectedPlayerStorageKey = `selected-player-${league.code}`;
@@ -305,12 +307,12 @@ export default function LeagueClient({
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
     if (!authEmail) {
-      showToast("צריך להתחבר עם Google כדי לשלוח ניחוש", "warning");
+      showToast("צריך להתחבר/להרשם  כדי לשלוח ניחוש", "warning");
       return;
     }
 
     if (!selectedPlayerId) {
-      showToast("צריך להתחבר עם Google כדי לשלוח ניחוש", "warning");
+      showToast("צריך להתחבר/להרשם כדי לשלוח ניחוש", "warning");
       return;
     }
 
@@ -411,40 +413,40 @@ ${leagueUrl}`;
 
     window.open(whatsappUrl, "_blank");
   }
-  function clearAppLocalStorage() {
-  localStorage.removeItem("redirect-after-login");
+//   function clearAppLocalStorage() {
+//   localStorage.removeItem("redirect-after-login");
 
-  Object.keys(localStorage)
-    .filter(
-      (key) =>
-        key.startsWith("selected-player-") ||
-        key.startsWith("league-admin-")
-    )
-    .forEach((key) => localStorage.removeItem(key));
-}
+//   Object.keys(localStorage)
+//     .filter(
+//       (key) =>
+//         key.startsWith("selected-player-") ||
+//         key.startsWith("league-admin-")
+//     )
+//     .forEach((key) => localStorage.removeItem(key));
+// }
 
-  async function signOut() {
-  setIsSigningOut(true);
+  // async function signOut() {
+  // setIsSigningOut(true);
 
-  const { error } = await supabase.auth.signOut();
+  // const { error } = await supabase.auth.signOut();
 
-  if (error) {
-    console.error(error);
-    showToast("שגיאה בהתנתקות", "error");
-    setIsSigningOut(false);
-    return;
-  }
+  // if (error) {
+  //   console.error(error);
+  //   showToast("שגיאה בהתנתקות", "error");
+  //   setIsSigningOut(false);
+  //   return;
+  // }
 
-  clearAppLocalStorage();
+//   clearAppLocalStorage();
 
-  setSelectedPlayerId("");
-  setIsAdmin(false);
-  setAuthEmail("");
-  setIsAccountMenuOpen(false);
-  setIsSigningOut(false);
+//   setSelectedPlayerId("");
+//   setIsAdmin(false);
+//   setAuthEmail("");
+//   setIsAccountMenuOpen(false);
+//   setIsSigningOut(false);
 
-  window.location.href = "/";
-}
+//   window.location.href = "/";
+// }
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
@@ -466,36 +468,17 @@ ${leagueUrl}`;
       </div>
     )}
       {authEmail && (
-        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
-          <button
-            type="button"
-            title="החשבון שלי"
-            onClick={() => setIsAccountMenuOpen((current) => !current)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-slate-900/80 text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105 hover:bg-slate-800"
-          >
-            👤
-          </button>
-
-          {isAccountMenuOpen && (
-            <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-4 text-right shadow-2xl shadow-black/40 backdrop-blur">
-              <p className="mb-1 text-xs text-slate-400">מחובר בתור</p>
-
-              <p className="mb-4 break-all text-sm font-bold text-green-300">
-                {authEmail}
-              </p>
-
-              <button
-                type="button"
-                onClick={signOut}
-                disabled={isSigningOut}
-                className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isSigningOut ? "מתנתק..." : "התנתק"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <UserMenu
+        email={authEmail}
+        showToast={showToast}
+        onSignedOut={() => {
+          setSelectedPlayerId("");
+          setIsAdmin(false);
+          setAuthEmail("");
+          window.location.href = "/";
+        }}
+      />
+    )}
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />

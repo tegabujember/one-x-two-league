@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
+import UserMenu from "@/components/auth/UserMenu";
 
 type Player = {
   id: string;
@@ -226,7 +227,7 @@ export default function JoinLeaguePage() {
     const cleanCode = getCleanLeagueCode(leagueCode);
 
     if (!userId) {
-      showToast("כדי להצטרף לליגה צריך להתחבר עם Google", "warning");
+      showToast("כדי להצטרף לליגה צריך להתחבר או להירשם", "warning");
       saveRedirectBeforeLogin();
       router.push(
         `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
@@ -259,7 +260,7 @@ export default function JoinLeaguePage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        showToast("צריך להתחבר עם Google כדי להצטרף לליגה", "warning");
+        showToast("כדי להצטרף לליגה צריך להתחבר או להירשם", "warning");
         saveRedirectBeforeLogin();
         router.push(
           `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
@@ -292,6 +293,19 @@ export default function JoinLeaguePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+      {userEmail && (
+        <UserMenu
+          email={userEmail}
+          showToast={showToast}
+          onSignedOut={() => {
+            setUserId("");
+            setUserEmail("");
+            setPlayerName("");
+            setAutoLoginMessage("");
+            router.refresh();
+          }}
+        />
+      )}
       {toast && (
         <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
           <div
@@ -339,7 +353,7 @@ export default function JoinLeaguePage() {
             </div>
           ) : userId ? (
             <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-              <p className="text-xs text-slate-400">מחובר עם Google</p>
+              <p className="text-xs text-slate-400">מחובר למערכת</p>
               <p className="mt-1 break-all text-sm font-bold text-green-300">
                 {userEmail}
               </p>
@@ -347,7 +361,7 @@ export default function JoinLeaguePage() {
           ) : (
             <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
               <p className="text-sm text-red-200">
-                כדי להצטרף לליגה צריך להתחבר עם Google.
+                כדי להצטרף לליגה צריך להתחבר או להירשם.
               </p>
 
               <Link
@@ -355,7 +369,7 @@ export default function JoinLeaguePage() {
                 onClick={saveRedirectBeforeLogin}
                 className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
-                התחבר / הירשם עם Google
+                התחבר / הירשם
               </Link>
             </div>
           )}
@@ -368,63 +382,67 @@ export default function JoinLeaguePage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                השם שלך
-              </label>
+          {userId && (
+            <>
+              <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    השם שלך
+                  </label>
 
-              <input
-                type="text"
-                value={playerName}
-                onChange={(event) => setPlayerName(event.target.value)}
-                placeholder="לדוגמה: Tegabu"
-                disabled={isFormDisabled}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
-              />
-            </div>
+                  <input
+                    type="text"
+                    value={playerName}
+                    onChange={(event) => setPlayerName(event.target.value)}
+                    placeholder="לדוגמה: Tegabu"
+                    disabled={isFormDisabled}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                  />
+                </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                קוד ליגה
-              </label>
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                    קוד ליגה
+                  </label>
 
-              <input
-                type="text"
-                value={leagueCode}
-                onChange={(event) => setLeagueCode(event.target.value.trim())}
-                placeholder="לדוגמה: AB72K"
-                disabled={isFormDisabled}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
-              />
-            </div>
+                  <input
+                    type="text"
+                    value={leagueCode}
+                    onChange={(event) => setLeagueCode(event.target.value.trim())}
+                    placeholder="לדוגמה: AB72K"
+                    disabled={isFormDisabled}
+                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                  />
+                </div>
 
-            <button
-              type="submit"
-              disabled={isFormDisabled}
-              className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
-            >
-              {isCheckingExistingPlayer
-                ? "בודק שחקן קיים..."
-                : isLoading
-                  ? "מצטרף לליגה..."
-                  : "הצטרף לליגה"}
-            </button>
-          </form>
+                <button
+                  type="submit"
+                  disabled={isFormDisabled}
+                  className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  {isCheckingExistingPlayer
+                    ? "בודק שחקן קיים..."
+                    : isLoading
+                      ? "מצטרף לליגה..."
+                      : "הצטרף לליגה"}
+                </button>
+              </form>
 
-          {leagueCode && (
-            <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-              <p className="text-xs text-slate-400 mb-1">אתה מצטרף לליגה</p>
-              <p className="break-words text-2xl font-black tracking-widest text-green-300">
-                {leagueCode}
-              </p>
-            </div>
+              {leagueCode && (
+                <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
+                  <p className="text-xs text-slate-400 mb-1">אתה מצטרף לליגה</p>
+                  <p className="break-words text-2xl font-black tracking-widest text-green-300">
+                    {leagueCode}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
             <p className="text-sm leading-6 text-yellow-100">
-              אם כבר הצטרפת בעבר עם חשבון Google הזה, נחבר אותך אוטומטית
-              לשחקן הקיים שלך.
+             אם כבר הצטרפת בעבר עם החשבון הזה, נחבר אותך אוטומטית
+לשחקן הקיים שלך.
             </p>
           </div>
 

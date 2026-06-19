@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
+import UserMenu from "@/components/auth/UserMenu";
 
 type MyLeague = {
   playerId: string;
@@ -172,6 +173,19 @@ export default function Home() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+      {userEmail && (
+        <UserMenu
+          email={userEmail}
+          onSignedOut={() => {
+            setUserEmail("");
+            setLastLeagueCode("");
+            setLastLeagueName("");
+            setMyLeagues([]);
+            setSelectedLeagueCode("");
+            router.refresh();
+          }}
+        />
+      )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.28),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.28),_transparent_35%)]" />
 
       <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
@@ -204,21 +218,23 @@ export default function Home() {
           {!isCheckingUser && (
             <div className="mt-6">
               {userEmail ? (
-                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-                  <p className="text-xs text-slate-400">מחובר בתור</p>
-                  <p className="mt-1 break-all text-sm font-bold text-green-300">
-                    {userEmail}
-                  </p>
-                </div>
+              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
+                <p className="text-sm font-bold text-green-300">
+                  אתה מחובר למערכת
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  לניהול החשבון או התנתקות לחץ על האייקון למעלה
+                </p>
+              </div>
               ) : (
                 <Link
                   href="/login"
                   onClick={saveRedirectBeforeLogin}
                   className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
                 >
-                  התחבר / הירשם עם Google
+                  התחבר / הירשם
                 </Link>
-              )}
+            )}
             </div>
           )}
 

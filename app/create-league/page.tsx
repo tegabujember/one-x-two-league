@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
+import UserMenu from "@/components/auth/UserMenu";
 
 type CreateLeagueResponse = {
   league: {
@@ -66,6 +67,10 @@ export default function CreateLeaguePage() {
     }, 3000);
   }
 
+  function saveCreateLeagueRedirect() {
+  localStorage.setItem("redirect-after-login", "/create-league");
+}
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -74,8 +79,9 @@ export default function CreateLeaguePage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      showToast("כדי ליצור ליגה צריך להתחבר עם Google", "warning");
-      router.push("/login");
+      showToast("כדי ליצור ליגה צריך להתחבר או להירשם", "warning");
+      localStorage.setItem("redirect-after-login", "/create-league");
+      router.push("/login?next=/create-league");
       return;
     }
 
@@ -102,8 +108,9 @@ export default function CreateLeaguePage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        showToast("כדי ליצור ליגה צריך להתחבר עם Google", "warning");
-        router.push("/login");
+        showToast("כדי ליצור ליגה צריך להתחבר או להירשם", "warning");
+        localStorage.setItem("redirect-after-login", "/create-league");
+        router.push("/login?next=/create-league");
       } else {
         showToast("שגיאה ביצירת הליגה", "error");
       }
@@ -123,6 +130,18 @@ export default function CreateLeaguePage() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+      {userEmail && (
+          <UserMenu
+            email={userEmail}
+            showToast={showToast}
+            onSignedOut={() => {
+              setUserEmail("");
+              setLeagueName("");
+              setAdminName("");
+              router.refresh();
+            }}
+          />
+        )}
       {toast && (
         <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
           <div
@@ -171,7 +190,7 @@ export default function CreateLeaguePage() {
             </div>
           ) : userEmail ? (
             <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-              <p className="text-xs text-slate-400">מחובר עם Google</p>
+              <p className="text-xs text-slate-400">מחובר למערכת</p>
               <p className="mt-1 break-all text-sm font-bold text-green-300">
                 {userEmail}
               </p>
@@ -179,62 +198,65 @@ export default function CreateLeaguePage() {
           ) : (
             <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
               <p className="text-sm text-red-200">
-                כדי ליצור ליגה צריך להתחבר עם Google.
+                כדי ליצור ליגה צריך להתחבר או להירשם.
               </p>
 
               <Link
-                href="/login"
+                href="/login?next=/create-league"
+                onClick={saveCreateLeagueRedirect}
                 className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
-                התחבר עם Google
+                התחבר / הירשם
               </Link>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                שם הליגה
-              </label>
+          {userEmail && (
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  שם הליגה
+                </label>
 
-              <input
-                type="text"
-                value={leagueName}
-                onChange={(event) => setLeagueName(event.target.value)}
-                placeholder="לדוגמה: מונדיאל חברים"
-                disabled={!userEmail || isCheckingUser}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
-              />
-            </div>
+                <input
+                  type="text"
+                  value={leagueName}
+                  onChange={(event) => setLeagueName(event.target.value)}
+                  placeholder="לדוגמה: מונדיאל חברים"
+                  disabled={!userEmail || isCheckingUser}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                />
+              </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-300">
-                השם שלך
-              </label>
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  השם שלך
+                </label>
 
-              <input
-                type="text"
-                value={adminName}
-                onChange={(event) => setAdminName(event.target.value)}
-                placeholder="לדוגמה: Tegabu"
-                disabled={!userEmail || isCheckingUser}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
-              />
-            </div>
+                <input
+                  type="text"
+                  value={adminName}
+                  onChange={(event) => setAdminName(event.target.value)}
+                  placeholder="לדוגמה: Tegabu"
+                  disabled={!userEmail || isCheckingUser}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={isLoading || isCheckingUser || !userEmail}
-              className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
-            >
-              {isLoading ? "יוצר ליגה..." : "צור ליגה"}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={isLoading || isCheckingUser || !userEmail}
+                className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {isLoading ? "יוצר ליגה..." : "צור ליגה"}
+              </button>
+            </form>
+          )}
 
           <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
             <p className="text-sm leading-6 text-yellow-100">
-              יצירת הליגה מתבצעת עכשיו דרך API מאובטח. הליגה תיקשר לחשבון
-              ה־Google שלך והשחקן הראשון ייווצר עבורך אוטומטית.
+             יצירת הליגה מתבצעת עכשיו דרך API מאובטח. הליגה תיקשר לחשבון
+שלך והשחקן הראשון ייווצר עבורך אוטומטית.
             </p>
           </div>
 
