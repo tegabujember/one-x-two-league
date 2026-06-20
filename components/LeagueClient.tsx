@@ -390,63 +390,54 @@ export default function LeagueClient({
     }
   }
 
-  async function copyLeagueLink() {
-    const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
+  // async function copyLeagueLink() {
+  //   const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
 
-    try {
-      await navigator.clipboard.writeText(leagueUrl);
-      showToast("הלינק הועתק", "success");
-    } catch (error) {
-      console.error(error);
-      showToast("לא הצלחתי להעתיק את הלינק", "error");
-    }
+  //   try {
+  //     await navigator.clipboard.writeText(leagueUrl);
+  //     showToast("הלינק הועתק", "success");
+  //   } catch (error) {
+  //     console.error(error);
+  //     showToast("לא הצלחתי להעתיק את הלינק", "error");
+  //   }
+  // }
+
+  
+//   function shareOnWhatsApp() {
+//     const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
+
+//     const message = `הצטרף לליגת הניחושים שלי:
+// ${league.name}
+// ${leagueUrl}`;
+
+//     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+//     window.open(whatsappUrl, "_blank");
+//   }
+
+async function copyLeagueLink() {
+  const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
+
+  try {
+    await navigator.clipboard.writeText(leagueUrl);
+    showToast("הלינק הועתק", "success");
+  } catch (error) {
+    console.error(error);
+    showToast("לא הצלחתי להעתיק את הלינק", "error");
   }
+}
 
-  function shareOnWhatsApp() {
-    const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
+function shareOnWhatsApp() {
+  const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
 
-    const message = `הצטרף לליגת הניחושים שלי:
+  const message = `הצטרף לליגת הניחושים שלי:
 ${league.name}
 ${leagueUrl}`;
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-    window.open(whatsappUrl, "_blank");
-  }
-//   function clearAppLocalStorage() {
-//   localStorage.removeItem("redirect-after-login");
-
-//   Object.keys(localStorage)
-//     .filter(
-//       (key) =>
-//         key.startsWith("selected-player-") ||
-//         key.startsWith("league-admin-")
-//     )
-//     .forEach((key) => localStorage.removeItem(key));
-// }
-
-  // async function signOut() {
-  // setIsSigningOut(true);
-
-  // const { error } = await supabase.auth.signOut();
-
-  // if (error) {
-  //   console.error(error);
-  //   showToast("שגיאה בהתנתקות", "error");
-  //   setIsSigningOut(false);
-  //   return;
-  // }
-
-//   clearAppLocalStorage();
-
-//   setSelectedPlayerId("");
-//   setIsAdmin(false);
-//   setAuthEmail("");
-//   setIsAccountMenuOpen(false);
-//   setIsSigningOut(false);
-
-//   window.location.href = "/";
-// }
+  window.open(whatsappUrl, "_blank");
+}
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
@@ -603,7 +594,7 @@ ${leagueUrl}`;
 
         {(!selectedPlayer || isAdmin) && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-            {!selectedPlayer && (
+            {/* {!selectedPlayer && (
               <div>
                 <h2 className="mb-2 text-xl font-black sm:text-2xl">
                   עדיין לא הצטרפת לליגה
@@ -631,6 +622,53 @@ ${leagueUrl}`;
                 <p className="mt-3 text-center text-xs leading-5 text-slate-400">
                   אם כבר הצטרפת בעבר, נחבר אותך אוטומטית לשחקן הקיים שלך.
                 </p>
+              </div>
+            )} */}
+            {!selectedPlayer && (
+              <div>
+                <h2 className="mb-2 text-xl font-black sm:text-2xl">
+                  עדיין לא הצטרפת לליגה
+                </h2>
+
+                <p className="mb-4 text-sm leading-6 text-slate-400 sm:mb-5">
+                  כדי לשלוח ניחושים צריך להתחבר ולהצטרף עם שם שחקן.
+                </p>
+
+                {!authEmail ? (
+                  <>
+                    <Link
+                      href={`/login?next=${encodeURIComponent(
+                        `/league/${league.code}`
+                      )}`}
+                      onClick={() => {
+                        localStorage.setItem(
+                          "redirect-after-login",
+                          `/league/${league.code}`
+                        );
+                      }}
+                      className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+                    >
+                      התחבר / הירשם כדי להצטרף
+                    </Link>
+
+                    <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                      אחרי ההתחברות תחזור אוטומטית לליגה הזאת.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      href={`/join-league?code=${encodeURIComponent(league.code)}`}
+                      className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
+                    >
+                      הצטרף לליגה הזאת
+                    </Link>
+
+                    <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                      נשאר רק לבחור שם שחקן ולאשר הצטרפות.
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
