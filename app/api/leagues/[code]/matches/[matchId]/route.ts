@@ -9,6 +9,10 @@ type UpdateMatchBody = {
   home_score?: number;
   away_score?: number;
   status?: string;
+
+  // רק בייבוא תוצאות:
+  // אם למשחק כבר יש תוצאה, אסור לדרוס אותה.
+  only_if_no_score?: boolean;
 };
 
 async function verifyLeagueOwner(code: string, userId: string) {
@@ -100,7 +104,10 @@ export async function PATCH(
     updateData.start_time = startDate.toISOString();
   }
 
-  if (body.home_score !== undefined || body.away_score !== undefined) {
+  const isUpdatingScore =
+    body.home_score !== undefined || body.away_score !== undefined;
+
+  if (isUpdatingScore) {
     if (
       body.home_score === undefined ||
       body.away_score === undefined ||
@@ -120,20 +127,58 @@ export async function PATCH(
     updateData.status = "finished";
   }
 
-  const { data: match, error: matchError } = await supabaseAdmin
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json(
+      { error: "No valid fields to update" },
+      { status: 400 }
+    );
+  }
+
+  let updateQuery = supabaseAdmin
     .from("matches")
     .update(updateData)
     .eq("id", matchId)
-    .eq("league_id", ownerCheck.league.id)
-    .select()
-    .single();
+    .eq("league_id", ownerCheck.league.id);
 
-  if (matchError || !match) {
+  /*
+    בייבוא תוצאות בלבד:
+    מעדכן רק כאשר שתי התוצאות עדיין NULL.
+    כך גם אם מישהו עדכן בין ה-Preview ללחיצה על אישור,
+    הייבוא לא ידרוס את התוצאה.
+  */
+  if (isUpdatingScore && body.only_if_no_score === true) {
+    updateQuery = updateQuery
+      .is("home_score", null)
+      .is("away_score", null);
+  }
+
+  const { data: match, error: matchError } = await updateQuery
+    .select()
+    .maybeSingle();
+
+  if (matchError) {
     console.error(matchError);
 
     return NextResponse.json(
       { error: "Failed to update match" },
       { status: 500 }
+    );
+  }
+
+  if (!match) {
+    if (isUpdatingScore && body.only_if_no_score === true) {
+      return NextResponse.json(
+        {
+          error: "Match already has a score or was not found",
+          code: "MATCH_ALREADY_HAS_SCORE",
+        },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Match not found" },
+      { status: 404 }
     );
   }
 

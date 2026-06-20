@@ -14,21 +14,20 @@ export default function GoogleLoginButton({
   const supabase = createClient();
 
   async function signInWithGoogle() {
-    const callbackUrl = getGoogleCallbackUrl();
+  const callbackUrl = getGoogleCallbackUrl();
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl,
-      },
-    });
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callbackUrl,
+    },
+  });
 
-    if (error) {
-      console.error(error);
-      showToast("שגיאה בהתחברות עם Google", "error");
-    }
+  if (error) {
+    console.error(error);
+    showToast("שגיאה בהתחברות עם Google", "error");
   }
-
+}
   return (
     <button
       type="button"
