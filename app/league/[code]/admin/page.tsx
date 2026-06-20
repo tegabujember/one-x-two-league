@@ -1493,6 +1493,20 @@ type ResultPreviewItem = {
   existingScore?: string;
 };
 
+type AiResultResponse = {
+  results: Array<{
+    match_id: string;
+    home_team: string;
+    away_team: string;
+    start_time: string;
+    home_score: number;
+    away_score: number;
+  }>;
+  foundCount: number;
+  missingCount: number;
+  message: string;
+};
+
 type ToastType = "success" | "error" | "warning" | "info";
 
 type ToastState = {
@@ -1718,6 +1732,7 @@ export default function LeagueAdminPage() {
   const [resultPreview, setResultPreview] = useState<ResultPreviewItem[]>([]);
   const [isCheckingResults, setIsCheckingResults] = useState(false);
   const [isUpdatingResults, setIsUpdatingResults] = useState(false);
+  const [isCheckingAiResults, setIsCheckingAiResults] = useState(false);
 
   const [predictionPlayerId, setPredictionPlayerId] = useState("");
   const [predictionImportText, setPredictionImportText] = useState("");
@@ -1985,108 +2000,184 @@ export default function LeagueAdminPage() {
     );
   }
 
-  function previewResultsImport() {
-    if (!resultImportText.trim()) {
-      alert("צריך להדביק רשימת תוצאות");
-      return;
-    }
+  // function previewResultsImport() {
+  //   if (!resultImportText.trim()) {
+  //     alert("צריך להדביק רשימת תוצאות");
+  //     return;
+  //   }
+  function previewResultsImport(textToPreview = resultImportText) {
+  if (!textToPreview.trim()) {
+    alert("צריך להדביק רשימת תוצאות");
+    return;
+  }
 
-    setIsCheckingResults(true);
+  setIsCheckingResults(true);
 
-    const lines = resultImportText
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean);
+  const lines = textToPreview
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-    const seenKeys = new Set<string>();
+  const seenKeys = new Set<string>();
 
-    const previewItems: ResultPreviewItem[] = lines.map((line, index) => {
-      const lineNumber = index + 1;
+  const previewItems: ResultPreviewItem[] = lines.map((line, index) => {
+    const lineNumber = index + 1;
 
-      let imported: ImportedResult;
+    let imported: ImportedResult;
 
-      try {
-        imported = parseResultLine(line);
-      } catch (error) {
-        return {
-          lineNumber,
-          rawLine: line,
-          status: "invalid",
-          message: error instanceof Error ? error.message : "שורה לא תקינה",
-        };
-      }
-
-      const duplicateKey = `${imported.start_time}|${normalizeTeamName(
-        imported.home_team
-      )}|${normalizeTeamName(imported.away_team)}`;
-
-      if (seenKeys.has(duplicateKey)) {
-        return {
-          lineNumber,
-          rawLine: line,
-          status: "duplicate",
-          message: "שורה כפולה באותה הדבקה",
-          imported,
-        };
-      }
-
-      seenKeys.add(duplicateKey);
-
-      const existingMatch = matches.find(
-        (match) =>
-          normalizeTeamName(match.home_team) ===
-            normalizeTeamName(imported.home_team) &&
-          normalizeTeamName(match.away_team) ===
-            normalizeTeamName(imported.away_team) &&
-          isSameMatchMinute(match.start_time, imported.start_time)
-      );
-
-      if (!existingMatch) {
-        return {
-          lineNumber,
-          rawLine: line,
-          status: "notFound",
-          message: "לא נמצא משחק קיים בליגה עם אותו תאריך, בית וחוץ",
-          imported,
-        };
-      }
-
-      if (
-        existingMatch.home_score !== null ||
-        existingMatch.away_score !== null
-      ) {
-        return {
-          lineNumber,
-          rawLine: line,
-          status: "hasScore",
-          message: "כבר קיימת תוצאה — לא יידרס",
-          imported,
-          matchId: existingMatch.id,
-          existingScore: `${existingMatch.home_score ?? "-"}-${
-            existingMatch.away_score ?? "-"
-          }`,
-        };
-      }
-
+    try {
+      imported = parseResultLine(line);
+    } catch (error) {
       return {
         lineNumber,
         rawLine: line,
-        status: "ready",
-        message: "מוכן לעדכון",
+        status: "invalid",
+        message: error instanceof Error ? error.message : "שורה לא תקינה",
+      };
+    }
+
+    const duplicateKey = `${imported.start_time}|${normalizeTeamName(
+      imported.home_team
+    )}|${normalizeTeamName(imported.away_team)}`;
+
+    if (seenKeys.has(duplicateKey)) {
+      return {
+        lineNumber,
+        rawLine: line,
+        status: "duplicate",
+        message: "שורה כפולה באותה הדבקה",
+        imported,
+      };
+    }
+
+    seenKeys.add(duplicateKey);
+
+    const existingMatch = matches.find(
+      (match) =>
+        normalizeTeamName(match.home_team) ===
+          normalizeTeamName(imported.home_team) &&
+        normalizeTeamName(match.away_team) ===
+          normalizeTeamName(imported.away_team) &&
+        isSameMatchMinute(match.start_time, imported.start_time)
+    );
+
+    if (!existingMatch) {
+      return {
+        lineNumber,
+        rawLine: line,
+        status: "notFound",
+        message: "לא נמצא משחק קיים בליגה עם אותו תאריך, בית וחוץ",
+        imported,
+      };
+    }
+
+    if (
+      existingMatch.home_score !== null ||
+      existingMatch.away_score !== null
+    ) {
+      return {
+        lineNumber,
+        rawLine: line,
+        status: "hasScore",
+        message: "כבר קיימת תוצאה — לא יידרס",
         imported,
         matchId: existingMatch.id,
+        existingScore: `${existingMatch.home_score ?? "-"}-${
+          existingMatch.away_score ?? "-"
+        }`,
       };
+    }
+
+    return {
+      lineNumber,
+      rawLine: line,
+      status: "ready",
+      message: "מוכן לעדכון",
+      imported,
+      matchId: existingMatch.id,
+    };
+  });
+
+  setResultPreview(previewItems);
+  setIsCheckingResults(false);
+
+  const readyCount = previewItems.filter(
+    (item) => item.status === "ready"
+  ).length;
+
+  alert(`הבדיקה הסתיימה. ${readyCount} תוצאות מוכנות לעדכון.`);
+}
+
+async function checkResultsWithAi() {
+  setIsCheckingAiResults(true);
+
+  try {
+    const response = await fetch(`/api/leagues/${code}/ai-results`, {
+      method: "POST",
     });
 
-    setResultPreview(previewItems);
-    setIsCheckingResults(false);
+    const data = (await response.json().catch(() => null)) as
+      | AiResultResponse
+      | { error?: string }
+      | null;
 
-    const readyCount = previewItems.filter(
-      (item) => item.status === "ready"
-    ).length;
+    if (!response.ok) {
+      console.error(data);
 
-    alert(`הבדיקה הסתיימה. ${readyCount} תוצאות מוכנות לעדכון.`);
+      const errorMessage =
+        data && "error" in data && typeof data.error === "string"
+          ? data.error
+          : "שגיאה בבדיקת תוצאות עם AI";
+
+      alert(errorMessage);
+      return;
+    }
+
+    const aiData = data as AiResultResponse;
+
+    if (aiData.results.length === 0) {
+      alert(aiData.message || "לא נמצאו תוצאות סופיות חדשות.");
+      return;
+    }
+
+    const formattedResults = aiData.results
+      .map((result) => {
+        const date = new Date(result.start_time);
+
+        const dateText = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jerusalem",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+          .format(date)
+          .replace(",", "");
+
+        return `${dateText} | ${result.home_team} | ${result.away_team} | ${result.home_score}-${result.away_score}`;
+      })
+      .join("\n");
+
+    setResultImportText(formattedResults);
+    setResultPreview([]);
+
+    previewResultsImport(formattedResults);
+
+    const extraMessage =
+      aiData.missingCount > 0
+        ? ` ${aiData.missingCount} משחקים עדיין ללא תוצאה סופית.`
+        : "";
+
+    alert(`נמצאו ${aiData.foundCount} תוצאות חדשות. בדוק ואשר.${extraMessage}`);
+  } catch (error) {
+    console.error(error);
+    alert("שגיאה בבדיקת תוצאות עם AI");
+  } finally {
+    setIsCheckingAiResults(false);
   }
+}
 
   async function importCheckedResults() {
     const readyItems = resultPreview.filter(
@@ -2794,10 +2885,22 @@ export default function LeagueAdminPage() {
                 className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
               />
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <button
                   type="button"
-                  onClick={previewResultsImport}
+                  onClick={checkResultsWithAi}
+                  disabled={
+                    isCheckingAiResults ||
+                    isCheckingResults ||
+                    isUpdatingResults
+                  }
+                  className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-700 px-4 py-3 text-sm font-bold shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-violet-400 hover:to-purple-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                >
+                  {isCheckingAiResults ? "מחפש תוצאות..." : "✨ בדוק תוצאות עם AI"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => previewResultsImport()}
                   disabled={
                     isCheckingResults ||
                     isUpdatingResults ||
@@ -2807,7 +2910,6 @@ export default function LeagueAdminPage() {
                 >
                   {isCheckingResults ? "בודק תוצאות..." : "בדוק תוצאות"}
                 </button>
-
                 <button
                   type="button"
                   onClick={importCheckedResults}
