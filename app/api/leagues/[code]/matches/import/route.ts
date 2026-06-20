@@ -14,6 +14,12 @@ type ImportMatchesBody = {
   matches?: ImportMatch[];
 };
 
+type ExistingMatch = {
+  start_time: string;
+  home_team: string;
+  away_team: string;
+};
+
 async function verifyLeagueOwner(code: string, userId: string) {
   const cleanCode = code.trim().toUpperCase();
 
@@ -32,6 +38,62 @@ async function verifyLeagueOwner(code: string, userId: string) {
   }
 
   return { error: null, status: 200, league };
+}
+
+function normalizeTeamName(value: string) {
+  const aliases: Record<string, string> = {
+    "south korea": "korea republic",
+    "republic of korea": "korea republic",
+    "korea republic": "korea republic",
+    "czech republic": "czechia",
+    czechia: "czechia",
+    usa: "united states",
+    "united states of america": "united states",
+    "ivory coast": "cote d ivoire",
+    "côte d'ivoire": "cote d ivoire",
+    "cote d'ivoire": "cote d ivoire",
+    "dr congo": "democratic republic of congo",
+    "democratic republic of the congo": "democratic republic of congo",
+  };
+
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[.'’()-]/g, " ")
+    .replace(/\s+/g, " ");
+
+  return aliases[normalized] || normalized;
+}
+
+function getIsraelDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value.trim().slice(0, 10);
+  }
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value])
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function getMatchKey(startTime: string, homeTeam: string, awayTeam: string) {
+  return [
+    getIsraelDate(startTime),
+    normalizeTeamName(homeTeam),
+    normalizeTeamName(awayTeam),
+  ].join("|");
 }
 
 export async function POST(
@@ -80,7 +142,32 @@ export async function POST(
     );
   }
 
+  const { data: existingMatches, error: existingMatchesError } =
+    await supabaseAdmin
+      .from("matches")
+      .select("start_time, home_team, away_team")
+      .eq("league_id", ownerCheck.league.id);
+
+  if (existingMatchesError) {
+    console.error(existingMatchesError);
+
+    return NextResponse.json(
+      { error: "Failed to check existing matches" },
+      { status: 500 }
+    );
+  }
+
+  const existingMatchKeys = new Set(
+    ((existingMatches || []) as ExistingMatch[]).map((match) =>
+      getMatchKey(match.start_time, match.home_team, match.away_team)
+    )
+  );
+
+  const incomingMatchKeys = new Set<string>();
   const matchesToInsert = [];
+
+  let skippedExisting = 0;
+  let skippedDuplicateInImport = 0;
 
   for (const match of body.matches) {
     const homeTeam = match.home_team?.trim();
@@ -103,8 +190,27 @@ export async function POST(
       );
     }
 
+    const matchKey = getMatchKey(
+      startDate.toISOString(),
+      homeTeam,
+      awayTeam
+    );
+
+    if (existingMatchKeys.has(matchKey)) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    if (incomingMatchKeys.has(matchKey)) {
+      skippedDuplicateInImport += 1;
+      continue;
+    }
+
+    incomingMatchKeys.add(matchKey);
+
     const hasHomeScore =
       match.home_score !== undefined && match.home_score !== null;
+
     const hasAwayScore =
       match.away_score !== undefined && match.away_score !== null;
 
@@ -156,6 +262,18 @@ export async function POST(
     });
   }
 
+  if (matchesToInsert.length === 0) {
+    return NextResponse.json({
+      imported: 0,
+      finished: 0,
+      upcoming: 0,
+      skipped_existing: skippedExisting,
+      skipped_duplicate_in_import: skippedDuplicateInImport,
+      matches: [],
+      message: "כל המשחקים כבר קיימים בליגה.",
+    });
+  }
+
   const { data: insertedMatches, error: insertError } = await supabaseAdmin
     .from("matches")
     .insert(matchesToInsert)
@@ -181,6 +299,8 @@ export async function POST(
       imported: insertedMatches?.length || 0,
       finished: finishedCount,
       upcoming: upcomingCount,
+      skipped_existing: skippedExisting,
+      skipped_duplicate_in_import: skippedDuplicateInImport,
       matches: insertedMatches || [],
     },
     { status: 201 }
