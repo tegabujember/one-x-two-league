@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type UpdateLeagueBody = {
   predictions_locked?: boolean;
+  admin_edit_mode?: boolean;
 };
 
 export async function PATCH(
@@ -26,7 +27,7 @@ export async function PATCH(
 
   const { data: league, error: leagueError } = await supabaseAdmin
     .from("leagues")
-    .select("id, owner_id, predictions_locked")
+    .select("id, owner_id, predictions_locked, admin_edit_mode")
     .eq("code", cleanCode)
     .single();
 
@@ -40,18 +41,54 @@ export async function PATCH(
 
   const body = (await request.json()) as UpdateLeagueBody;
 
-  if (typeof body.predictions_locked !== "boolean") {
+  const hasPredictionsLocked = typeof body.predictions_locked === "boolean";
+  const hasAdminEditMode = typeof body.admin_edit_mode === "boolean";
+
+  if (!hasPredictionsLocked && !hasAdminEditMode) {
     return NextResponse.json(
-      { error: "predictions_locked must be boolean" },
+      { error: "Must provide predictions_locked and/or admin_edit_mode" },
       { status: 400 }
     );
   }
 
+  const nextPredictionsLocked = hasPredictionsLocked
+    ? body.predictions_locked!
+    : league.predictions_locked;
+
+  let nextAdminEditMode = hasAdminEditMode
+    ? body.admin_edit_mode!
+    : Boolean(league.admin_edit_mode);
+
+  if (hasPredictionsLocked && body.predictions_locked === false) {
+    nextAdminEditMode = false;
+  }
+
+  if (nextAdminEditMode && !nextPredictionsLocked) {
+    return NextResponse.json(
+      { error: "admin_edit_mode can only be true when predictions_locked is true" },
+      { status: 400 }
+    );
+  }
+
+  const updatePayload: {
+    predictions_locked?: boolean;
+    admin_edit_mode?: boolean;
+  } = {};
+
+  if (hasPredictionsLocked) {
+    updatePayload.predictions_locked = body.predictions_locked;
+  }
+
+  if (
+    hasAdminEditMode ||
+    (hasPredictionsLocked && body.predictions_locked === false)
+  ) {
+    updatePayload.admin_edit_mode = nextAdminEditMode;
+  }
+
   const { data: updatedLeague, error: updateError } = await supabaseAdmin
     .from("leagues")
-    .update({
-      predictions_locked: body.predictions_locked,
-    })
+    .update(updatePayload)
     .eq("id", league.id)
     .select()
     .single();

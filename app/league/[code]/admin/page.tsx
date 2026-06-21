@@ -13,6 +13,7 @@ type League = {
   admin_code: string | null;
   owner_id: string | null;
   predictions_locked: boolean;
+  admin_edit_mode: boolean;
 };
 
 type Player = {
@@ -299,6 +300,7 @@ export default function LeagueAdminPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [adminEmail, setAdminEmail] = useState("");
+  const [isAccountOwner, setIsAccountOwner] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -427,11 +429,16 @@ export default function LeagueAdminPage() {
       return;
     }
 
+    setIsAccountOwner(isAccountOwner);
+
     if (user?.email) {
       setAdminEmail(user.email);
     }
 
-    setLeague(leagueData);
+    setLeague({
+      ...leagueData,
+      admin_edit_mode: Boolean(leagueData.admin_edit_mode),
+    });
 
     const { data: playersData, error: playersError } = await supabase
       .from("players")
@@ -1204,6 +1211,63 @@ async function checkMatchesWithAi() {
     );
   }
 
+  async function toggleAdminEditMode() {
+    if (!league) {
+      alert("הליגה לא נטענה");
+      return;
+    }
+
+    if (!league.predictions_locked) {
+      alert("מצב עריכת מנהל זמין רק כשהניחושים נעולים");
+      return;
+    }
+
+    const nextAdminEditMode = !league.admin_edit_mode;
+
+    const message = nextAdminEditMode
+      ? "הפעלת מצב עריכת מנהל תאפשר לך לערוך ניחושים עבור כל שחקן בליגה, כולל משחקים שכבר התחילו. להמשיך?"
+      : "לבטל מצב עריכת מנהל? לא תוכל יותר לערוך ניחושים של שחקנים אחרים.";
+
+    const shouldUpdate = confirm(message);
+
+    if (!shouldUpdate) {
+      return;
+    }
+
+    const response = await fetch(`/api/leagues/${code}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        admin_edit_mode: nextAdminEditMode,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר למערכת");
+      } else if (response.status === 403) {
+        alert("אין לך הרשאה לשנות את מצב עריכת המנהל");
+      } else {
+        alert("שגיאה בעדכון מצב עריכת המנהל");
+      }
+
+      return;
+    }
+
+    await loadLeagueAndMatches();
+
+    alert(
+      nextAdminEditMode
+        ? "מצב עריכת מנהל הופעל"
+        : "מצב עריכת מנהל בוטל"
+    );
+  }
+
   async function updateScore(
     matchId: string,
     homeScore: string,
@@ -1481,6 +1545,42 @@ async function checkMatchesWithAi() {
                       ? "פתח ניחושים למשחקים עתידיים"
                       : "נעל ניחושים לכל הליגה"}
                   </button>
+
+                  {league.predictions_locked && isAccountOwner && (
+                    <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
+                      <p className="mb-2 text-xs font-bold text-amber-200">
+                        מצב עריכת מנהל:{" "}
+                        <span
+                          className={
+                            league.admin_edit_mode
+                              ? "text-amber-100"
+                              : "text-slate-300"
+                          }
+                        >
+                          {league.admin_edit_mode ? "פעיל" : "כבוי"}
+                        </span>
+                      </p>
+
+                      <p className="mb-3 text-[11px] leading-5 text-amber-100/80">
+                        כשמופעל, תוכל לערוך ניחושים עבור כל שחקן בליגה — גם
+                        אחרי שהמשחק התחיל. שחקנים רגילים יישארו חסומים.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={toggleAdminEditMode}
+                        className={`w-full rounded-xl px-4 py-3 text-sm font-black transition hover:scale-[1.02] ${
+                          league.admin_edit_mode
+                            ? "bg-gradient-to-r from-slate-600 to-slate-800 text-white"
+                            : "bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                        }`}
+                      >
+                        {league.admin_edit_mode
+                          ? "בטל מצב עריכת מנהל"
+                          : "הפעל מצב עריכת מנהל"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

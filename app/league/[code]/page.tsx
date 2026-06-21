@@ -57,7 +57,11 @@ export default async function LeaguePage({ params }: LeaguePageProps) {
 
   return (
     <LeagueClient
-      league={league}
+      league={{
+        ...league,
+        predictions_locked: Boolean(league.predictions_locked),
+        admin_edit_mode: Boolean(league.admin_edit_mode),
+      }}
       players={players || []}
       matches={matches || []}
       predictions={predictions || []}

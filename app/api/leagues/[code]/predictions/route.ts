@@ -45,7 +45,7 @@ export async function POST(
 
   const { data: league, error: leagueError } = await supabaseAdmin
     .from("leagues")
-    .select("id, predictions_locked")
+    .select("id, owner_id, predictions_locked, admin_edit_mode")
     .eq("code", cleanCode)
     .single();
 
@@ -53,7 +53,12 @@ export async function POST(
     return NextResponse.json({ error: "League not found" }, { status: 404 });
   }
 
-  if (league.predictions_locked) {
+  const isAdminOverride =
+    league.predictions_locked &&
+    Boolean(league.admin_edit_mode) &&
+    league.owner_id === user.id;
+
+  if (league.predictions_locked && !isAdminOverride) {
     return NextResponse.json(
       { error: "League predictions are locked" },
       { status: 403 }
@@ -71,7 +76,7 @@ export async function POST(
     return NextResponse.json({ error: "Player not found" }, { status: 404 });
   }
 
-  if (player.user_id !== user.id) {
+  if (!isAdminOverride && player.user_id !== user.id) {
     return NextResponse.json(
       { error: "Player does not belong to this user" },
       { status: 403 }
@@ -89,14 +94,16 @@ export async function POST(
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
 
-  const now = new Date();
-  const matchStartTime = new Date(match.start_time);
+  if (!isAdminOverride) {
+    const now = new Date();
+    const matchStartTime = new Date(match.start_time);
 
-  if (matchStartTime <= now) {
-    return NextResponse.json(
-      { error: "Prediction is locked" },
-      { status: 403 }
-    );
+    if (matchStartTime <= now) {
+      return NextResponse.json(
+        { error: "Prediction is locked" },
+        { status: 403 }
+      );
+    }
   }
 
   const { data: prediction, error: predictionError } = await supabaseAdmin

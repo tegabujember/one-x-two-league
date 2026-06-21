@@ -29,6 +29,7 @@ type League = {
   admin_code: string | null;
   owner_id: string | null;
   predictions_locked: boolean;
+  admin_edit_mode: boolean;
 };
 
 type Prediction = {
@@ -86,6 +87,7 @@ export default function LeagueClient({
   const [localPredictions, setLocalPredictions] = useState(predictions);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [adminEditPlayerId, setAdminEditPlayerId] = useState("");
   const [showAllMatches, setShowAllMatches] = useState(false);
 
   const [authEmail, setAuthEmail] = useState("");
@@ -153,8 +155,19 @@ export default function LeagueClient({
     league.owner_id,
   ]);
 
+  const isAdminEditActive =
+    isAdmin && league.predictions_locked && league.admin_edit_mode;
+
+  const activeEditPlayerId = isAdminEditActive
+    ? adminEditPlayerId
+    : selectedPlayerId;
+
   const selectedPlayer = players.find(
     (player) => player.id === selectedPlayerId
+  );
+
+  const adminEditPlayer = players.find(
+    (player) => player.id === adminEditPlayerId
   );
 
   const finishedMatches = matches.filter(
@@ -344,8 +357,17 @@ function getFinishedMatchPlayerStatus(
       return;
     }
 
-    if (league.predictions_locked) {
+    if (league.predictions_locked && !isAdminEditActive) {
       showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
+      return;
+    }
+
+    const playerIdToSave = isAdminEditActive
+      ? adminEditPlayerId
+      : selectedPlayerId;
+
+    if (!playerIdToSave) {
+      showToast("צריך לבחור שחקן", "warning");
       return;
     }
 
@@ -358,7 +380,7 @@ function getFinishedMatchPlayerStatus(
       },
       body: JSON.stringify({
         match_id: matchId,
-        player_id: selectedPlayerId,
+        player_id: playerIdToSave,
         pick,
       }),
     });
@@ -530,9 +552,15 @@ ${leagueUrl}`;
               </span>
             </div>
 
-            {league.predictions_locked && (
+            {league.predictions_locked && !isAdminEditActive && (
               <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
                 🔒 הניחושים נסגרו על ידי מנהל הליגה
+              </div>
+            )}
+
+            {isAdminEditActive && (
+              <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-200">
+                ⚠️ מצב עריכת מנהל פעיל — ניתן לערוך ניחושים עבור כל שחקן
               </div>
             )}
           </div>
@@ -853,6 +881,37 @@ ${leagueUrl}`;
             </span>
           </div>
 
+          {isAdminEditActive && (
+            <div className="mb-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 sm:mb-5">
+              <label
+                htmlFor="admin-edit-player"
+                className="mb-2 block text-sm font-bold text-amber-200"
+              >
+                עריכת ניחושים עבור שחקן
+              </label>
+
+              <select
+                id="admin-edit-player"
+                value={adminEditPlayerId}
+                onChange={(event) => setAdminEditPlayerId(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-white"
+              >
+                <option value="">בחר שחקן...</option>
+                {players.map((player) => (
+                  <option key={player.id} value={player.id}>
+                    {player.name}
+                  </option>
+                ))}
+              </select>
+
+              {adminEditPlayer && (
+                <p className="mt-2 text-xs text-amber-100/80">
+                  מציג ושומר ניחושים עבור: {adminEditPlayer.name}
+                </p>
+              )}
+            </div>
+          )}
+
           {matches.length === 0 ? (
             <p className="text-sm text-slate-400">
               עדיין לא נוספו משחקים. אפשר להוסיף דרך ניהול ליגה.
@@ -861,11 +920,18 @@ ${leagueUrl}`;
             <>
               <div className="space-y-3 sm:space-y-4">
                 {matchesToShow.map((match) => {
-                  const currentPrediction = getPredictionForMatch(match.id);
+                  const currentPrediction = getPredictionForMatch(
+                    match.id,
+                    activeEditPlayerId
+                  );
                   const isTimeLocked =
                     new Date(match.start_time) <= new Date();
-                  const isMatchLocked =
-                    league.predictions_locked || isTimeLocked;
+                  const isMatchLocked = isAdminEditActive
+                    ? false
+                    : league.predictions_locked || isTimeLocked;
+                  const canEditPredictions = isAdminEditActive
+                    ? Boolean(authEmail && adminEditPlayerId)
+                    : Boolean(authEmail && selectedPlayer);
                   const matchResult = getMatchResult(match);
                   const featuredLabel = getFeaturedMatchLabel(match);
 
@@ -939,7 +1005,7 @@ ${leagueUrl}`;
                         {new Date(match.start_time).toLocaleString("he-IL")}
                       </p>
 
-                      {!authEmail || !selectedPlayer ? null : (
+                      {!canEditPredictions ? null : (
                         <>
                           <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             {(["1", "X", "2"] as const).map((pick) => {
@@ -993,7 +1059,7 @@ ${leagueUrl}`;
 
                           {currentPrediction && (
                             <p className="mt-3 text-center text-xs text-slate-400">
-                              הניחוש שלך:{" "}
+                              {isAdminEditActive ? "ניחוש השחקן" : "הניחוש שלך"}:{" "}
                               <span className="font-bold text-white">
                                 {currentPrediction.pick}
                               </span>
@@ -1009,6 +1075,7 @@ ${leagueUrl}`;
                       )}
 
                       {league.predictions_locked &&
+                        !isAdminEditActive &&
                         match.status !== "finished" && (
                           <p className="mt-2 text-center text-xs text-red-300">
                             הניחושים נסגרו על ידי מנהל הליגה
