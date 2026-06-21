@@ -684,7 +684,85 @@ ${leagueUrl}`;
           )}
         </div>
 
-         {selectedPlayer && (
+        
+
+        {lastFinishedMatches.length > 0 && (
+          <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
+            <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
+              <h2 className="text-base font-black text-white sm:text-lg">
+                ניחושים - 3 המשחקים האחרונים
+              </h2>
+            </div>
+
+            <div className="divide-y divide-white/10">
+              {lastFinishedMatches.map((match) => (
+                <div
+                  key={match.id}
+                  className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                >
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {match.home_team}
+                    </p>
+
+                    <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-base font-black text-yellow-300 sm:text-lg">
+                      {match.home_score} - {match.away_score}
+                    </div>
+
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {match.away_team}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 overflow-x-auto pb-2">
+                    <div
+                      dir="rtl"
+                      className="flex w-max min-w-full items-center justify-start gap-2"
+                    >
+                      {players.map((player) => {
+                        const status = getFinishedMatchPlayerStatus(match, player.id);
+                        const isCurrentPlayer = player.id === selectedPlayerId;
+
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex w-[46px] shrink-0 flex-col items-center text-center sm:w-[58px]"
+                          >
+                            <p
+                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
+                                isCurrentPlayer ? "text-cyan-300" : "text-white"
+                              }`}
+                            >
+                              {player.name}
+                            </p>
+
+                            <div
+                              className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-lg font-black sm:h-9 sm:w-9 sm:text-xl ${
+                                status === "correct"
+                                  ? "border-green-400/40 bg-green-500/20 text-green-300"
+                                  : status === "wrong"
+                                    ? "border-red-400/40 bg-red-500/20 text-red-300"
+                                    : "border-slate-500/30 bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {status === "correct"
+                                ? "✓"
+                                : status === "wrong"
+                                  ? "×"
+                                  : "—"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+       {selectedPlayer && (
           <>
           <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
            
@@ -763,81 +841,6 @@ ${leagueUrl}`;
               </div>
             </>
           )}
-
-        {lastFinishedMatches.length > 0 && (
-          <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
-            <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
-              <h2 className="text-base font-black text-white sm:text-lg">
-                ניחושים - 3 המשחקים האחרונים
-              </h2>
-            </div>
-
-            <div className="divide-y divide-white/10">
-              {lastFinishedMatches.map((match) => (
-                <div
-                  key={match.id}
-                  className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3"
-                >
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
-                      {match.home_team}
-                    </p>
-
-                    <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-base font-black text-yellow-300 sm:text-lg">
-                      {match.home_score} - {match.away_score}
-                    </div>
-
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
-                      {match.away_team}
-                    </p>
-                  </div>
-
-                  <div className="min-w-0 overflow-x-auto pb-1">
-                    <div
-
-                      dir="rtl" className="flex min-w-full items-center justify-between gap-2">
-                      {players.map((player) => {
-                        const status = getFinishedMatchPlayerStatus(match, player.id);
-                        const isCurrentPlayer = player.id === selectedPlayerId;
-
-                        return (
-                          <div
-                            key={player.id}
-                            className="flex w-[54px] shrink-0 flex-col items-center text-center sm:w-[64px]"
-                          >
-                            <p
-                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
-                                isCurrentPlayer ? "text-cyan-300" : "text-white"
-                              }`}
-                            >
-                              {player.name}
-                            </p>
-
-                            <div
-                              className={`mt-1.5 flex h-8 w-8 items-center justify-center rounded-full border text-lg font-black sm:h-9 sm:w-9 sm:text-xl ${
-                                status === "correct"
-                                  ? "border-green-400/40 bg-green-500/20 text-green-300"
-                                  : status === "wrong"
-                                    ? "border-red-400/40 bg-red-500/20 text-red-300"
-                                    : "border-slate-500/30 bg-slate-800 text-slate-400"
-                              }`}
-                            >
-                              {status === "correct"
-                                ? "✓"
-                                : status === "wrong"
-                                  ? "×"
-                                  : "—"}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
