@@ -224,6 +224,34 @@ export default function LeagueClient({
 
   const matchesToShow = showAllMatches ? sortedMatches : featuredMatches;
 
+const lastFinishedMatches = [...finishedMatches]
+  .sort(
+    (a, b) =>
+      new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+  )
+  .slice(0, 3);
+
+function getFinishedMatchPlayerStatus(
+  match: Match,
+  playerId: string
+): "correct" | "wrong" | "missing" {
+  const result = getMatchResult(match);
+
+  if (!result) {
+    return "missing";
+  }
+
+  const prediction = localPredictions.find(
+    (item) => item.match_id === match.id && item.player_id === playerId
+  );
+
+  if (!prediction) {
+    return "missing";
+  }
+
+  return prediction.pick === result ? "correct" : "wrong";
+}
+
   const selectedPlayerPredictions = selectedPlayer
     ? localPredictions.filter(
         (prediction) => prediction.player_id === selectedPlayer.id
@@ -485,6 +513,7 @@ ${leagueUrl}`;
             WORLD CUP LEAGUE
           </p>
         </div>
+        
 
         <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
@@ -536,94 +565,10 @@ ${leagueUrl}`;
           </div>
         </div>
 
-        {selectedPlayer && (
-          <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-            <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
-              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">✓</p>
-                <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
-                  {correctPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  נכונים
-                </p>
-              </div>
+       
 
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">×</p>
-                <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
-                  {wrongPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  שגויים
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">⌛</p>
-                <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
-                  {pendingPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  ממתינים
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
-              <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
-                <span className="font-black text-white">התקדמות כללית</span>
-                <span className="font-black text-green-300">
-                  {selectedPlayerPredictionMatchIds.size}/{matches.length}
-                </span>
-              </div>
-
-              <div className="h-4 overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
-                  style={{ width: `${predictionProgress}%` }}
-                />
-              </div>
-
-              <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
-                {predictionProgress}% הושלמו
-              </p>
-            </div>
-          </div>
-        )}
-
-        {(!selectedPlayer || isAdmin) && (
+        {!selectedPlayer && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-            {/* {!selectedPlayer && (
-              <div>
-                <h2 className="mb-2 text-xl font-black sm:text-2xl">
-                  עדיין לא הצטרפת לליגה
-                </h2>
-
-                <p className="mb-4 text-sm leading-6 text-slate-400 sm:mb-5">
-                  כדי לשלוח ניחושים צריך להתחבר ולהצטרף עם שם שחקן.
-                </p>
-
-                <Link
-                  href={`/login?next=${encodeURIComponent(
-                    `/join-league?code=${league.code}`
-                  )}`}
-                  onClick={() => {
-                    localStorage.setItem(
-                      "redirect-after-login",
-                      `/join-league?code=${league.code}`
-                    );
-                  }}
-                  className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
-                >
-                  התחבר / הצטרף לליגה הזאת
-                </Link>
-
-                <p className="mt-3 text-center text-xs leading-5 text-slate-400">
-                  אם כבר הצטרפת בעבר, נחבר אותך אוטומטית לשחקן הקיים שלך.
-                </p>
-              </div>
-            )} */}
             {!selectedPlayer && (
               <div>
                 <h2 className="mb-2 text-xl font-black sm:text-2xl">
@@ -672,39 +617,10 @@ ${leagueUrl}`;
               </div>
             )}
 
-            {isAdmin && (
-              <div
-                className={
-                  !selectedPlayer
-                    ? "mt-4 border-t border-white/10 pt-4 sm:mt-6 sm:pt-5"
-                    : ""
-                }
-              >
-                <h2 className="mb-2 text-base font-bold sm:mb-3 sm:text-lg">
-                  בחירת שחקן לאדמין
-                </h2>
-
-                <select
-                  value={selectedPlayerId}
-                  onChange={(event) => handlePlayerChange(event.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
-                >
-                  <option value="">בחר שחקן</option>
-
-                  {players.map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.name}
-                    </option>
-                  ))}
-                </select>
-
-                <p className="mt-2 text-xs text-slate-400 sm:mt-3">
-                  האפשרות הזאת מוצגת רק למנהל.
-                </p>
-              </div>
-            )}
           </div>
         )}
+
+        
 
         <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
@@ -767,6 +683,161 @@ ${leagueUrl}`;
             </div>
           )}
         </div>
+
+         {selectedPlayer && (
+          <>
+          <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+           
+          <div className="mb-4 flex items-center justify-between sm:mb-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-yellow-300/25 bg-gradient-to-br from-yellow-400/20 to-orange-500/10 text-2xl shadow-lg shadow-yellow-950/30 sm:h-12 sm:w-12">
+                  🎯
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-black text-white sm:text-2xl">
+                    הניחושים שלי
+                  </h2>
+
+                  <p className="mt-0.5 text-xs font-semibold text-slate-400 sm:text-sm">
+                    הביצועים שלך עד עכשיו
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
+                {predictionAccuracy}% פגיעה
+              </div>
+            </div>
+              <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
+              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">✓</p>
+                <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
+                  {correctPredictions.length}
+                </p>
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  נכונים
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">×</p>
+                <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
+                  {wrongPredictions.length}
+                </p>
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  שגויים
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
+                <p className="text-2xl sm:text-3xl">⌛</p>
+                <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
+                  {pendingPredictions.length}
+                </p>
+                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  ממתינים
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
+              <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
+                <span className="font-black text-white">התקדמות כללית</span>
+                <span className="font-black text-green-300">
+                  {selectedPlayerPredictionMatchIds.size}/{matches.length}
+                </span>
+              </div>
+
+              <div className="h-4 overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
+                  style={{ width: `${predictionProgress}%` }}
+                />
+              </div>
+
+              <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
+                {predictionProgress}% הושלמו
+              </p>
+            </div>
+              </div>
+            </>
+          )}
+
+        {lastFinishedMatches.length > 0 && (
+          <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
+            <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
+              <h2 className="text-base font-black text-white sm:text-lg">
+                ניחושים - 3 המשחקים האחרונים
+              </h2>
+            </div>
+
+            <div className="divide-y divide-white/10">
+              {lastFinishedMatches.map((match) => (
+                <div
+                  key={match.id}
+                  className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                >
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {match.home_team}
+                    </p>
+
+                    <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-base font-black text-yellow-300 sm:text-lg">
+                      {match.home_score} - {match.away_score}
+                    </div>
+
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {match.away_team}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 overflow-x-auto pb-1">
+                    <div
+
+                      dir="rtl" className="flex min-w-full items-center justify-between gap-2">
+                      {players.map((player) => {
+                        const status = getFinishedMatchPlayerStatus(match, player.id);
+                        const isCurrentPlayer = player.id === selectedPlayerId;
+
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex w-[54px] shrink-0 flex-col items-center text-center sm:w-[64px]"
+                          >
+                            <p
+                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
+                                isCurrentPlayer ? "text-cyan-300" : "text-white"
+                              }`}
+                            >
+                              {player.name}
+                            </p>
+
+                            <div
+                              className={`mt-1.5 flex h-8 w-8 items-center justify-center rounded-full border text-lg font-black sm:h-9 sm:w-9 sm:text-xl ${
+                                status === "correct"
+                                  ? "border-green-400/40 bg-green-500/20 text-green-300"
+                                  : status === "wrong"
+                                    ? "border-red-400/40 bg-red-500/20 text-red-300"
+                                    : "border-slate-500/30 bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {status === "correct"
+                                ? "✓"
+                                : status === "wrong"
+                                  ? "×"
+                                  : "—"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
