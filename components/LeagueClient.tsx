@@ -244,6 +244,22 @@ const lastFinishedMatches = [...finishedMatches]
   )
   .slice(0, 3);
 
+
+const closestUpcomingMatch = sortedMatches.find(
+  (match) =>
+    new Date(match.start_time) > now &&
+    match.status !== "finished" &&
+    getMatchResult(match) === null
+);
+
+function getUpcomingMatchPlayerPick(matchId: string, playerId: string) {
+  return localPredictions.find(
+    (prediction) =>
+      prediction.match_id === matchId &&
+      prediction.player_id === playerId
+  )?.pick;
+}
+
 function getFinishedMatchPlayerStatus(
   match: Match,
   playerId: string
@@ -714,15 +730,88 @@ ${leagueUrl}`;
 
         
 
-        {lastFinishedMatches.length > 0 && (
+        {(closestUpcomingMatch || lastFinishedMatches.length > 0) && (
           <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
             <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
               <h2 className="text-base font-black text-white sm:text-lg">
-                ניחושים - 3 המשחקים האחרונים
+                {closestUpcomingMatch
+                  ? "ניחושים - המשחק הקרוב + 3 המשחקים האחרונים"
+                  : "ניחושים - 3 המשחקים האחרונים"}
               </h2>
             </div>
 
             <div className="divide-y divide-white/10">
+              {closestUpcomingMatch && (
+                <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3">
+                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {closestUpcomingMatch.home_team}
+                    </p>
+
+                    <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-center">
+                      <p className="text-base font-black text-yellow-300 sm:text-lg">
+                        VS
+                      </p>
+
+                      <p className="text-[10px] font-bold text-slate-200 sm:text-xs">
+                        {new Date(closestUpcomingMatch.start_time).toLocaleTimeString(
+                          "he-IL",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          }
+                        )}
+                      </p>
+                    </div>
+
+                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                      {closestUpcomingMatch.away_team}
+                    </p>
+                  </div>
+
+                  <div className="min-w-0 overflow-x-auto pb-2">
+                    <div
+                      dir="rtl"
+                      className="flex w-max min-w-full items-center justify-start gap-2"
+                    >
+                      {players.map((player) => {
+                        const pick = getUpcomingMatchPlayerPick(
+                          closestUpcomingMatch.id,
+                          player.id
+                        );
+
+                        const isCurrentPlayer = player.id === selectedPlayerId;
+
+                        return (
+                          <div
+                            key={player.id}
+                            className="flex w-[46px] shrink-0 flex-col items-center text-center sm:w-[58px]"
+                          >
+                            <p
+                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
+                                isCurrentPlayer ? "text-cyan-300" : "text-white"
+                              }`}
+                            >
+                              {player.name}
+                            </p>
+
+                            <div
+                              className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-base font-black sm:h-9 sm:w-9 sm:text-lg ${
+                                pick
+                                  ? "border-cyan-400/50 bg-cyan-500/15 text-cyan-200"
+                                  : "border-slate-500/30 bg-slate-800 text-slate-400"
+                              }`}
+                            >
+                              {pick || "—"}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {lastFinishedMatches.map((match) => (
                 <div
                   key={match.id}
