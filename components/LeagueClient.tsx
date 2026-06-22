@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
 
-
 type Player = {
   id: string;
   name: string;
@@ -75,6 +74,140 @@ function getRankIcon(index: number) {
   return `${index + 1}`;
 }
 
+function RankShield({ rank }: { rank: number }) {
+  if (rank > 3) {
+    return (
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-slate-900 text-xl font-black text-white sm:h-16 sm:w-16 sm:text-2xl">
+        {rank}
+      </div>
+    );
+  }
+
+  const theme =
+    rank === 1
+      ? {
+          main: "#facc15",
+          light: "#fef08a",
+          dark: "#92400e",
+          glow: "drop-shadow-[0_0_16px_rgba(250,204,21,0.48)]",
+          crown: true,
+        }
+      : rank === 2
+        ? {
+            main: "#cbd5e1",
+            light: "#f8fafc",
+            dark: "#475569",
+            glow: "drop-shadow-[0_0_13px_rgba(226,232,240,0.28)]",
+            crown: false,
+          }
+        : {
+            main: "#fb923c",
+            light: "#fed7aa",
+            dark: "#9a3412",
+            glow: "drop-shadow-[0_0_13px_rgba(251,146,60,0.30)]",
+            crown: false,
+          };
+
+  return (
+    <div
+      className={`relative flex shrink-0 items-center justify-center ${
+        rank === 1
+          ? "h-[78px] w-[78px] sm:h-[94px] sm:w-[94px]"
+          : "h-[66px] w-[66px] sm:h-[78px] sm:w-[78px]"
+      } ${theme.glow}`}
+    >
+      {theme.crown && (
+        <svg
+          viewBox="0 0 120 60"
+          aria-hidden="true"
+          className="absolute -top-5 left-1/2 z-20 h-11 w-16 -translate-x-1/2 sm:-top-6 sm:h-12 sm:w-[72px]"
+        >
+          <defs>
+            <linearGradient id="crownGold" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="45%" stopColor="#facc15" />
+              <stop offset="100%" stopColor="#a16207" />
+            </linearGradient>
+          </defs>
+
+          <path
+            d="M14 43 20 12l20 19L60 5l20 26 20-19 6 31H14Z"
+            fill="url(#crownGold)"
+            stroke="#fff7b0"
+            strokeWidth="3"
+          />
+          <path
+            d="M16 43h88l-7 11H23l-7-11Z"
+            fill="#a16207"
+            stroke="#fde68a"
+            strokeWidth="2"
+          />
+          <circle cx="38" cy="37" r="4" fill="#22c55e" />
+          <circle cx="60" cy="29" r="4.5" fill="#ef4444" />
+          <circle cx="82" cy="37" r="4" fill="#3b82f6" />
+        </svg>
+      )}
+
+      <svg
+        viewBox="0 0 120 140"
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full"
+      >
+        <defs>
+          <linearGradient id={`shield-${rank}`} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={theme.light} />
+            <stop offset="38%" stopColor={theme.main} />
+            <stop offset="100%" stopColor={theme.dark} />
+          </linearGradient>
+
+          <filter id={`shadow-${rank}`}>
+            <feDropShadow dx="0" dy="4" stdDeviation="3" floodOpacity="0.45" />
+          </filter>
+        </defs>
+
+        <path
+          d="M18 18h84l10 13v55c0 20-17 37-52 49C25 123 8 106 8 86V31l10-13Z"
+          fill={`url(#shield-${rank})`}
+          stroke={theme.light}
+          strokeWidth="3"
+          filter={`url(#shadow-${rank})`}
+        />
+
+        <path
+          d="M25 26h70l7 10v46c0 16-14 30-42 40-28-10-42-24-42-40V36l7-10Z"
+          fill="none"
+          stroke="rgba(255,255,255,0.35)"
+          strokeWidth="2"
+        />
+
+        <path
+          d="M17 61C5 70 5 91 17 102"
+          fill="none"
+          stroke={theme.light}
+          strokeWidth="3"
+          opacity="0.75"
+        />
+        <path
+          d="M103 61c12 9 12 30 0 41"
+          fill="none"
+          stroke={theme.light}
+          strokeWidth="3"
+          opacity="0.75"
+        />
+      </svg>
+
+      <span
+        className="relative z-10 mt-2 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl"
+        style={{
+          textShadow: "0 2px 0 rgba(255,255,255,0.45)",
+        }}
+      >
+        {rank}
+      </span>
+    </div>
+  );
+}
+
 export default function LeagueClient({
   league,
   players,
@@ -118,7 +251,7 @@ export default function LeagueClient({
 
       if (savedPlayerId) {
         const playerExists = players.some(
-          (player) => player.id === savedPlayerId
+          (player) => player.id === savedPlayerId,
         );
 
         if (playerExists) {
@@ -126,15 +259,12 @@ export default function LeagueClient({
         }
       } else if (user.id) {
         const playerByGoogleUser = players.find(
-          (player) => player.user_id === user.id
+          (player) => player.user_id === user.id,
         );
 
         if (playerByGoogleUser) {
           setSelectedPlayerId(playerByGoogleUser.id);
-          localStorage.setItem(
-            selectedPlayerStorageKey,
-            playerByGoogleUser.id
-          );
+          localStorage.setItem(selectedPlayerStorageKey, playerByGoogleUser.id);
         }
       }
 
@@ -163,29 +293,32 @@ export default function LeagueClient({
     : selectedPlayerId;
 
   const selectedPlayer = players.find(
-    (player) => player.id === selectedPlayerId
+    (player) => player.id === selectedPlayerId,
   );
 
   const adminEditPlayer = players.find(
-    (player) => player.id === adminEditPlayerId
+    (player) => player.id === adminEditPlayerId,
   );
 
   const finishedMatches = matches.filter(
-    (match) => getMatchResult(match) !== null
+    (match) => getMatchResult(match) !== null,
   );
 
   function getPredictionForMatch(matchId: string, playerId = selectedPlayerId) {
     return localPredictions.find(
       (prediction) =>
-        prediction.match_id === matchId && prediction.player_id === playerId
+        prediction.match_id === matchId && prediction.player_id === playerId,
     );
   }
 
-  function getPlayerStats(playerId: string) {
+  function getPlayerStatsForMatches(
+    playerId: string,
+    matchesForStats: Match[],
+  ) {
     let points = 0;
     let guessed = 0;
 
-    for (const match of finishedMatches) {
+    for (const match of matchesForStats) {
       const result = getMatchResult(match);
       const prediction = getPredictionForMatch(match.id, playerId);
 
@@ -201,8 +334,12 @@ export default function LeagueClient({
     return {
       points,
       guessed,
-      totalFinished: finishedMatches.length,
+      totalFinished: matchesForStats.length,
     };
+  }
+
+  function getPlayerStats(playerId: string) {
+    return getPlayerStatsForMatches(playerId, finishedMatches);
   }
 
   const rankedPlayers = [...players].sort((a, b) => {
@@ -216,15 +353,15 @@ export default function LeagueClient({
 
   const sortedMatches = [...matches].sort(
     (a, b) =>
-      new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
   );
 
   const pastMatches = sortedMatches.filter(
-    (match) => new Date(match.start_time) <= now
+    (match) => new Date(match.start_time) <= now,
   );
 
   const futureMatches = sortedMatches.filter(
-    (match) => new Date(match.start_time) > now
+    (match) => new Date(match.start_time) > now,
   );
 
   const lastMatch = pastMatches[pastMatches.length - 1];
@@ -232,79 +369,120 @@ export default function LeagueClient({
   const nextMatch = futureMatches[1];
 
   const featuredMatches = [lastMatch, currentMatch, nextMatch].filter(
-    (match): match is Match => Boolean(match)
+    (match): match is Match => Boolean(match),
   );
 
   const matchesToShow = showAllMatches ? sortedMatches : featuredMatches;
 
-const lastFinishedMatches = [...finishedMatches]
-  .sort(
-    (a, b) =>
-      new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
-  )
-  .slice(0, 3);
+  const lastFinishedMatches = [...finishedMatches]
+    .sort(
+      (a, b) =>
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime(),
+    )
+    .slice(0, 3);
+  const latestFinishedMatch = lastFinishedMatches[0];
 
+  const previousFinishedMatches = latestFinishedMatch
+    ? finishedMatches.filter((match) => match.id !== latestFinishedMatch.id)
+    : finishedMatches;
 
-const closestUpcomingMatch = sortedMatches.find(
-  (match) =>
-    new Date(match.start_time) > now &&
-    match.status !== "finished" &&
-    getMatchResult(match) === null
-);
+  const previousRankedPlayers = [...players].sort((a, b) => {
+    const statsA = getPlayerStatsForMatches(a.id, previousFinishedMatches);
 
-function getUpcomingMatchPlayerPick(matchId: string, playerId: string) {
-  return localPredictions.find(
-    (prediction) =>
-      prediction.match_id === matchId &&
-      prediction.player_id === playerId
-  )?.pick;
-}
+    const statsB = getPlayerStatsForMatches(b.id, previousFinishedMatches);
 
-function getFinishedMatchPlayerStatus(
-  match: Match,
-  playerId: string
-): "correct" | "wrong" | "missing" {
-  const result = getMatchResult(match);
+    return statsB.points - statsA.points;
+  });
 
-  if (!result) {
-    return "missing";
-  }
-
-  const prediction = localPredictions.find(
-    (item) => item.match_id === match.id && item.player_id === playerId
+  const previousRankByPlayerId = new Map(
+    previousRankedPlayers.map((player, index) => [player.id, index + 1]),
   );
 
-  if (!prediction) {
-    return "missing";
+  function getRankMovement(
+    playerId: string,
+    currentRank: number,
+  ): {
+    direction: "up" | "down" | "same";
+    amount: number;
+  } {
+    const previousRank = previousRankByPlayerId.get(playerId);
+
+    if (!latestFinishedMatch || !previousRank) {
+      return { direction: "same", amount: 0 };
+    }
+
+    const difference = previousRank - currentRank;
+
+    if (difference > 0) {
+      return { direction: "up", amount: difference };
+    }
+
+    if (difference < 0) {
+      return { direction: "down", amount: Math.abs(difference) };
+    }
+
+    return { direction: "same", amount: 0 };
   }
 
-  return prediction.pick === result ? "correct" : "wrong";
-}
+  const closestUpcomingMatch = sortedMatches.find(
+    (match) =>
+      new Date(match.start_time) > now &&
+      match.status !== "finished" &&
+      getMatchResult(match) === null,
+  );
+
+  function getUpcomingMatchPlayerPick(matchId: string, playerId: string) {
+    return localPredictions.find(
+      (prediction) =>
+        prediction.match_id === matchId && prediction.player_id === playerId,
+    )?.pick;
+  }
+
+  function getFinishedMatchPlayerStatus(
+    match: Match,
+    playerId: string,
+  ): "correct" | "wrong" | "missing" {
+    const result = getMatchResult(match);
+
+    if (!result) {
+      return "missing";
+    }
+
+    const prediction = localPredictions.find(
+      (item) => item.match_id === match.id && item.player_id === playerId,
+    );
+
+    if (!prediction) {
+      return "missing";
+    }
+
+    return prediction.pick === result ? "correct" : "wrong";
+  }
 
   const selectedPlayerPredictions = selectedPlayer
     ? localPredictions.filter(
-        (prediction) => prediction.player_id === selectedPlayer.id
+        (prediction) => prediction.player_id === selectedPlayer.id,
       )
     : [];
 
   const selectedPlayerPredictionMatchIds = new Set(
-    selectedPlayerPredictions.map((prediction) => prediction.match_id)
+    selectedPlayerPredictions.map((prediction) => prediction.match_id),
   );
 
   const openMatches = matches.filter(
     (match) =>
       new Date(match.start_time) > now &&
       !league.predictions_locked &&
-      match.status !== "finished"
+      match.status !== "finished",
   );
 
   const missingOpenMatches = openMatches.filter(
-    (match) => !selectedPlayerPredictionMatchIds.has(match.id)
+    (match) => !selectedPlayerPredictionMatchIds.has(match.id),
   );
 
   const correctPredictions = selectedPlayerPredictions.filter((prediction) => {
     const match = matches.find(
-      (currentMatch) => currentMatch.id === prediction.match_id
+      (currentMatch) => currentMatch.id === prediction.match_id,
     );
     const result = match ? getMatchResult(match) : null;
 
@@ -313,7 +491,7 @@ function getFinishedMatchPlayerStatus(
 
   const wrongPredictions = selectedPlayerPredictions.filter((prediction) => {
     const match = matches.find(
-      (currentMatch) => currentMatch.id === prediction.match_id
+      (currentMatch) => currentMatch.id === prediction.match_id,
     );
     const result = match ? getMatchResult(match) : null;
 
@@ -322,7 +500,7 @@ function getFinishedMatchPlayerStatus(
 
   const pendingPredictions = selectedPlayerPredictions.filter((prediction) => {
     const match = matches.find(
-      (currentMatch) => currentMatch.id === prediction.match_id
+      (currentMatch) => currentMatch.id === prediction.match_id,
     );
     const result = match ? getMatchResult(match) : null;
 
@@ -340,7 +518,7 @@ function getFinishedMatchPlayerStatus(
   const predictionProgress =
     matches.length > 0
       ? Math.round(
-          (selectedPlayerPredictionMatchIds.size / matches.length) * 100
+          (selectedPlayerPredictionMatchIds.size / matches.length) * 100,
         )
       : 0;
 
@@ -355,12 +533,12 @@ function getFinishedMatchPlayerStatus(
   }
 
   function showToast(message: string, type: ToastType = "info") {
-  setToast({ message, type });
+    setToast({ message, type });
 
-  window.setTimeout(() => {
-    setToast(null);
-  }, 3000);
-}
+    window.setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  }
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
     if (!authEmail) {
@@ -411,7 +589,10 @@ function getFinishedMatchPlayerStatus(
         if (errorData?.error === "League predictions are locked") {
           showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
         } else {
-          showToast("אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר", "error");
+          showToast(
+            "אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר",
+            "error",
+          );
         }
       } else {
         showToast("שגיאה בשמירת הניחוש", "error");
@@ -428,7 +609,7 @@ function getFinishedMatchPlayerStatus(
       const existingPrediction = current.find(
         (prediction) =>
           prediction.match_id === savedPrediction.match_id &&
-          prediction.player_id === savedPrediction.player_id
+          prediction.player_id === savedPrediction.player_id,
       );
 
       if (existingPrediction) {
@@ -436,7 +617,7 @@ function getFinishedMatchPlayerStatus(
           prediction.match_id === savedPrediction.match_id &&
           prediction.player_id === savedPrediction.player_id
             ? savedPrediction
-            : prediction
+            : prediction,
         );
       }
 
@@ -468,74 +649,73 @@ function getFinishedMatchPlayerStatus(
   //   }
   // }
 
-  
-//   function shareOnWhatsApp() {
-//     const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
+  //   function shareOnWhatsApp() {
+  //     const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
 
-//     const message = `הצטרף לליגת הניחושים שלי:
-// ${league.name}
-// ${leagueUrl}`;
+  //     const message = `הצטרף לליגת הניחושים שלי:
+  // ${league.name}
+  // ${leagueUrl}`;
 
-//     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+  //     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-//     window.open(whatsappUrl, "_blank");
-//   }
+  //     window.open(whatsappUrl, "_blank");
+  //   }
 
-async function copyLeagueLink() {
-  const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
+  async function copyLeagueLink() {
+    const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
 
-  try {
-    await navigator.clipboard.writeText(leagueUrl);
-    showToast("הלינק הועתק", "success");
-  } catch (error) {
-    console.error(error);
-    showToast("לא הצלחתי להעתיק את הלינק", "error");
+    try {
+      await navigator.clipboard.writeText(leagueUrl);
+      showToast("הלינק הועתק", "success");
+    } catch (error) {
+      console.error(error);
+      showToast("לא הצלחתי להעתיק את הלינק", "error");
+    }
   }
-}
 
-function shareOnWhatsApp() {
-  const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
+  function shareOnWhatsApp() {
+    const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
 
-  const message = `הצטרף לליגת הניחושים שלי:
+    const message = `הצטרף לליגת הניחושים שלי:
 ${league.name}
 ${leagueUrl}`;
 
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
-  window.open(whatsappUrl, "_blank");
-}
+    window.open(whatsappUrl, "_blank");
+  }
 
   return (
     <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
       {toast && (
-      <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
-        <div
-          className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
-            toast.type === "success"
-              ? "border-green-400/30 bg-green-500/20 text-green-100"
-              : toast.type === "error"
-                ? "border-red-400/30 bg-red-500/20 text-red-100"
-                : toast.type === "warning"
-                  ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
-                  : "border-blue-400/30 bg-blue-500/20 text-blue-100"
-          }`}
-        >
-          {toast.message}
+        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
+              toast.type === "success"
+                ? "border-green-400/30 bg-green-500/20 text-green-100"
+                : toast.type === "error"
+                  ? "border-red-400/30 bg-red-500/20 text-red-100"
+                  : toast.type === "warning"
+                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
+                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
+            }`}
+          >
+            {toast.message}
+          </div>
         </div>
-      </div>
-    )}
+      )}
       {authEmail && (
-      <UserMenu
-        email={authEmail}
-        showToast={showToast}
-        onSignedOut={() => {
-          setSelectedPlayerId("");
-          setIsAdmin(false);
-          setAuthEmail("");
-          window.location.href = "/";
-        }}
-      />
-    )}
+        <UserMenu
+          email={authEmail}
+          showToast={showToast}
+          onSignedOut={() => {
+            setSelectedPlayerId("");
+            setIsAdmin(false);
+            setAuthEmail("");
+            window.location.href = "/";
+          }}
+        />
+      )}
 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
@@ -551,7 +731,6 @@ ${leagueUrl}`;
             WORLD CUP LEAGUE
           </p>
         </div>
-        
 
         <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
@@ -609,8 +788,6 @@ ${leagueUrl}`;
           </div>
         </div>
 
-       
-
         {!selectedPlayer && (
           <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
             {!selectedPlayer && (
@@ -627,12 +804,12 @@ ${leagueUrl}`;
                   <>
                     <Link
                       href={`/login?next=${encodeURIComponent(
-                        `/league/${league.code}`
+                        `/league/${league.code}`,
                       )}`}
                       onClick={() => {
                         localStorage.setItem(
                           "redirect-after-login",
-                          `/league/${league.code}`
+                          `/league/${league.code}`,
                         );
                       }}
                       className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
@@ -660,11 +837,8 @@ ${leagueUrl}`;
                 )}
               </div>
             )}
-
           </div>
         )}
-
-        
 
         <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
@@ -678,57 +852,142 @@ ${leagueUrl}`;
           {rankedPlayers.length === 0 ? (
             <p className="text-sm text-slate-400">עדיין אין שחקנים.</p>
           ) : (
-            <div className="space-y-2 sm:space-y-3">
-              {rankedPlayers.map((player, index) => {
-                const stats = getPlayerStats(player.id);
-                const isCurrentPlayer = player.id === selectedPlayerId;
+            <>
+              <div className="space-y-2 sm:space-y-3">
+                {rankedPlayers.map((player, index) => {
+                  const stats = getPlayerStats(player.id);
+                  const isCurrentPlayer = player.id === selectedPlayerId;
+                  const movement = getRankMovement(player.id, index + 1);
 
-                return (
-                  <div
-                    key={player.id}
-                    className={`flex items-center justify-between rounded-xl border px-3 py-3 sm:rounded-2xl sm:px-4 sm:py-4 ${
-                      isCurrentPlayer
-                        ? "border-green-400/30 bg-green-500/10"
-                        : "border-white/10 bg-slate-950/60"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-sm font-black sm:h-11 sm:w-11 sm:rounded-2xl sm:text-base">
-                        {getRankIcon(index)}
+                  const podium =
+                    index === 0
+                      ? {
+                          card: "border-yellow-300/75 bg-[radial-gradient(circle_at_16%_50%,rgba(250,204,21,0.24),transparent_30%),linear-gradient(90deg,rgba(120,83,10,0.30),rgba(18,24,38,0.72)_48%,rgba(2,6,23,0.88))] shadow-[0_0_34px_rgba(250,204,21,0.18)]",
+                          label: "מוביל הליגה",
+                          labelClass:
+                            "border-yellow-300/45 bg-yellow-400/15 text-yellow-100",
+                          edge: "bg-yellow-300/70",
+                        }
+                      : index === 1
+                        ? {
+                            card: "border-slate-200/55 bg-[radial-gradient(circle_at_16%_50%,rgba(226,232,240,0.16),transparent_28%),linear-gradient(90deg,rgba(71,85,105,0.38),rgba(20,29,45,0.78)_48%,rgba(2,6,23,0.88))] shadow-[0_0_24px_rgba(226,232,240,0.10)]",
+                            label: "מקום שני",
+                            labelClass:
+                              "border-slate-200/30 bg-slate-100/10 text-slate-100",
+                            edge: "bg-slate-200/60",
+                          }
+                        : index === 2
+                          ? {
+                              card: "border-orange-300/50 bg-[radial-gradient(circle_at_12%_50%,rgba(251,146,60,0.18),transparent_22%),linear-gradient(90deg,rgba(124,45,18,0.34),rgba(16,24,38,0.80)_44%,rgba(2,6,23,0.94))] shadow-[0_0_20px_rgba(251,146,60,0.10)]",
+                              label: "מקום שלישי",
+                              labelClass:
+                                "border-orange-300/35 bg-orange-400/10 text-orange-100",
+                              edge: "bg-orange-300/55",
+                            }
+                          : {
+                              card: isCurrentPlayer
+                                ? "border-green-400/35 bg-green-500/10"
+                                : "border-white/10 bg-slate-950/60",
+                              label: null,
+                              labelClass: "",
+                              edge: "bg-white/10",
+                            };
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={`relative flex items-center justify-between overflow-hidden rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 ${podium.card}`}
+                    >
+                      {index < 3 && (
+                        <>
+                          <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-gradient-to-r from-white/[0.07] to-transparent" />
+                          <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-white/50 to-transparent" />
+                        </>
+                      )}
+
+                      <div className="relative flex min-w-0 items-center gap-3 sm:gap-4">
+                        <div className="flex shrink-0 items-center justify-center">
+                          <RankShield rank={index + 1} />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="truncate text-lg font-black text-white sm:text-2xl">
+                              {player.name}
+                            </p>
+
+                            {podium.label && (
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-black sm:text-xs ${podium.labelClass}`}
+                              >
+                                {podium.label}
+                              </span>
+                            )}
+
+                            {isCurrentPlayer && (
+                              <span className="rounded-full border border-green-400/20 bg-green-500/15 px-2 py-1 text-[10px] font-black text-green-300 sm:text-xs">
+                                אתה
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-1 text-sm text-slate-400 sm:text-base">
+                            פגיעות: {stats.points}/{stats.totalFinished}
+                          </p>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-sm font-bold sm:text-base">
-                          {player.name}
-                          {isCurrentPlayer && (
-                            <span className="mr-2 text-[11px] text-green-300 sm:text-xs">
-                              אתה
-                            </span>
+                      <div className="relative flex shrink-0 items-center gap-3 sm:gap-5">
+                        <div className="min-w-[58px] text-center sm:min-w-[78px]">
+                          {movement.direction === "up" ? (
+                            <>
+                              <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                                ↑ {movement.amount}
+                              </p>
+                              <p className="mt-1 text-[10px] font-bold text-green-300/85 sm:text-xs">
+                                עלייה בדירוג
+                              </p>
+                            </>
+                          ) : movement.direction === "down" ? (
+                            <>
+                              <p className="text-2xl font-black leading-none text-red-300 sm:text-3xl">
+                                ↓ {movement.amount}
+                              </p>
+                              <p className="mt-1 text-[10px] font-bold text-red-300/85 sm:text-xs">
+                                ירידה בדירוג
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-3xl font-black leading-none text-slate-400 sm:text-4xl">
+                              —
+                            </p>
                           )}
-                        </p>
+                        </div>
 
-                        <p className="mt-1 text-[11px] text-slate-400 sm:text-xs">
-                          פגיעות: {stats.points}/{stats.totalFinished}
-                        </p>
+                        <div className={`h-12 w-px sm:h-14 ${podium.edge}`} />
+
+                        <div className="w-10 text-left sm:w-12">
+                          <p className="text-3xl font-black leading-none text-green-300 sm:text-4xl">
+                            {stats.points}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">
+                            נק׳
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    <div className="text-left">
-                      <p className="text-xl font-black text-green-300 sm:text-2xl">
-                        {stats.points}
-                      </p>
-                      <p className="text-[10px] text-slate-500 sm:text-xs">
-                        נק׳
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3 text-[11px] font-bold sm:gap-x-6 sm:text-xs">
+                <span className="text-green-300">↑ עלייה בדירוג</span>
+                <span className="text-red-300">↓ ירידה בדירוג</span>
+                <span className="text-slate-400">— ללא שינוי</span>
+              </div>
+            </>
           )}
         </div>
-
-        
 
         {(closestUpcomingMatch || lastFinishedMatches.length > 0) && (
           <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
@@ -754,13 +1013,12 @@ ${leagueUrl}`;
                       </p>
 
                       <p className="text-[10px] font-bold text-slate-200 sm:text-xs">
-                        {new Date(closestUpcomingMatch.start_time).toLocaleTimeString(
-                          "he-IL",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          }
-                        )}
+                        {new Date(
+                          closestUpcomingMatch.start_time,
+                        ).toLocaleTimeString("he-IL", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
 
@@ -777,7 +1035,7 @@ ${leagueUrl}`;
                       {players.map((player) => {
                         const pick = getUpcomingMatchPlayerPick(
                           closestUpcomingMatch.id,
-                          player.id
+                          player.id,
                         );
 
                         const isCurrentPlayer = player.id === selectedPlayerId;
@@ -837,7 +1095,10 @@ ${leagueUrl}`;
                       className="flex w-max min-w-full items-center justify-start gap-2"
                     >
                       {players.map((player) => {
-                        const status = getFinishedMatchPlayerStatus(match, player.id);
+                        const status = getFinishedMatchPlayerStatus(
+                          match,
+                          player.id,
+                        );
                         const isCurrentPlayer = player.id === selectedPlayerId;
 
                         return (
@@ -879,91 +1140,88 @@ ${leagueUrl}`;
           </div>
         )}
 
-       {selectedPlayer && (
+        {selectedPlayer && (
           <>
-          <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-           
-          <div className="mb-4 flex items-center justify-between sm:mb-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-yellow-300/25 bg-gradient-to-br from-yellow-400/20 to-orange-500/10 text-2xl shadow-lg shadow-yellow-950/30 sm:h-12 sm:w-12">
-                  🎯
+            <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+              <div className="mb-4 flex items-center justify-between sm:mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-yellow-300/25 bg-gradient-to-br from-yellow-400/20 to-orange-500/10 text-2xl shadow-lg shadow-yellow-950/30 sm:h-12 sm:w-12">
+                    🎯
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-black text-white sm:text-2xl">
+                      הניחושים שלי
+                    </h2>
+
+                    <p className="mt-0.5 text-xs font-semibold text-slate-400 sm:text-sm">
+                      הביצועים שלך עד עכשיו
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h2 className="text-xl font-black text-white sm:text-2xl">
-                    הניחושים שלי
-                  </h2>
+                <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
+                  {predictionAccuracy}% פגיעה
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
+                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
+                  <p className="text-2xl sm:text-3xl">✓</p>
+                  <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
+                    {correctPredictions.length}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                    נכונים
+                  </p>
+                </div>
 
-                  <p className="mt-0.5 text-xs font-semibold text-slate-400 sm:text-sm">
-                    הביצועים שלך עד עכשיו
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
+                  <p className="text-2xl sm:text-3xl">×</p>
+                  <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
+                    {wrongPredictions.length}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                    שגויים
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
+                  <p className="text-2xl sm:text-3xl">⌛</p>
+                  <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
+                    {pendingPredictions.length}
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                    ממתינים
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
-                {predictionAccuracy}% פגיעה
-              </div>
-            </div>
-              <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
-              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">✓</p>
-                <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
-                  {correctPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  נכונים
-                </p>
-              </div>
+              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
+                <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
+                  <span className="font-black text-white">התקדמות כללית</span>
+                  <span className="font-black text-green-300">
+                    {selectedPlayerPredictionMatchIds.size}/{matches.length}
+                  </span>
+                </div>
 
-              <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">×</p>
-                <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
-                  {wrongPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  שגויים
-                </p>
-              </div>
+                <div className="h-4 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
+                    style={{ width: `${predictionProgress}%` }}
+                  />
+                </div>
 
-              <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
-                <p className="text-2xl sm:text-3xl">⌛</p>
-                <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
-                  {pendingPredictions.length}
-                </p>
-                <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
-                  ממתינים
+                <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
+                  {predictionProgress}% הושלמו
                 </p>
               </div>
             </div>
-
-            <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
-              <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
-                <span className="font-black text-white">התקדמות כללית</span>
-                <span className="font-black text-green-300">
-                  {selectedPlayerPredictionMatchIds.size}/{matches.length}
-                </span>
-              </div>
-
-              <div className="h-4 overflow-hidden rounded-full bg-slate-800">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
-                  style={{ width: `${predictionProgress}%` }}
-                />
-              </div>
-
-              <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
-                {predictionProgress}% הושלמו
-              </p>
-            </div>
-              </div>
-            </>
-          )}
+          </>
+        )}
 
         <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
           <div className="mb-4 flex items-center justify-between sm:mb-5">
-            <h2 className="text-xl font-black sm:text-2xl">
-              משחקים וניחושים
-            </h2>
+            <h2 className="text-xl font-black sm:text-2xl">משחקים וניחושים</h2>
 
             <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
               {showAllMatches ? matches.length : matchesToShow.length} מוצגים
@@ -1011,10 +1269,9 @@ ${leagueUrl}`;
                 {matchesToShow.map((match) => {
                   const currentPrediction = getPredictionForMatch(
                     match.id,
-                    activeEditPlayerId
+                    activeEditPlayerId,
                   );
-                  const isTimeLocked =
-                    new Date(match.start_time) <= new Date();
+                  const isTimeLocked = new Date(match.start_time) <= new Date();
                   const isMatchLocked = isAdminEditActive
                     ? false
                     : league.predictions_locked || isTimeLocked;
@@ -1148,7 +1405,8 @@ ${leagueUrl}`;
 
                           {currentPrediction && (
                             <p className="mt-3 text-center text-xs text-slate-400">
-                              {isAdminEditActive ? "ניחוש השחקן" : "הניחוש שלך"}:{" "}
+                              {isAdminEditActive ? "ניחוש השחקן" : "הניחוש שלך"}
+                              :{" "}
                               <span className="font-bold text-white">
                                 {currentPrediction.pick}
                               </span>
@@ -1187,9 +1445,7 @@ ${leagueUrl}`;
                   onClick={() => setShowAllMatches((current) => !current)}
                   className="mt-4 w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
-                  {showAllMatches
-                    ? "הצג פחות משחקים"
-                    : "הצג את כל המשחקים"}
+                  {showAllMatches ? "הצג פחות משחקים" : "הצג את כל המשחקים"}
                 </button>
               )}
             </>
