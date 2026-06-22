@@ -424,12 +424,19 @@ export default function LeagueClient({
     return { direction: "same", amount: 0 };
   }
 
-  const closestUpcomingMatch = sortedMatches.find(
-    (match) =>
-      new Date(match.start_time) > now &&
-      match.status !== "finished" &&
-      getMatchResult(match) === null,
-  );
+  const closestUpcomingMatch =
+    sortedMatches.find(
+      (match) =>
+        new Date(match.start_time) <= now &&
+        match.status !== "finished" &&
+        getMatchResult(match) === null,
+    ) ??
+    sortedMatches.find(
+      (match) =>
+        new Date(match.start_time) > now &&
+        match.status !== "finished" &&
+        getMatchResult(match) === null,
+    );
 
   function getUpcomingMatchPlayerPick(matchId: string, playerId: string) {
     return localPredictions.find(
