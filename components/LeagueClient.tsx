@@ -1116,7 +1116,7 @@ ${leagueUrl}`;
                         return (
                           <div
                             key={player.id}
-                            className="flex w-[46px] shrink-0 flex-col items-center text-center sm:w-[58px]"
+                            className="flex w-[40px] shrink-0 flex-col items-center text-center sm:w-[58px]"
                           >
                             <p
                               className={`w-full truncate text-[10px] font-black sm:text-xs ${
