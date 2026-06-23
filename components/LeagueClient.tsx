@@ -223,6 +223,7 @@ export default function LeagueClient({
   const [adminEditPlayerId, setAdminEditPlayerId] = useState("");
   const [showAllMatches, setShowAllMatches] = useState(false);
   const [visibleRankCount, setVisibleRankCount] = useState(5);
+  const [expandedMatchIds, setExpandedMatchIds] = useState<string[]>([]);
 
   const [authEmail, setAuthEmail] = useState("");
   // const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -416,6 +417,14 @@ export default function LeagueClient({
   const previousRankByPlayerId = new Map(
     previousRankedPlayers.map((player, index) => [player.id, index + 1]),
   );
+
+  function toggleMatchDetails(matchId: string) {
+    setExpandedMatchIds((current) =>
+      current.includes(matchId)
+        ? current.filter((id) => id !== matchId)
+        : [...current, matchId],
+    );
+  }
 
   function getRankMovement(
     playerId: string,
@@ -1100,46 +1109,124 @@ ${leagueUrl}`;
                     </p>
                   </div>
 
-                  <div className="flex min-w-0 items-center overflow-x-auto py-2">
-                    <div
-                      dir="rtl"
-                      className="flex w-max min-w-full items-center justify-center gap-2"
-                    >
-                      {players.map((player) => {
-                        const pick = getUpcomingMatchPlayerPick(
-                          closestUpcomingMatch.id,
-                          player.id,
-                        );
+                  {(() => {
+                    const picks = players.map((player) => ({
+                      player,
+                      pick: getUpcomingMatchPlayerPick(
+                        closestUpcomingMatch.id,
+                        player.id,
+                      ),
+                    }));
 
-                        const isCurrentPlayer = player.id === selectedPlayerId;
+                    const homePicks = picks.filter((item) => item.pick === "1");
+                    const drawPicks = picks.filter((item) => item.pick === "X");
+                    const awayPicks = picks.filter((item) => item.pick === "2");
+                    const missingPicks = picks.filter((item) => !item.pick);
 
-                        return (
-                          <div
-                            key={player.id}
-                            className="flex w-[40px] shrink-0 flex-col items-center text-center sm:w-[58px]"
-                          >
-                            <p
-                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
-                                isCurrentPlayer ? "text-cyan-300" : "text-white"
-                              }`}
-                            >
-                              {player.name}
+                    const isExpanded = expandedMatchIds.includes(
+                      closestUpcomingMatch.id,
+                    );
+
+                    return (
+                      <div className="flex min-w-0 flex-col justify-center gap-2 py-1">
+                        <div className="grid grid-cols-4 gap-1.5 text-center">
+                          <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
+                            <p className="text-base font-black text-cyan-200">
+                              {homePicks.length}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-400">
+                              1
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
+                            <p className="text-base font-black text-cyan-200">
+                              {drawPicks.length}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-400">
+                              X
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
+                            <p className="text-base font-black text-cyan-200">
+                              {awayPicks.length}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-400">
+                              2
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-400/20 bg-slate-800/60 px-1 py-2">
+                            <p className="text-base font-black text-slate-200">
+                              {missingPicks.length}
+                            </p>
+                            <p className="text-[9px] font-bold text-slate-400">
+                              חסר
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            toggleMatchDetails(closestUpcomingMatch.id)
+                          }
+                          className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs font-black text-slate-200"
+                        >
+                          {isExpanded ? "הסתר ניחושים ↑" : "הצג ניחושים ↓"}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="space-y-1.5 rounded-xl border border-white/10 bg-slate-950/55 p-2 text-xs">
+                            <p className="font-black text-cyan-200">
+                              1:{" "}
+                              <span className="font-semibold text-slate-200">
+                                {homePicks.length
+                                  ? homePicks
+                                      .map((item) => item.player.name)
+                                      .join(" · ")
+                                  : "אין"}
+                              </span>
                             </p>
 
-                            <div
-                              className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-base font-black sm:h-9 sm:w-9 sm:text-lg ${
-                                pick
-                                  ? "border-cyan-400/50 bg-cyan-500/15 text-cyan-200"
-                                  : "border-slate-500/30 bg-slate-800 text-slate-400"
-                              }`}
-                            >
-                              {pick || "—"}
-                            </div>
+                            <p className="font-black text-cyan-200">
+                              X:{" "}
+                              <span className="font-semibold text-slate-200">
+                                {drawPicks.length
+                                  ? drawPicks
+                                      .map((item) => item.player.name)
+                                      .join(" · ")
+                                  : "אין"}
+                              </span>
+                            </p>
+
+                            <p className="font-black text-cyan-200">
+                              2:{" "}
+                              <span className="font-semibold text-slate-200">
+                                {awayPicks.length
+                                  ? awayPicks
+                                      .map((item) => item.player.name)
+                                      .join(" · ")
+                                  : "אין"}
+                              </span>
+                            </p>
+
+                            {missingPicks.length > 0 && (
+                              <p className="font-black text-slate-400">
+                                חסרים:{" "}
+                                <span className="font-semibold text-slate-200">
+                                  {missingPicks
+                                    .map((item) => item.player.name)
+                                    .join(" · ")}
+                                </span>
+                              </p>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1162,51 +1249,95 @@ ${leagueUrl}`;
                     </p>
                   </div>
 
-                  <div className="flex min-w-0 items-center overflow-x-auto py-2">
-                    <div
-                      dir="rtl"
-                      className="flex w-max min-w-full items-center justify-center gap-2"
-                    >
-                      {players.map((player) => {
-                        const status = getFinishedMatchPlayerStatus(
-                          match,
-                          player.id,
-                        );
-                        const isCurrentPlayer = player.id === selectedPlayerId;
+                  {(() => {
+                    const playerStatuses = players.map((player) => ({
+                      player,
+                      status: getFinishedMatchPlayerStatus(match, player.id),
+                    }));
 
-                        return (
-                          <div
-                            key={player.id}
-                            className="flex w-[46px] shrink-0 flex-col items-center text-center sm:w-[58px]"
-                          >
-                            <p
-                              className={`w-full truncate text-[10px] font-black sm:text-xs ${
-                                isCurrentPlayer ? "text-cyan-300" : "text-white"
-                              }`}
-                            >
-                              {player.name}
+                    const correctPlayers = playerStatuses.filter(
+                      (item) => item.status === "correct",
+                    );
+
+                    const wrongPlayers = playerStatuses.filter(
+                      (item) => item.status === "wrong",
+                    );
+
+                    const missingPlayers = playerStatuses.filter(
+                      (item) => item.status === "missing",
+                    );
+
+                    const isExpanded = expandedMatchIds.includes(match.id);
+
+                    return (
+                      <div className="flex min-w-0 flex-col justify-center gap-2 py-1">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-xl border border-green-400/30 bg-green-500/10 px-2 py-2 text-center">
+                            <p className="text-lg font-black text-green-300">
+                              ✓ {correctPlayers.length}
+                            </p>
+                            <p className="text-[10px] font-bold text-green-200/80">
+                              צדקו
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-2 py-2 text-center">
+                            <p className="text-lg font-black text-red-300">
+                              × {wrongPlayers.length}
+                            </p>
+                            <p className="text-[10px] font-bold text-red-200/80">
+                              טעו
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleMatchDetails(match.id)}
+                          className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs font-black text-slate-200"
+                        >
+                          {isExpanded ? "הסתר שמות ↑" : "הצג שמות ↓"}
+                        </button>
+
+                        {isExpanded && (
+                          <div className="space-y-1.5 rounded-xl border border-white/10 bg-slate-950/55 p-2 text-xs">
+                            <p className="font-black text-green-300">
+                              ✓ צדקו:{" "}
+                              <span className="font-semibold text-slate-200">
+                                {correctPlayers.length
+                                  ? correctPlayers
+                                      .map((item) => item.player.name)
+                                      .join(" · ")
+                                  : "אף אחד"}
+                              </span>
                             </p>
 
-                            <div
-                              className={`mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-lg font-black sm:h-9 sm:w-9 sm:text-xl ${
-                                status === "correct"
-                                  ? "border-green-400/40 bg-green-500/20 text-green-300"
-                                  : status === "wrong"
-                                    ? "border-red-400/40 bg-red-500/20 text-red-300"
-                                    : "border-slate-500/30 bg-slate-800 text-slate-400"
-                              }`}
-                            >
-                              {status === "correct"
-                                ? "✓"
-                                : status === "wrong"
-                                  ? "×"
-                                  : "—"}
-                            </div>
+                            <p className="font-black text-red-300">
+                              × טעו:{" "}
+                              <span className="font-semibold text-slate-200">
+                                {wrongPlayers.length
+                                  ? wrongPlayers
+                                      .map((item) => item.player.name)
+                                      .join(" · ")
+                                  : "אף אחד"}
+                              </span>
+                            </p>
+
+                            {missingPlayers.length > 0 && (
+                              <p className="font-black text-slate-400">
+                                ללא ניחוש:{" "}
+                                <span className="font-semibold text-slate-200">
+                                  {missingPlayers
+                                    .map((item) => item.player.name)
+                                    .join(" · ")}
+                                </span>
+                              </p>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
