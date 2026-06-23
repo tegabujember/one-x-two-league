@@ -222,6 +222,7 @@ export default function LeagueClient({
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminEditPlayerId, setAdminEditPlayerId] = useState("");
   const [showAllMatches, setShowAllMatches] = useState(false);
+  const [visibleRankCount, setVisibleRankCount] = useState(5);
 
   const [authEmail, setAuthEmail] = useState("");
   // const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
@@ -348,6 +349,24 @@ export default function LeagueClient({
 
     return statsB.points - statsA.points;
   });
+
+  const rankedRows = rankedPlayers.map((player, index) => ({
+    player,
+    rank: index + 1,
+  }));
+
+  const currentPlayerRow = rankedRows.find(
+    ({ player }) => player.id === selectedPlayerId,
+  );
+
+  const visibleRows = rankedRows.slice(0, visibleRankCount);
+
+  const rowsToShow =
+    currentPlayerRow && currentPlayerRow.rank > visibleRankCount
+      ? [...visibleRows, currentPlayerRow]
+      : visibleRows;
+
+  const remainingPlayers = Math.max(0, rankedPlayers.length - visibleRankCount);
 
   const now = new Date();
 
@@ -644,30 +663,6 @@ export default function LeagueClient({
     }
   }
 
-  // async function copyLeagueLink() {
-  //   const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
-
-  //   try {
-  //     await navigator.clipboard.writeText(leagueUrl);
-  //     showToast("הלינק הועתק", "success");
-  //   } catch (error) {
-  //     console.error(error);
-  //     showToast("לא הצלחתי להעתיק את הלינק", "error");
-  //   }
-  // }
-
-  //   function shareOnWhatsApp() {
-  //     const leagueUrl = `${window.location.origin}/join-league?code=${league.code}`;
-
-  //     const message = `הצטרף לליגת הניחושים שלי:
-  // ${league.name}
-  // ${leagueUrl}`;
-
-  //     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-  //     window.open(whatsappUrl, "_blank");
-  //   }
-
   async function copyLeagueLink() {
     const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
 
@@ -693,7 +688,7 @@ ${leagueUrl}`;
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+    <main className="relative min-h-screen bg-transparent px-3 py-5 text-white sm:px-4 sm:py-8">
       {toast && (
         <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
           <div
@@ -723,11 +718,22 @@ ${leagueUrl}`;
           }}
         />
       )}
-
+      {/* 
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
-      <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
+      <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" /> */}
 
+      <div
+        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/world-cup-2026-stadium-background.jpg')",
+        }}
+      />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.02)_0%,rgba(2,6,23,0.08)_45%,rgba(2,6,23,0.20)_100%)]" />
+      {/* <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_28%,rgba(15,23,42,0.02),rgba(2,6,23,0.22)_42%,rgba(2,6,23,0.62)_100%)]" />
+
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.05)_0%,rgba(2,6,23,0.12)_35%,rgba(2,6,23,0.42)_78%,rgba(2,6,23,0.72)_100%)]" />
+      */}
       <div className="relative mx-auto w-full max-w-3xl">
         <div className="mb-4 text-center sm:mb-6">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-2xl shadow-yellow-900/30 sm:h-16 sm:w-16">
@@ -735,7 +741,7 @@ ${leagueUrl}`;
           </div>
 
           <p className="text-[10px] font-semibold tracking-[0.28em] text-green-300 sm:text-xs sm:tracking-[0.35em]">
-            WORLD CUP LEAGUE
+            WORLD CUP LEAGUE 2026
           </p>
         </div>
 
@@ -847,11 +853,11 @@ ${leagueUrl}`;
           </div>
         )}
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-          <div className="mb-4 flex items-center justify-between sm:mb-5">
-            <h2 className="text-xl font-black sm:text-2xl">טבלת דירוג</h2>
+        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-5">
+          <div className="mb-3 flex items-center justify-between sm:mb-4">
+            <h2 className="text-lg font-black sm:text-xl">טבלת דירוג</h2>
 
-            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
+            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[10px] text-slate-400 sm:text-xs">
               {players.length} שחקנים
             </span>
           </div>
@@ -860,16 +866,18 @@ ${leagueUrl}`;
             <p className="text-sm text-slate-400">עדיין אין שחקנים.</p>
           ) : (
             <>
-              <div className="space-y-2 sm:space-y-3">
-                {rankedPlayers.map((player, index) => {
+              <div className="space-y-2 sm:space-y-2.5">
+                {rowsToShow.map(({ player, rank }) => {
+                  const index = rank - 1;
                   const stats = getPlayerStats(player.id);
                   const isCurrentPlayer = player.id === selectedPlayerId;
                   const movement = getRankMovement(player.id, index + 1);
+                  const isCompact = index >= 3;
 
                   const podium =
                     index === 0
                       ? {
-                          card: "border-yellow-300/75 bg-[radial-gradient(circle_at_16%_50%,rgba(250,204,21,0.24),transparent_30%),linear-gradient(90deg,rgba(120,83,10,0.30),rgba(18,24,38,0.72)_48%,rgba(2,6,23,0.88))] shadow-[0_0_34px_rgba(250,204,21,0.18)]",
+                          card: "border-yellow-300/75 bg-[radial-gradient(circle_at_16%_50%,rgba(250,204,21,0.24),transparent_30%),linear-gradient(90deg,rgba(120,83,10,0.30),rgba(18,24,38,0.72)_48%,rgba(2,6,23,0.88))] shadow-[0_0_24px_rgba(250,204,21,0.16)]",
                           label: "מוביל הליגה",
                           labelClass:
                             "border-yellow-300/45 bg-yellow-400/15 text-yellow-100",
@@ -877,107 +885,144 @@ ${leagueUrl}`;
                         }
                       : index === 1
                         ? {
-                            card: "border-slate-200/55 bg-[radial-gradient(circle_at_16%_50%,rgba(226,232,240,0.16),transparent_28%),linear-gradient(90deg,rgba(71,85,105,0.38),rgba(20,29,45,0.78)_48%,rgba(2,6,23,0.88))] shadow-[0_0_24px_rgba(226,232,240,0.10)]",
+                            card: "border-slate-200/55 bg-[radial-gradient(circle_at_16%_50%,rgba(226,232,240,0.16),transparent_28%),linear-gradient(90deg,rgba(71,85,105,0.38),rgba(20,29,45,0.78)_48%,rgba(2,6,23,0.88))] shadow-[0_0_18px_rgba(226,232,240,0.08)]",
                             label: "מקום שני",
                             labelClass:
                               "border-slate-200/30 bg-slate-100/10 text-slate-100",
                             edge: "bg-slate-200/60",
                           }
-                        : index === 2
-                          ? {
-                              card: "border-orange-300/50 bg-[radial-gradient(circle_at_12%_50%,rgba(251,146,60,0.18),transparent_22%),linear-gradient(90deg,rgba(124,45,18,0.34),rgba(16,24,38,0.80)_44%,rgba(2,6,23,0.94))] shadow-[0_0_20px_rgba(251,146,60,0.10)]",
-                              label: "מקום שלישי",
-                              labelClass:
-                                "border-orange-300/35 bg-orange-400/10 text-orange-100",
-                              edge: "bg-orange-300/55",
-                            }
-                          : {
-                              card: isCurrentPlayer
-                                ? "border-green-400/35 bg-green-500/10"
-                                : "border-white/10 bg-slate-950/60",
-                              label: null,
-                              labelClass: "",
-                              edge: "bg-white/10",
-                            };
+                        : {
+                            card: "border-orange-300/50 bg-[radial-gradient(circle_at_12%_50%,rgba(251,146,60,0.18),transparent_22%),linear-gradient(90deg,rgba(124,45,18,0.34),rgba(16,24,38,0.80)_44%,rgba(2,6,23,0.94))] shadow-[0_0_16px_rgba(251,146,60,0.08)]",
+                            label: "מקום שלישי",
+                            labelClass:
+                              "border-orange-300/35 bg-orange-400/10 text-orange-100",
+                            edge: "bg-orange-300/55",
+                          };
+
+                  if (isCompact) {
+                    return (
+                      <div
+                        key={player.id}
+                        className={`flex min-h-[58px] items-center justify-between rounded-2xl border px-3 py-2 sm:min-h-[62px] sm:px-4 ${
+                          isCurrentPlayer
+                            ? "border-green-400/40 bg-slate-950/70 shadow-[0_0_14px_rgba(34,197,94,0.08)]"
+                            : "border-white/10 bg-slate-950/60"
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-base font-black text-white sm:h-10 sm:w-10 sm:text-lg">
+                            {index + 1}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-black text-white sm:text-base">
+                                {player.name}
+                              </p>
+
+                              {isCurrentPlayer && (
+                                <span className="rounded-full border border-green-400/20 bg-green-500/15 px-1.5 py-0.5 text-[9px] font-black text-green-300 sm:text-[10px]">
+                                  אתה
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                          <div className="min-w-[34px] text-center">
+                            {movement.direction === "up" ? (
+                              <span className="text-base font-black text-green-300 sm:text-lg">
+                                ↑{movement.amount}
+                              </span>
+                            ) : movement.direction === "down" ? (
+                              <span className="text-base font-black text-red-300 sm:text-lg">
+                                ↓{movement.amount}
+                              </span>
+                            ) : (
+                              <span className="text-xl font-black text-slate-400">
+                                —
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="h-8 w-px bg-white/10 sm:h-9" />
+
+                          <div className="w-8 text-left sm:w-9">
+                            <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                              {stats.points}
+                            </p>
+                            <p className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">
+                              נק׳
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div
                       key={player.id}
-                      className={`relative flex items-center justify-between overflow-hidden rounded-2xl border px-3 py-3 sm:px-4 sm:py-4 ${podium.card}`}
+                      className={`relative flex items-center justify-between overflow-hidden rounded-2xl border px-3 py-2.5 sm:px-4 sm:py-3 ${podium.card}`}
                     >
-                      {index < 3 && (
-                        <>
-                          <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-gradient-to-r from-white/[0.07] to-transparent" />
-                          <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-white/50 to-transparent" />
-                        </>
-                      )}
+                      <>
+                        <div className="pointer-events-none absolute inset-y-0 left-0 w-[38%] bg-gradient-to-r from-white/[0.07] to-transparent" />
+                        <div className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-transparent via-white/50 to-transparent" />
+                      </>
 
                       <div className="relative flex min-w-0 items-center gap-3 sm:gap-4">
-                        <div className="flex shrink-0 items-center justify-center">
+                        <div className="flex shrink-0 items-center justify-center scale-[0.78] origin-center sm:scale-[0.86]">
                           <RankShield rank={index + 1} />
                         </div>
 
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-lg font-black text-white sm:text-2xl">
+                            <p className="truncate text-base font-black text-white sm:text-xl">
                               {player.name}
                             </p>
 
                             {podium.label && (
                               <span
-                                className={`rounded-full border px-2.5 py-1 text-[10px] font-black sm:text-xs ${podium.labelClass}`}
+                                className={`rounded-full border px-2 py-0.5 text-[9px] font-black sm:text-[10px] ${podium.labelClass}`}
                               >
                                 {podium.label}
                               </span>
                             )}
 
                             {isCurrentPlayer && (
-                              <span className="rounded-full border border-green-400/20 bg-green-500/15 px-2 py-1 text-[10px] font-black text-green-300 sm:text-xs">
+                              <span className="rounded-full border border-green-400/20 bg-green-500/15 px-2 py-0.5 text-[9px] font-black text-green-300 sm:text-[10px]">
                                 אתה
                               </span>
                             )}
                           </div>
-
-                          <p className="mt-1 text-sm text-slate-400 sm:text-base">
-                            פגיעות: {stats.points}/{stats.totalFinished}
-                          </p>
                         </div>
                       </div>
 
-                      <div className="relative flex shrink-0 items-center gap-3 sm:gap-5">
-                        <div className="min-w-[58px] text-center sm:min-w-[78px]">
+                      <div className="relative flex shrink-0 items-center gap-3 sm:gap-4">
+                        <div className="min-w-[38px] text-center sm:min-w-[46px]">
                           {movement.direction === "up" ? (
-                            <>
-                              <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
-                                ↑ {movement.amount}
-                              </p>
-                              <p className="mt-1 text-[10px] font-bold text-green-300/85 sm:text-xs">
-                                עלייה בדירוג
-                              </p>
-                            </>
+                            <span className="text-xl font-black leading-none text-green-300 sm:text-2xl">
+                              ↑{movement.amount}
+                            </span>
                           ) : movement.direction === "down" ? (
-                            <>
-                              <p className="text-2xl font-black leading-none text-red-300 sm:text-3xl">
-                                ↓ {movement.amount}
-                              </p>
-                              <p className="mt-1 text-[10px] font-bold text-red-300/85 sm:text-xs">
-                                ירידה בדירוג
-                              </p>
-                            </>
+                            <span className="text-xl font-black leading-none text-red-300 sm:text-2xl">
+                              ↓{movement.amount}
+                            </span>
                           ) : (
-                            <p className="text-3xl font-black leading-none text-slate-400 sm:text-4xl">
+                            <span className="text-2xl font-black leading-none text-slate-400 sm:text-3xl">
                               —
-                            </p>
+                            </span>
                           )}
                         </div>
 
-                        <div className={`h-12 w-px sm:h-14 ${podium.edge}`} />
+                        <div className={`h-9 w-px sm:h-10 ${podium.edge}`} />
 
-                        <div className="w-10 text-left sm:w-12">
-                          <p className="text-3xl font-black leading-none text-green-300 sm:text-4xl">
+                        <div className="w-9 text-left sm:w-10">
+                          <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
                             {stats.points}
                           </p>
-                          <p className="mt-1 text-[10px] text-slate-500 sm:text-xs">
+                          <p className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">
                             נק׳
                           </p>
                         </div>
@@ -986,8 +1031,30 @@ ${leagueUrl}`;
                   );
                 })}
               </div>
+              {rankedPlayers.length > 5 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (visibleRankCount >= rankedPlayers.length) {
+                      setVisibleRankCount(5);
+                    } else {
+                      setVisibleRankCount((current) =>
+                        Math.min(current + 20, rankedPlayers.length),
+                      );
+                    }
+                  }}
+                  className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm font-black text-white transition hover:border-green-400/35 hover:bg-green-500/10"
+                >
+                  {visibleRankCount >= rankedPlayers.length
+                    ? "הצג פחות ↑"
+                    : `הצג עוד ${Math.min(
+                        20,
+                        rankedPlayers.length - visibleRankCount,
+                      )} שחקנים ↓`}
+                </button>
+              )}
 
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-3 text-[11px] font-bold sm:gap-x-6 sm:text-xs">
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2.5 text-[10px] font-bold sm:gap-x-6 sm:text-xs">
                 <span className="text-green-300">↑ עלייה בדירוג</span>
                 <span className="text-red-300">↓ ירידה בדירוג</span>
                 <span className="text-slate-400">— ללא שינוי</span>
@@ -995,9 +1062,8 @@ ${leagueUrl}`;
             </>
           )}
         </div>
-
         {(closestUpcomingMatch || lastFinishedMatches.length > 0) && (
-          <div className="mb-4 overflow-hidden rounded-2xl border border-cyan-400/20 bg-slate-950/80 shadow-xl backdrop-blur-xl sm:mb-5">
+          <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl sm:mb-5">
             <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
               <h2 className="text-base font-black text-white sm:text-lg">
                 {closestUpcomingMatch
@@ -1006,9 +1072,9 @@ ${leagueUrl}`;
               </h2>
             </div>
 
-            <div className="divide-y divide-white/10">
+            <div className="space-y-2">
               {closestUpcomingMatch && (
-                <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3">
+                <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3">
                   <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
                     <p className="w-full truncate text-xs font-black text-white sm:text-sm">
                       {closestUpcomingMatch.home_team}
@@ -1034,10 +1100,10 @@ ${leagueUrl}`;
                     </p>
                   </div>
 
-                  <div className="min-w-0 overflow-x-auto pb-2">
+                  <div className="flex min-w-0 items-center overflow-x-auto py-2">
                     <div
                       dir="rtl"
-                      className="flex w-max min-w-full items-center justify-start gap-2"
+                      className="flex w-max min-w-full items-center justify-center gap-2"
                     >
                       {players.map((player) => {
                         const pick = getUpcomingMatchPlayerPick(
@@ -1080,7 +1146,7 @@ ${leagueUrl}`;
               {lastFinishedMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="grid grid-cols-[92px_minmax(0,1fr)] gap-2 p-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                  className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
                 >
                   <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
                     <p className="w-full truncate text-xs font-black text-white sm:text-sm">
@@ -1096,10 +1162,10 @@ ${leagueUrl}`;
                     </p>
                   </div>
 
-                  <div className="min-w-0 overflow-x-auto pb-2">
+                  <div className="flex min-w-0 items-center overflow-x-auto py-2">
                     <div
                       dir="rtl"
-                      className="flex w-max min-w-full items-center justify-start gap-2"
+                      className="flex w-max min-w-full items-center justify-center gap-2"
                     >
                       {players.map((player) => {
                         const status = getFinishedMatchPlayerStatus(
@@ -1149,15 +1215,15 @@ ${leagueUrl}`;
 
         {selectedPlayer && (
           <>
-            <div className="mb-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+            <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
               <div className="mb-4 flex items-center justify-between sm:mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-yellow-300/25 bg-gradient-to-br from-yellow-400/20 to-orange-500/10 text-2xl shadow-lg shadow-yellow-950/30 sm:h-12 sm:w-12">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70 text-2xl shadow-lg shadow-slate-950/30 sm:h-12 sm:w-12">
                     🎯
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-black text-white sm:text-2xl">
+                    <h2 className="text-xl font-black text-white  sm:text-2xl">
                       הניחושים שלי
                     </h2>
 
@@ -1167,12 +1233,12 @@ ${leagueUrl}`;
                   </div>
                 </div>
 
-                <div className="rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
+                <div className="rounded-full border border-green-400/20 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
                   {predictionAccuracy}% פגיעה
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
-                <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-3 sm:p-5">
+                <div className="rounded-2xl border border-green-400/20 bg-slate-950/70 p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">✓</p>
                   <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
                     {correctPredictions.length}
@@ -1182,7 +1248,7 @@ ${leagueUrl}`;
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 sm:p-5">
+                <div className="rounded-2xl border border-red-400/20 bg-slate-950/70 p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">×</p>
                   <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
                     {wrongPredictions.length}
@@ -1192,7 +1258,7 @@ ${leagueUrl}`;
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 sm:p-5">
+                <div className="rounded-2xl border border-yellow-400/20 bg-slate-950/70 p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">⌛</p>
                   <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
                     {pendingPredictions.length}
