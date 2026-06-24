@@ -10,6 +10,7 @@ type ImportPrediction = {
 };
 
 type ImportPredictionsBody = {
+  stage_id?: string;
   player_id?: string;
   predictions?: ImportPrediction[];
 };
@@ -27,7 +28,7 @@ async function verifyLeagueOwner(code: string, userId: string) {
 
   const { data: league, error } = await supabaseAdmin
     .from("leagues")
-    .select("id, owner_id")
+    .select("id, owner_id, active_stage_id")
     .eq("code", cleanCode)
     .single();
 
@@ -96,6 +97,19 @@ export async function POST(
 
   const body = (await request.json()) as ImportPredictionsBody;
 
+  const stageId = body.stage_id?.trim() || ownerCheck.league.active_stage_id;
+
+  const { data: stage, error: stageError } = await supabaseAdmin
+    .from("league_stages")
+    .select("id")
+    .eq("id", stageId)
+    .eq("league_id", ownerCheck.league.id)
+    .single();
+
+  if (stageError || !stage) {
+    return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+  }
+
   const playerId = body.player_id?.trim();
 
   if (!playerId) {
@@ -140,7 +154,8 @@ export async function POST(
   const { data: leagueMatches, error: matchesError } = await supabaseAdmin
     .from("matches")
     .select("id, league_id, home_team, away_team, start_time")
-    .eq("league_id", ownerCheck.league.id);
+    .eq("league_id", ownerCheck.league.id)
+    .eq("stage_id", stage.id);
 
   if (matchesError || !leagueMatches) {
     console.error(matchesError);

@@ -6,6 +6,7 @@ type SavePredictionBody = {
   match_id?: string;
   player_id?: string;
   pick?: "1" | "X" | "2";
+  stage_id?: string;
 };
 
 export async function POST(
@@ -31,6 +32,7 @@ export async function POST(
   const matchId = body.match_id?.trim();
   const playerId = body.player_id?.trim();
   const pick = body.pick;
+  const requestedStageId = body.stage_id?.trim();
 
   if (!matchId || !playerId || !pick) {
     return NextResponse.json(
@@ -45,7 +47,7 @@ export async function POST(
 
   const { data: league, error: leagueError } = await supabaseAdmin
     .from("leagues")
-    .select("id, owner_id, predictions_locked, admin_edit_mode")
+    .select("id, owner_id, active_stage_id")
     .eq("code", cleanCode)
     .single();
 
@@ -53,12 +55,32 @@ export async function POST(
     return NextResponse.json({ error: "League not found" }, { status: 404 });
   }
 
+  const stageId = requestedStageId || league.active_stage_id;
+
+  const { data: stage, error: stageError } = await supabaseAdmin
+    .from("league_stages")
+    .select("id, predictions_locked, admin_edit_mode")
+    .eq("id", stageId)
+    .eq("league_id", league.id)
+    .single();
+
+  if (stageError || !stage) {
+    return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+  }
+
   const isAdminOverride =
-    league.predictions_locked &&
-    Boolean(league.admin_edit_mode) &&
+    stage.predictions_locked &&
+    Boolean(stage.admin_edit_mode) &&
     league.owner_id === user.id;
 
-  if (league.predictions_locked && !isAdminOverride) {
+  if (stage.id !== league.active_stage_id && !isAdminOverride) {
+    return NextResponse.json(
+      { error: "Predictions are only open for the active stage" },
+      { status: 403 }
+    );
+  }
+
+  if (stage.predictions_locked && !isAdminOverride) {
     return NextResponse.json(
       { error: "League predictions are locked" },
       { status: 403 }
@@ -85,9 +107,10 @@ export async function POST(
 
   const { data: match, error: matchError } = await supabaseAdmin
     .from("matches")
-    .select("id, league_id, start_time")
+    .select("id, league_id, stage_id, start_time")
     .eq("id", matchId)
     .eq("league_id", league.id)
+    .eq("stage_id", stage.id)
     .single();
 
   if (matchError || !match) {
