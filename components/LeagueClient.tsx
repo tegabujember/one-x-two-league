@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
@@ -38,6 +39,16 @@ type Prediction = {
   pick: string;
 };
 
+type LeagueStage = {
+  id: string;
+  league_id: string;
+  stage_code: string;
+  display_name: string;
+  sort_order: number;
+  predictions_locked: boolean;
+  admin_edit_mode: boolean;
+};
+
 type ToastType = "success" | "error" | "warning" | "info";
 
 type ToastState = {
@@ -50,6 +61,9 @@ type LeagueClientProps = {
   players: Player[];
   matches: Match[];
   predictions: Prediction[];
+  stages: LeagueStage[];
+  selectedStage: LeagueStage;
+  activeStageId: string;
 };
 
 function getMatchResult(match: Match): "1" | "X" | "2" | null {
@@ -213,7 +227,11 @@ export default function LeagueClient({
   players,
   matches,
   predictions,
+  stages,
+  selectedStage,
+  activeStageId,
 }: LeagueClientProps) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
@@ -287,8 +305,13 @@ export default function LeagueClient({
     league.owner_id,
   ]);
 
+  const isSelectedStageActive = selectedStage.id === activeStageId;
+
   const isAdminEditActive =
-    isAdmin && league.predictions_locked && league.admin_edit_mode;
+    isSelectedStageActive &&
+    isAdmin &&
+    league.predictions_locked &&
+    league.admin_edit_mode;
 
   const activeEditPlayerId = isAdminEditActive
     ? adminEditPlayerId
@@ -576,6 +599,11 @@ export default function LeagueClient({
   }
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
+    if (!isSelectedStageActive) {
+      showToast("שלב היסטורי זמין לצפייה בלבד", "warning");
+      return;
+    }
+
     if (!authEmail) {
       showToast("צריך להתחבר/להרשם  כדי לשלוח ניחוש", "warning");
       return;
@@ -611,6 +639,7 @@ export default function LeagueClient({
         match_id: matchId,
         player_id: playerIdToSave,
         pick,
+        stage_id: selectedStage.id,
       }),
     });
 
@@ -696,6 +725,20 @@ ${leagueUrl}`;
     window.open(whatsappUrl, "_blank");
   }
 
+  function handleStageChange(stageId: string) {
+    const nextStage = stages.find((stage) => stage.id === stageId);
+
+    if (!nextStage) return;
+
+    const leaguePath = `/league/${encodeURIComponent(league.code)}`;
+
+    router.push(
+      nextStage.id === activeStageId
+        ? leaguePath
+        : `${leaguePath}?stage=${encodeURIComponent(nextStage.stage_code)}`,
+    );
+  }
+
   return (
     <main className="relative min-h-screen bg-transparent px-3 py-5 text-white sm:px-4 sm:py-8">
       {toast && (
@@ -768,6 +811,34 @@ ${leagueUrl}`;
                 {league.code}
               </span>
             </div>
+
+            <div className="mx-auto mt-3 max-w-xs text-right">
+              <label
+                htmlFor="public-stage-selector"
+                className="mb-1 block text-xs font-semibold text-slate-400"
+              >
+                שלב בטורניר
+              </label>
+              <select
+                id="public-stage-selector"
+                value={selectedStage.id}
+                onChange={(event) => handleStageChange(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm font-bold text-white outline-none transition focus:border-green-400"
+              >
+                {stages.map((stage) => (
+                  <option key={stage.id} value={stage.id}>
+                    {stage.display_name}
+                    {stage.id === activeStageId ? " — פעיל" : " — היסטוריה"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {!isSelectedStageActive && (
+              <div className="mt-3 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200">
+                שלב היסטורי — צפייה בלבד
+              </div>
+            )}
 
             {league.predictions_locked && !isAdminEditActive && (
               <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
@@ -1476,12 +1547,16 @@ ${leagueUrl}`;
                     activeEditPlayerId,
                   );
                   const isTimeLocked = new Date(match.start_time) <= new Date();
-                  const isMatchLocked = isAdminEditActive
-                    ? false
-                    : league.predictions_locked || isTimeLocked;
-                  const canEditPredictions = isAdminEditActive
+                  const isMatchLocked = !isSelectedStageActive
+                    ? true
+                    : isAdminEditActive
+                      ? false
+                      : league.predictions_locked || isTimeLocked;
+                  const canShowPredictionControls = isAdminEditActive
                     ? Boolean(authEmail && adminEditPlayerId)
                     : Boolean(authEmail && selectedPlayer);
+                  const canEditPredictions =
+                    isSelectedStageActive && canShowPredictionControls;
                   const matchResult = getMatchResult(match);
                   const featuredLabel = getFeaturedMatchLabel(match);
 
@@ -1555,7 +1630,7 @@ ${leagueUrl}`;
                         {new Date(match.start_time).toLocaleString("he-IL")}
                       </p>
 
-                      {!canEditPredictions ? null : (
+                      {!canShowPredictionControls ? null : (
                         <>
                           <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             {(["1", "X", "2"] as const).map((pick) => {
@@ -1581,7 +1656,11 @@ ${leagueUrl}`;
                                 <button
                                   key={pick}
                                   type="button"
-                                  disabled={isSaving || isMatchLocked}
+                                  disabled={
+                                    isSaving ||
+                                    isMatchLocked ||
+                                    !canEditPredictions
+                                  }
                                   onClick={() => savePrediction(match.id, pick)}
                                   className={`rounded-xl border px-1 py-2 font-black transition sm:rounded-2xl sm:px-2 sm:py-4 ${
                                     isCorrect

@@ -61,6 +61,10 @@ export async function POST(
   const { code } = await context.params;
   const cleanCode = code.trim().toUpperCase();
 
+  const body = await request.json().catch(() => null);
+  const requestedStageId =
+    typeof body?.stage_id === "string" ? body.stage_id.trim() : "";
+
   const geminiApiKey = process.env.GEMINI_API_KEY;
 
   if (!geminiApiKey) {
@@ -86,7 +90,7 @@ export async function POST(
 
   const { data: league, error: leagueError } = await supabaseAdmin
     .from("leagues")
-    .select("id, owner_id")
+    .select("id, owner_id, active_stage_id")
     .eq("code", cleanCode)
     .single();
 
@@ -104,6 +108,19 @@ export async function POST(
     );
   }
 
+  const stageId = requestedStageId || league.active_stage_id;
+
+  const { data: stage, error: stageError } = await supabaseAdmin
+    .from("league_stages")
+    .select("id")
+    .eq("id", stageId)
+    .eq("league_id", league.id)
+    .single();
+
+  if (stageError || !stage) {
+    return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+  }
+
   const now = new Date().toISOString();
 
   const { data: matches, error: matchesError } = await supabaseAdmin
@@ -112,6 +129,7 @@ export async function POST(
       "id, home_team, away_team, start_time, home_score, away_score, status"
     )
     .eq("league_id", league.id)
+    .eq("stage_id", stage.id)
     .lte("start_time", now)
     .is("home_score", null)
     .is("away_score", null)

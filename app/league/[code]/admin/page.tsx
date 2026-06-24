@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 
@@ -12,8 +12,20 @@ type League = {
   code: string;
   admin_code: string | null;
   owner_id: string | null;
+  active_stage_id: string;
   predictions_locked: boolean;
   admin_edit_mode: boolean;
+};
+
+type LeagueStage = {
+  id: string;
+  league_id: string;
+  stage_code: string;
+  display_name: string;
+  sort_order: number;
+  predictions_locked: boolean;
+  admin_edit_mode: boolean;
+  created_at: string;
 };
 
 type Player = {
@@ -26,6 +38,7 @@ type Player = {
 type Match = {
   id: string;
   league_id: string;
+  stage_id: string;
   home_team: string;
   away_team: string;
   start_time: string;
@@ -297,6 +310,8 @@ export default function LeagueAdminPage() {
   const code = String(params.code).toUpperCase();
 
   const [league, setLeague] = useState<League | null>(null);
+  const [stages, setStages] = useState<LeagueStage[]>([]);
+  const [selectedStageId, setSelectedStageId] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [adminEmail, setAdminEmail] = useState("");
@@ -318,7 +333,6 @@ export default function LeagueAdminPage() {
   const [isUpdatingResults, setIsUpdatingResults] = useState(false);
   const [isCheckingAiResults, setIsCheckingAiResults] = useState(false);
   const [aiTournament, setAiTournament] = useState("מונדיאל 2026");
-  const [aiStage, setAiStage] = useState("שלב בתים");
   const [customAiTournament, setCustomAiTournament] = useState("");
   const [matchImportMethod, setMatchImportMethod] = useState<"ai" | "manual">("ai");
   const [isCheckingAiMatches, setIsCheckingAiMatches] = useState(false);
@@ -329,8 +343,23 @@ export default function LeagueAdminPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
+  const [isLoadingStage, setIsLoadingStage] = useState(false);
   const [showAllAdminMatches, setShowAllAdminMatches] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
+  const stageLoadRequestIdRef = useRef(0);
+
+  const selectedStage =
+    stages.find((stage) => stage.id === selectedStageId) || null;
+  const activeStage =
+    stages.find((stage) => stage.id === league?.active_stage_id) || null;
+  const selectedStageKind =
+    selectedStage?.id === league?.active_stage_id
+      ? "active"
+      : activeStage && selectedStage
+        ? selectedStage.sort_order < activeStage.sort_order
+          ? "history"
+          : "future"
+        : null;
 
   function getToastTypeFromMessage(message: string): ToastType {
     if (
@@ -391,12 +420,33 @@ export default function LeagueAdminPage() {
     };
   }, []);
 
-  const loadLeagueAndMatches = useCallback(async () => {
-    setIsLoadingPage(true);
+  const loadLeagueAndMatches = useCallback(async (preferredStageId?: string) => {
+    const requestId = ++stageLoadRequestIdRef.current;
+    const isStageReload = Boolean(preferredStageId);
+    const isStaleRequest = () => requestId !== stageLoadRequestIdRef.current;
+    const finishLoading = () => {
+      if (isStaleRequest()) return;
+
+      if (isStageReload) {
+        setIsLoadingStage(false);
+      } else {
+        setIsLoadingPage(false);
+      }
+    };
+
+    setMatches([]);
+
+    if (isStageReload) {
+      setIsLoadingStage(true);
+    } else {
+      setIsLoadingPage(true);
+    }
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    if (isStaleRequest()) return;
 
     const { data: leagueData, error: leagueError } = await supabase
       .from("leagues")
@@ -404,8 +454,12 @@ export default function LeagueAdminPage() {
       .eq("code", code)
       .single();
 
+    if (isStaleRequest()) return;
+
     if (leagueError || !leagueData) {
       console.error(leagueError);
+      setMatches([]);
+      finishLoading();
       alert("הליגה לא נמצאה");
       router.replace("/");
       return;
@@ -440,16 +494,59 @@ export default function LeagueAdminPage() {
       admin_edit_mode: Boolean(leagueData.admin_edit_mode),
     });
 
+    const { data: stagesData, error: stagesError } = await supabase
+      .from("league_stages")
+      .select("*")
+      .eq("league_id", leagueData.id)
+      .order("sort_order", { ascending: true });
+
+    if (isStaleRequest()) return;
+
+    if (stagesError) {
+      console.error(stagesError);
+      alert("שגיאה בטעינת שלבי הליגה");
+      setMatches([]);
+      finishLoading();
+      return;
+    }
+
+    const normalizedStages = ((stagesData || []) as LeagueStage[]).map(
+      (stage) => ({
+        ...stage,
+        predictions_locked: Boolean(stage.predictions_locked),
+        admin_edit_mode: Boolean(stage.admin_edit_mode),
+      })
+    );
+
+    const resolvedStage =
+      normalizedStages.find((stage) => stage.id === preferredStageId) ||
+      normalizedStages.find(
+        (stage) => stage.id === leagueData.active_stage_id
+      );
+
+    if (!resolvedStage) {
+      alert("השלב הפעיל של הליגה לא נמצא");
+      setMatches([]);
+      finishLoading();
+      return;
+    }
+
+    setStages(normalizedStages);
+    setSelectedStageId(resolvedStage.id);
+
     const { data: playersData, error: playersError } = await supabase
       .from("players")
       .select("*")
       .eq("league_id", leagueData.id)
       .order("created_at", { ascending: true });
 
+    if (isStaleRequest()) return;
+
     if (playersError) {
       console.error(playersError);
       alert("שגיאה בטעינת השחקנים");
-      setIsLoadingPage(false);
+      setMatches([]);
+      finishLoading();
       return;
     }
 
@@ -459,27 +556,97 @@ export default function LeagueAdminPage() {
       .from("matches")
       .select("*")
       .eq("league_id", leagueData.id)
+      .eq("stage_id", resolvedStage.id)
       .order("start_time", { ascending: true });
+
+    if (isStaleRequest()) return;
 
     if (matchesError) {
       console.error(matchesError);
       alert("שגיאה בטעינת המשחקים");
-      setIsLoadingPage(false);
+      setMatches([]);
+      finishLoading();
       return;
     }
 
     setMatches(matchesData || []);
-    setIsLoadingPage(false);
+    finishLoading();
   }, [code, router, supabase]);
 
   useEffect(() => {
+    // Initial external data synchronization for this client-only admin page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadLeagueAndMatches();
   }, [loadLeagueAndMatches]);
+
+  function clearStageSpecificState() {
+    setHomeTeam("");
+    setAwayTeam("");
+    setStartTime("");
+    setImportText("");
+    setResultImportText("");
+    setResultPreview([]);
+    setPredictionPlayerId("");
+    setPredictionImportText("");
+    setShowAllAdminMatches(false);
+  }
+
+  async function handleAdminStageChange(stageId: string) {
+    if (!stageId || stageId === selectedStageId) return;
+
+    setSelectedStageId(stageId);
+    setMatches([]);
+    clearStageSpecificState();
+    await loadLeagueAndMatches(stageId);
+  }
+
+  async function activateSelectedStage() {
+    if (!league || !selectedStage || !isAccountOwner) {
+      alert("רק בעל הליגה יכול לשנות את השלב הפעיל");
+      return;
+    }
+
+    if (selectedStage.id === league.active_stage_id) return;
+
+    const shouldActivate = confirm(
+      `להפוך את ${selectedStage.display_name} לשלב הפעיל?\n\nהשלב יוצג כברירת המחדל לכל משתתפי הליגה.`
+    );
+
+    if (!shouldActivate) return;
+
+    const response = await fetch(`/api/leagues/${code}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        active_stage_id: selectedStage.id,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error(errorData);
+
+      if (response.status === 401) {
+        alert("צריך להתחבר למערכת");
+      } else if (response.status === 403) {
+        alert("רק בעל הליגה יכול לשנות את השלב הפעיל");
+      } else {
+        alert("שגיאה בעדכון השלב הפעיל");
+      }
+
+      return;
+    }
+
+    await loadLeagueAndMatches(selectedStage.id);
+    alert(`${selectedStage.display_name} הוא כעת השלב הפעיל`);
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!league) {
+    if (!league || !selectedStage) {
       alert("הליגה לא נטענה");
       return;
     }
@@ -497,6 +664,7 @@ export default function LeagueAdminPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStage.id,
         home_team: homeTeam.trim(),
         away_team: awayTeam.trim(),
         start_time: new Date(startTime).toISOString(),
@@ -524,11 +692,16 @@ export default function LeagueAdminPage() {
     setStartTime("");
     setIsLoading(false);
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStage.id);
     alert("המשחק נוסף בהצלחה");
   }
 
   async function importMatchesFromText() {
+  if (!selectedStage) {
+    alert("צריך לבחור שלב");
+    return;
+  }
+
   if (!importText.trim()) {
     alert("צריך להדביק רשימת משחקים");
     return;
@@ -627,6 +800,7 @@ export default function LeagueAdminPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStage.id,
         matches: newMatches,
       }),
     });
@@ -650,7 +824,7 @@ export default function LeagueAdminPage() {
 
     setImportText("");
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStage.id);
 
     alert(
       `יובאו ${data.imported} משחקים חדשים.\n` +
@@ -775,11 +949,22 @@ export default function LeagueAdminPage() {
 }
 
 async function checkResultsWithAi() {
+  if (!selectedStage) {
+    alert("צריך לבחור שלב");
+    return;
+  }
+
   setIsCheckingAiResults(true);
 
   try {
     const response = await fetch(`/api/leagues/${code}/ai-results`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        stage_id: selectedStage.id,
+      }),
     });
 
     const data = (await response.json().catch(() => null)) as
@@ -846,6 +1031,11 @@ async function checkResultsWithAi() {
 }
 
 async function checkMatchesWithAi() {
+  if (!selectedStage) {
+    alert("צריך לבחור שלב");
+    return;
+  }
+
   const tournament =
     aiTournament === "טורניר אחר"
       ? customAiTournament.trim()
@@ -866,7 +1056,8 @@ async function checkMatchesWithAi() {
       },
       body: JSON.stringify({
         tournament,
-        stage: aiStage,
+        stage: selectedStage.display_name,
+        stage_id: selectedStage.id,
       }),
     });
 
@@ -976,6 +1167,7 @@ async function checkMatchesWithAi() {
 
       if (
         !currentMatch ||
+        currentMatch.stage_id !== selectedStageId ||
         currentMatch.home_score !== null ||
         currentMatch.away_score !== null
       ) {
@@ -991,10 +1183,11 @@ async function checkMatchesWithAi() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-          home_score: item.imported.home_score,
-          away_score: item.imported.away_score,
-          only_if_no_score: true,
-        }),
+            stage_id: selectedStageId,
+            home_score: item.imported.home_score,
+            away_score: item.imported.away_score,
+            only_if_no_score: true,
+          }),
         }
       );
 
@@ -1010,7 +1203,9 @@ async function checkMatchesWithAi() {
 
     setIsUpdatingResults(false);
 
-    await loadLeagueAndMatches();
+    if (selectedStage) {
+      await loadLeagueAndMatches(selectedStage.id);
+    }
 
     if (updated > 0) {
       setResultImportText("");
@@ -1023,6 +1218,11 @@ async function checkMatchesWithAi() {
   }
 
   async function importPredictionsFromText() {
+    if (!selectedStage) {
+      alert("צריך לבחור שלב");
+      return;
+    }
+
     if (!predictionPlayerId) {
       alert("צריך לבחור שחקן");
       return;
@@ -1065,6 +1265,7 @@ async function checkMatchesWithAi() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStage.id,
         player_id: predictionPlayerId,
         predictions: parsedPredictions,
       }),
@@ -1160,16 +1361,21 @@ async function checkMatchesWithAi() {
     : priorityMatchesWithoutScore.slice(0, 4);
 
   async function toggleLeaguePredictionsLock() {
-    if (!league) {
+    if (!league || !selectedStage) {
       alert("הליגה לא נטענה");
       return;
     }
 
-    const nextLockedValue = !league.predictions_locked;
+    if (!isAccountOwner) {
+      alert("רק בעל הליגה יכול לשנות את מצב הניחושים");
+      return;
+    }
+
+    const nextLockedValue = !selectedStage.predictions_locked;
 
     const message = nextLockedValue
-      ? "אתה בטוח שאתה רוצה לנעול ניחושים לכל הליגה?"
-      : "אתה בטוח שאתה רוצה לפתוח מחדש ניחושים למשחקים עתידיים?";
+      ? `לנעול ניחושים בשלב ${selectedStage.display_name}?`
+      : `לפתוח מחדש ניחושים בשלב ${selectedStage.display_name}?`;
 
     const shouldUpdate = confirm(message);
 
@@ -1183,6 +1389,7 @@ async function checkMatchesWithAi() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStage.id,
         predictions_locked: nextLockedValue,
       }),
     });
@@ -1202,7 +1409,7 @@ async function checkMatchesWithAi() {
       return;
     }
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStage.id);
 
     alert(
       nextLockedValue
@@ -1212,17 +1419,22 @@ async function checkMatchesWithAi() {
   }
 
   async function toggleAdminEditMode() {
-    if (!league) {
+    if (!league || !selectedStage) {
       alert("הליגה לא נטענה");
       return;
     }
 
-    if (!league.predictions_locked) {
+    if (!isAccountOwner) {
+      alert("רק בעל הליגה יכול לשנות את מצב עריכת המנהל");
+      return;
+    }
+
+    if (!selectedStage.predictions_locked) {
       alert("מצב עריכת מנהל זמין רק כשהניחושים נעולים");
       return;
     }
 
-    const nextAdminEditMode = !league.admin_edit_mode;
+    const nextAdminEditMode = !selectedStage.admin_edit_mode;
 
     const message = nextAdminEditMode
       ? "הפעלת מצב עריכת מנהל תאפשר לך לערוך ניחושים עבור כל שחקן בליגה, כולל משחקים שכבר התחילו. להמשיך?"
@@ -1240,6 +1452,7 @@ async function checkMatchesWithAi() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStage.id,
         admin_edit_mode: nextAdminEditMode,
       }),
     });
@@ -1259,7 +1472,7 @@ async function checkMatchesWithAi() {
       return;
     }
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStage.id);
 
     alert(
       nextAdminEditMode
@@ -1273,6 +1486,13 @@ async function checkMatchesWithAi() {
     homeScore: string,
     awayScore: string
   ) {
+    const loadedMatch = matches.find((match) => match.id === matchId);
+
+    if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
+      alert("המשחק לא שייך לשלב הנבחר");
+      return;
+    }
+
     if (homeScore === "" || awayScore === "") {
       alert("צריך למלא שתי תוצאות");
       return;
@@ -1297,6 +1517,7 @@ async function checkMatchesWithAi() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStageId,
         home_score: homeScoreNumber,
         away_score: awayScoreNumber,
       }),
@@ -1317,7 +1538,7 @@ async function checkMatchesWithAi() {
       return;
     }
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStageId);
     alert("התוצאה עודכנה בהצלחה");
   }
 
@@ -1327,6 +1548,13 @@ async function checkMatchesWithAi() {
     awayTeamValue: string,
     startTimeValue: string
   ) {
+    const loadedMatch = matches.find((match) => match.id === matchId);
+
+    if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
+      alert("המשחק לא שייך לשלב הנבחר");
+      return;
+    }
+
     if (
       !homeTeamValue.trim() ||
       !awayTeamValue.trim() ||
@@ -1342,6 +1570,7 @@ async function checkMatchesWithAi() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        stage_id: selectedStageId,
         home_team: homeTeamValue.trim(),
         away_team: awayTeamValue.trim(),
         start_time: new Date(startTimeValue).toISOString(),
@@ -1363,11 +1592,18 @@ async function checkMatchesWithAi() {
       return;
     }
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStageId);
     alert("המשחק עודכן בהצלחה");
   }
 
   async function deleteMatch(matchId: string) {
+    const loadedMatch = matches.find((match) => match.id === matchId);
+
+    if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
+      alert("המשחק לא שייך לשלב הנבחר");
+      return;
+    }
+
     const shouldDelete = confirm(
       "אתה בטוח שאתה רוצה למחוק את המשחק? כל הניחושים של המשחק הזה יימחקו גם."
     );
@@ -1395,7 +1631,7 @@ async function checkMatchesWithAi() {
       return;
     }
 
-    await loadLeagueAndMatches();
+    await loadLeagueAndMatches(selectedStageId);
     alert("המשחק נמחק בהצלחה");
   }
 
@@ -1518,46 +1754,115 @@ async function checkMatchesWithAi() {
                   </span>
                 )}
 
+                {selectedStage && (
+                  <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3 text-right">
+                    <label
+                      htmlFor="admin-stage-selector"
+                      className="mb-2 block text-xs font-bold text-slate-300"
+                    >
+                      שלב לניהול
+                    </label>
+                    <select
+                      id="admin-stage-selector"
+                      value={selectedStage.id}
+                      onChange={(event) =>
+                        handleAdminStageChange(event.target.value)
+                      }
+                      disabled={
+                        isLoadingStage ||
+                        isLoading ||
+                        isImporting ||
+                        isUpdatingResults ||
+                        isCheckingAiResults ||
+                        isCheckingAiMatches ||
+                        isImportingPredictions
+                      }
+                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm font-bold text-white outline-none transition focus:border-green-400 disabled:opacity-50"
+                    >
+                      {stages.map((stage) => (
+                        <option key={stage.id} value={stage.id}>
+                          {stage.display_name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                          selectedStageKind === "active"
+                            ? "bg-green-500/15 text-green-300"
+                            : selectedStageKind === "history"
+                              ? "bg-blue-500/15 text-blue-300"
+                              : "bg-violet-500/15 text-violet-300"
+                        }`}
+                      >
+                        {selectedStageKind === "active"
+                          ? "שלב פעיל"
+                          : selectedStageKind === "history"
+                            ? "שלב היסטורי"
+                            : "שלב עתידי"}
+                      </span>
+
+                      {isAccountOwner && selectedStageKind !== "active" && (
+                        <button
+                          type="button"
+                          onClick={activateSelectedStage}
+                          className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-700 px-3 py-2 text-xs font-black text-white transition hover:scale-[1.02]"
+                        >
+                          הפוך לשלב הפעיל
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedStage && (
                 <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3">
                   <p className="mb-3 text-xs font-bold text-slate-300">
-                    מצב ניחושים: {" "}
+                    מצב ניחושים ב{selectedStage.display_name}: {" "}
                     <span
                       className={
-                        league.predictions_locked
+                        selectedStage.predictions_locked
                           ? "text-red-300"
                           : "text-green-300"
                       }
                     >
-                      {league.predictions_locked ? "נעולים" : "פתוחים"}
+                      {selectedStage.predictions_locked ? "נעולים" : "פתוחים"}
                     </span>
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={toggleLeaguePredictionsLock}
-                    className={`w-full rounded-xl px-4 py-3 text-sm font-black transition hover:scale-[1.02] ${
-                      league.predictions_locked
-                        ? "bg-gradient-to-r from-green-500 to-emerald-700 text-white"
-                        : "bg-gradient-to-r from-red-500 to-rose-700 text-white"
-                    }`}
-                  >
-                    {league.predictions_locked
-                      ? "פתח ניחושים למשחקים עתידיים"
-                      : "נעל ניחושים לכל הליגה"}
-                  </button>
+                  {isAccountOwner ? (
+                    <button
+                      type="button"
+                      onClick={toggleLeaguePredictionsLock}
+                      className={`w-full rounded-xl px-4 py-3 text-sm font-black transition hover:scale-[1.02] ${
+                        selectedStage.predictions_locked
+                          ? "bg-gradient-to-r from-green-500 to-emerald-700 text-white"
+                          : "bg-gradient-to-r from-red-500 to-rose-700 text-white"
+                      }`}
+                    >
+                      {selectedStage.predictions_locked
+                        ? "פתח ניחושים בשלב"
+                        : "נעל ניחושים בשלב"}
+                    </button>
+                  ) : (
+                    <p className="text-[11px] text-slate-400">
+                      רק בעל הליגה יכול לשנות הגדרות שלב.
+                    </p>
+                  )}
 
-                  {league.predictions_locked && isAccountOwner && (
+                  {selectedStage.predictions_locked && isAccountOwner && (
                     <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
                       <p className="mb-2 text-xs font-bold text-amber-200">
                         מצב עריכת מנהל:{" "}
                         <span
                           className={
-                            league.admin_edit_mode
+                            selectedStage.admin_edit_mode
                               ? "text-amber-100"
                               : "text-slate-300"
                           }
                         >
-                          {league.admin_edit_mode ? "פעיל" : "כבוי"}
+                          {selectedStage.admin_edit_mode ? "פעיל" : "כבוי"}
                         </span>
                       </p>
 
@@ -1570,18 +1875,19 @@ async function checkMatchesWithAi() {
                         type="button"
                         onClick={toggleAdminEditMode}
                         className={`w-full rounded-xl px-4 py-3 text-sm font-black transition hover:scale-[1.02] ${
-                          league.admin_edit_mode
+                          selectedStage.admin_edit_mode
                             ? "bg-gradient-to-r from-slate-600 to-slate-800 text-white"
                             : "bg-gradient-to-r from-amber-500 to-orange-600 text-white"
                         }`}
                       >
-                        {league.admin_edit_mode
+                        {selectedStage.admin_edit_mode
                           ? "בטל מצב עריכת מנהל"
                           : "הפעל מצב עריכת מנהל"}
                       </button>
                     </div>
                   )}
                 </div>
+                )}
               </div>
             )}
           </div>
@@ -1739,7 +2045,7 @@ async function checkMatchesWithAi() {
                     </h3>
 
                     <p className="mt-1 text-sm leading-6 text-slate-400">
-                      בחר טורניר ושלב, והמערכת תביא את כל משחקי השלב ל־Preview לפני אישור.
+                      בחר טורניר, והמערכת תביא את משחקי השלב הנבחר ל־Preview לפני אישור.
                     </p>
                   </div>
 
@@ -1766,27 +2072,15 @@ async function checkMatchesWithAi() {
                       </select>
                     </label>
 
-                    <label className="block">
+                    <div className="block">
                       <span className="mb-2 block text-sm font-bold text-slate-200">
-                        שלב
+                        שלב נבחר
                       </span>
 
-                      <select
-                        value={aiStage}
-                        onChange={(event) => setAiStage(event.target.value)}
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-violet-400"
-                      >
-                        <option value="שלב בתים">שלב בתים</option>
-                        <option value="שלב 32 האחרונות">שלב 32 האחרונות</option>
-                        <option value="שמינית גמר">שמינית גמר</option>
-                        <option value="רבע גמר">רבע גמר</option>
-                        <option value="חצי גמר">חצי גמר</option>
-                        <option value="משחק על מקום שלישי">
-                          משחק על מקום שלישי
-                        </option>
-                        <option value="גמר">גמר</option>
-                      </select>
-                    </label>
+                      <div className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-violet-200">
+                        {selectedStage?.display_name || "לא נבחר שלב"}
+                      </div>
+                    </div>
                   </div>
 
                   {aiTournament === "טורניר אחר" && (
@@ -2082,7 +2376,9 @@ async function checkMatchesWithAi() {
             </button>
           </div>
 
-          {matches.length === 0 ? (
+          {isLoadingStage ? (
+            <p className="text-sm text-slate-400">טוען משחקים לשלב...</p>
+          ) : matches.length === 0 ? (
             <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
           ) : !showAllAdminMatches && priorityMatchesWithoutScore.length === 0 ? (
             <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-5 text-center">

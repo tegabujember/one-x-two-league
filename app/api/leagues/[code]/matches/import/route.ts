@@ -11,6 +11,7 @@ type ImportMatch = {
 };
 
 type ImportMatchesBody = {
+  stage_id?: string;
   matches?: ImportMatch[];
 };
 
@@ -25,7 +26,7 @@ async function verifyLeagueOwner(code: string, userId: string) {
 
   const { data: league, error } = await supabaseAdmin
     .from("leagues")
-    .select("id, owner_id")
+    .select("id, owner_id, active_stage_id")
     .eq("code", cleanCode)
     .single();
 
@@ -124,6 +125,19 @@ export async function POST(
 
   const body = (await request.json()) as ImportMatchesBody;
 
+  const stageId = body.stage_id?.trim() || ownerCheck.league.active_stage_id;
+
+  const { data: stage, error: stageError } = await supabaseAdmin
+    .from("league_stages")
+    .select("id")
+    .eq("id", stageId)
+    .eq("league_id", ownerCheck.league.id)
+    .single();
+
+  if (stageError || !stage) {
+    return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+  }
+
   if (
     !body.matches ||
     !Array.isArray(body.matches) ||
@@ -146,7 +160,8 @@ export async function POST(
     await supabaseAdmin
       .from("matches")
       .select("start_time, home_team, away_team")
-      .eq("league_id", ownerCheck.league.id);
+      .eq("league_id", ownerCheck.league.id)
+      .eq("stage_id", stage.id);
 
   if (existingMatchesError) {
     console.error(existingMatchesError);
@@ -253,6 +268,7 @@ export async function POST(
 
     matchesToInsert.push({
       league_id: ownerCheck.league.id,
+      stage_id: stage.id,
       home_team: homeTeam,
       away_team: awayTeam,
       start_time: startDate.toISOString(),
