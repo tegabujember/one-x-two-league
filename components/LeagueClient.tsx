@@ -81,6 +81,20 @@ function getMatchResult(match: Match): "1" | "X" | "2" | null {
   return "X";
 }
 
+function getLocalCalendarHourKey(startTime: string) {
+  const date = new Date(startTime);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("he-IL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).format(date);
+}
+
 function getRankIcon(index: number) {
   if (index === 0) return "🥇";
   if (index === 1) return "🥈";
@@ -488,6 +502,26 @@ export default function LeagueClient({
         match.status !== "finished" &&
         getMatchResult(match) === null,
     );
+
+  const closestUpcomingHourKey = closestUpcomingMatch
+    ? getLocalCalendarHourKey(closestUpcomingMatch.start_time)
+    : "";
+
+  const closestUpcomingMatches = closestUpcomingHourKey
+    ? sortedMatches.filter(
+        (match) =>
+          match.status !== "finished" &&
+          getMatchResult(match) === null &&
+          getLocalCalendarHourKey(match.start_time) ===
+            closestUpcomingHourKey,
+      )
+    : [];
+
+  const upcomingSummaryMatches = closestUpcomingMatches.slice(0, 4);
+  const recentFinishedSummaryMatches = lastFinishedMatches.slice(
+    0,
+    Math.max(0, 4 - upcomingSummaryMatches.length),
+  );
 
   function getUpcomingMatchPlayerPick(matchId: string, playerId: string) {
     return localPredictions.find(
@@ -1142,19 +1176,26 @@ ${leagueUrl}`;
             </>
           )}
         </div>
-        {(closestUpcomingMatch || lastFinishedMatches.length > 0) && (
+        {(upcomingSummaryMatches.length > 0 ||
+          recentFinishedSummaryMatches.length > 0) && (
           <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl sm:mb-5">
             <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
               <h2 className="text-base font-black text-white sm:text-lg">
-                {closestUpcomingMatch
-                  ? "ניחושים - המשחק הקרוב + 3 המשחקים האחרונים"
-                  : "ניחושים - 3 המשחקים האחרונים"}
+                {upcomingSummaryMatches.length > 0 &&
+                recentFinishedSummaryMatches.length > 0
+                  ? `ניחושים - המשחקים הקרובים + ${recentFinishedSummaryMatches.length} המשחקים האחרונים`
+                  : upcomingSummaryMatches.length > 0
+                    ? "ניחושים - המשחקים הקרובים"
+                    : "ניחושים - 3 המשחקים האחרונים"}
               </h2>
             </div>
 
             <div className="space-y-2">
-              {closestUpcomingMatch && (
-                <div className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3">
+              {upcomingSummaryMatches.map((closestUpcomingMatch) => (
+                <div
+                  key={closestUpcomingMatch.id}
+                  className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                >
                   <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
                     <p className="w-full truncate text-xs font-black text-white sm:text-sm">
                       {closestUpcomingMatch.home_team}
@@ -1299,9 +1340,9 @@ ${leagueUrl}`;
                     );
                   })()}
                 </div>
-              )}
+              ))}
 
-              {lastFinishedMatches.map((match) => (
+              {recentFinishedSummaryMatches.map((match) => (
                 <div
                   key={match.id}
                   className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
