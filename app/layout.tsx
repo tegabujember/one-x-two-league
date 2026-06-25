@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,12 +12,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   metadataBase: new URL("https://one-x-two-league.vercel.app"),
+  applicationName: "World Cup League 2026",
 
   title: "1X2 League - ליגת ניחושים",
   description:
     "ליגת ניחושים 1X2 - מתחברים עם Google, מצטרפים לליגה ומנחשים 1 / X / 2.",
+  appleWebApp: {
+    capable: true,
+    title: "World Cup League 2026",
+    statusBarStyle: "black-translucent",
+  },
 
   openGraph: {
     title: "1X2 League - ליגת ניחושים",
@@ -43,6 +49,10 @@ export const metadata = {
       "הצטרפו לליגת ניחושים 1X2, נחשו 1 / X / 2 וצברו נקודות.",
     images: ["https://one-x-two-league.vercel.app/og-image.jpg"],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#020617",
 };
 
 export default function RootLayout({
