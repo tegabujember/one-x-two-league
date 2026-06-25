@@ -66,6 +66,8 @@ type LeagueClientProps = {
   activeStageId: string;
 };
 
+const LAST_SEEN_THROTTLE_MS = 15 * 60 * 1000;
+
 function getMatchResult(match: Match): "1" | "X" | "2" | null {
   if (
     match.status !== "finished" ||
@@ -280,6 +282,26 @@ export default function LeagueClient({
       }
 
       setAuthEmail(user.email || "");
+
+      const lastSeenStorageKey = `last-seen-${league.code}-${user.id}`;
+      const previousLastSeenPing = Number(
+        localStorage.getItem(lastSeenStorageKey) || "0",
+      );
+      const now = Date.now();
+
+      if (now - previousLastSeenPing >= LAST_SEEN_THROTTLE_MS) {
+        fetch(`/api/leagues/${encodeURIComponent(league.code)}/last-seen`, {
+          method: "POST",
+        })
+          .then((response) => {
+            if (response.ok) {
+              localStorage.setItem(lastSeenStorageKey, String(now));
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      }
 
       const savedPlayerId = localStorage.getItem(selectedPlayerStorageKey);
 

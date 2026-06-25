@@ -37,7 +37,7 @@ export async function GET(
   const { data: existingPlayer, error: existingPlayerError } =
     await supabaseAdmin
       .from("players")
-      .select("*")
+      .select("id, league_id, name, user_id")
       .eq("league_id", league.id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -98,7 +98,7 @@ export async function POST(
   const { data: existingPlayer, error: existingPlayerError } =
     await supabaseAdmin
       .from("players")
-      .select("*")
+      .select("id, league_id, name, user_id")
       .eq("league_id", league.id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -129,7 +129,7 @@ export async function POST(
       name: playerName,
       user_id: user.id,
     })
-    .select()
+    .select("id, league_id, name, user_id")
     .single();
 
   if (playerError || !player) {

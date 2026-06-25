@@ -110,12 +110,77 @@ type ToastState = {
   type: ToastType;
 };
 
+type PlayerActivity = {
+  id: string;
+  name: string;
+  last_seen_at: string | null;
+};
+
 function formatDateTimeForInput(dateString: string) {
   const date = new Date(dateString);
   const offset = date.getTimezoneOffset();
   const localDate = new Date(date.getTime() - offset * 60 * 1000);
 
   return localDate.toISOString().slice(0, 16);
+}
+
+function isSameLocalDate(firstDate: Date, secondDate: Date) {
+  return (
+    firstDate.getFullYear() === secondDate.getFullYear() &&
+    firstDate.getMonth() === secondDate.getMonth() &&
+    firstDate.getDate() === secondDate.getDate()
+  );
+}
+
+function formatAdminLastSeen(lastSeenAt: string | null) {
+  if (!lastSeenAt) {
+    return "טרם נכנס";
+  }
+
+  const lastSeenDate = new Date(lastSeenAt);
+
+  if (Number.isNaN(lastSeenDate.getTime())) {
+    return "טרם נכנס";
+  }
+
+  const now = new Date();
+  const minutesAgo = Math.max(
+    0,
+    Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000)
+  );
+  const timeText = new Intl.DateTimeFormat("he-IL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(lastSeenDate);
+
+  if (minutesAgo < 3) {
+    return "נראה עכשיו";
+  }
+
+  if (minutesAgo < 60) {
+    return `נראה לפני ${minutesAgo} דקות`;
+  }
+
+  if (isSameLocalDate(lastSeenDate, now)) {
+    return `נראה היום ב־${timeText}`;
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (isSameLocalDate(lastSeenDate, yesterday)) {
+    return `נראה אתמול ב־${timeText}`;
+  }
+
+  return new Intl.DateTimeFormat("he-IL", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(lastSeenDate);
 }
 
 function parseImportDate(dateText: string) {
@@ -313,6 +378,7 @@ export default function LeagueAdminPage() {
   const [stages, setStages] = useState<LeagueStage[]>([]);
   const [selectedStageId, setSelectedStageId] = useState("");
   const [players, setPlayers] = useState<Player[]>([]);
+  const [playerActivity, setPlayerActivity] = useState<PlayerActivity[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [adminEmail, setAdminEmail] = useState("");
   const [isAccountOwner, setIsAccountOwner] = useState(false);
@@ -344,6 +410,8 @@ export default function LeagueAdminPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(true);
   const [isLoadingStage, setIsLoadingStage] = useState(false);
+  const [isLoadingPlayerActivity, setIsLoadingPlayerActivity] =
+    useState(false);
   const [showAllAdminMatches, setShowAllAdminMatches] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
   const stageLoadRequestIdRef = useRef(0);
@@ -536,7 +604,7 @@ export default function LeagueAdminPage() {
 
     const { data: playersData, error: playersError } = await supabase
       .from("players")
-      .select("*")
+      .select("id, league_id, name, user_id")
       .eq("league_id", leagueData.id)
       .order("created_at", { ascending: true });
 
@@ -551,6 +619,43 @@ export default function LeagueAdminPage() {
     }
 
     setPlayers(playersData || []);
+
+    if (isAccountOwner) {
+      setIsLoadingPlayerActivity(true);
+
+      void (async () => {
+        try {
+          const activityResponse = await fetch(
+            `/api/leagues/${encodeURIComponent(code)}/player-activity`
+          );
+
+          if (isStaleRequest()) return;
+
+          if (activityResponse.ok) {
+            const activityData = (await activityResponse.json()) as {
+              players?: PlayerActivity[];
+            };
+
+            setPlayerActivity(activityData.players || []);
+          } else {
+            console.error(await activityResponse.json().catch(() => null));
+            setPlayerActivity([]);
+          }
+        } catch (error) {
+          if (isStaleRequest()) return;
+
+          console.error(error);
+          setPlayerActivity([]);
+        } finally {
+          if (!isStaleRequest()) {
+            setIsLoadingPlayerActivity(false);
+          }
+        }
+      })();
+    } else {
+      setPlayerActivity([]);
+      setIsLoadingPlayerActivity(false);
+    }
 
     const { data: matchesData, error: matchesError } = await supabase
       .from("matches")
@@ -1891,6 +1996,51 @@ async function checkMatchesWithAi() {
               </div>
             )}
           </div>
+
+          {isAccountOwner && (
+            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-right sm:mt-6">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-base font-black text-white sm:text-lg">
+                  פעילות משתתפים
+                </h2>
+
+                <span className="shrink-0 rounded-full border border-white/10 bg-slate-900/80 px-3 py-1 text-[11px] text-slate-400">
+                  {playerActivity.length} משתתפים
+                </span>
+              </div>
+
+              {isLoadingPlayerActivity ? (
+                <p className="text-xs text-slate-400">טוען פעילות...</p>
+              ) : playerActivity.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  עדיין אין משתתפים להצגה.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {playerActivity.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2"
+                    >
+                      <span className="min-w-0 truncate text-sm font-bold text-slate-100">
+                        {player.name}
+                      </span>
+
+                      <span
+                        className={`shrink-0 text-xs font-bold ${
+                          player.last_seen_at
+                            ? "text-green-300"
+                            : "text-slate-500"
+                        }`}
+                      >
+                        {formatAdminLastSeen(player.last_seen_at)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit}

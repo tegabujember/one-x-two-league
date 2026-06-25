@@ -48,7 +48,7 @@ export default async function LeaguePage({
 
   const { data: players } = await supabase
     .from("players")
-    .select("*")
+    .select("id, league_id, name, user_id")
     .eq("league_id", league.id)
     .order("created_at", { ascending: true });
 

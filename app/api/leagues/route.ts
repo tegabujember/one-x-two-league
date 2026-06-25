@@ -102,7 +102,7 @@ export async function POST(request: Request) {
       name: adminName,
       user_id: user.id,
     })
-    .select()
+    .select("id, league_id, name, user_id")
     .single();
 
   if (playerError || !player) {
