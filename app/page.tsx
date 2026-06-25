@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
+import InstallAppHelp from "@/components/InstallAppHelp";
 import UserMenu from "@/components/auth/UserMenu";
 
 type MyLeague = {
@@ -295,6 +296,8 @@ export default function Home() {
               הצטרף לליגה עם קוד
             </Link>
           </div>
+
+          <InstallAppHelp />
 
           <div className="mt-8 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-2xl bg-slate-950/60 p-3 border border-white/10">
