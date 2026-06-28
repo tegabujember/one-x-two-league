@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type Player = {
   id: string;
@@ -83,12 +84,12 @@ function getMatchResult(match: Match): "1" | "X" | "2" | null {
   return "X";
 }
 
-function getLocalCalendarHourKey(startTime: string) {
+function getLocalCalendarHourKey(startTime: string, locale: string) {
   const date = new Date(startTime);
 
   if (Number.isNaN(date.getTime())) return "";
 
-  return new Intl.DateTimeFormat("he-IL", {
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -249,6 +250,7 @@ export default function LeagueClient({
 }: LeagueClientProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { locale, dir, t } = useLanguage();
 
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [localPredictions, setLocalPredictions] = useState(predictions);
@@ -526,7 +528,7 @@ export default function LeagueClient({
     );
 
   const closestUpcomingHourKey = closestUpcomingMatch
-    ? getLocalCalendarHourKey(closestUpcomingMatch.start_time)
+    ? getLocalCalendarHourKey(closestUpcomingMatch.start_time, locale)
     : "";
 
   const closestUpcomingMatches = closestUpcomingHourKey
@@ -534,7 +536,7 @@ export default function LeagueClient({
         (match) =>
           match.status !== "finished" &&
           getMatchResult(match) === null &&
-          getLocalCalendarHourKey(match.start_time) === closestUpcomingHourKey,
+          getLocalCalendarHourKey(match.start_time, locale) === closestUpcomingHourKey,
       )
     : [];
 
@@ -638,9 +640,9 @@ export default function LeagueClient({
   function getFeaturedMatchLabel(match: Match) {
     if (showAllMatches) return null;
 
-    if (lastMatch && match.id === lastMatch.id) return "משחק אחרון";
-    if (currentMatch && match.id === currentMatch.id) return "משחק קרוב";
-    if (nextMatch && match.id === nextMatch.id) return "משחק הבא";
+    if (lastMatch && match.id === lastMatch.id) return t("league.lastMatch");
+    if (currentMatch && match.id === currentMatch.id) return t("league.currentMatch");
+    if (nextMatch && match.id === nextMatch.id) return t("league.nextMatch");
 
     return null;
   }
@@ -655,22 +657,22 @@ export default function LeagueClient({
 
   async function savePrediction(matchId: string, pick: "1" | "X" | "2") {
     if (!isSelectedStageActive) {
-      showToast("שלב היסטורי זמין לצפייה בלבד", "warning");
+      showToast(t("league.historicalToast"), "warning");
       return;
     }
 
     if (!authEmail) {
-      showToast("צריך להתחבר/להרשם  כדי לשלוח ניחוש", "warning");
+      showToast(t("league.loginRequiredPrediction"), "warning");
       return;
     }
 
     if (!selectedPlayerId) {
-      showToast("צריך להתחבר/להרשם כדי לשלוח ניחוש", "warning");
+      showToast(t("league.loginRequiredPrediction"), "warning");
       return;
     }
 
     if (league.predictions_locked && !isAdminEditActive) {
-      showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
+      showToast(t("league.predictionsLocked"), "warning");
       return;
     }
 
@@ -679,7 +681,7 @@ export default function LeagueClient({
       : selectedPlayerId;
 
     if (!playerIdToSave) {
-      showToast("צריך לבחור שחקן", "warning");
+      showToast(t("league.selectPlayer"), "warning");
       return;
     }
 
@@ -703,18 +705,18 @@ export default function LeagueClient({
       console.error(errorData);
 
       if (response.status === 401) {
-        showToast("כדי לשלוח ניחוש צריך קודם להצטרף לליגה", "warning");
+        showToast(t("league.joinFirst"), "warning");
       } else if (response.status === 403) {
         if (errorData?.error === "League predictions are locked") {
-          showToast("הניחושים נסגרו על ידי מנהל הליגה", "warning");
+          showToast(t("league.predictionsLocked"), "warning");
         } else {
           showToast(
-            "אין לך הרשאה לשלוח את הניחוש הזה או שהמשחק כבר נסגר",
+            t("league.predictionForbidden"),
             "error",
           );
         }
       } else {
-        showToast("שגיאה בשמירת הניחוש", "error");
+        showToast(t("league.savePredictionError"), "error");
       }
 
       setIsSaving(false);
@@ -761,19 +763,20 @@ export default function LeagueClient({
 
     try {
       await navigator.clipboard.writeText(leagueUrl);
-      showToast("הלינק הועתק", "success");
+      showToast(t("league.linkCopied"), "success");
     } catch (error) {
       console.error(error);
-      showToast("לא הצלחתי להעתיק את הלינק", "error");
+      showToast(t("league.linkCopyError"), "error");
     }
   }
 
   function shareOnWhatsApp() {
     const leagueUrl = `${window.location.origin}/league/${encodeURIComponent(league.code)}`;
 
-    const message = `הצטרף לליגת הניחושים שלי:
-${league.name}
-${leagueUrl}`;
+    const message = t("league.shareMessage", {
+      name: league.name,
+      url: leagueUrl,
+    });
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
@@ -843,31 +846,31 @@ ${leagueUrl}`;
           </div>
 
           <p className="text-[10px] font-semibold tracking-[0.28em] text-green-300 sm:text-xs sm:tracking-[0.35em]">
-            WORLD CUP LEAGUE 2026
+            {t("league.brand")}
           </p>
         </div>
 
         <div className="theme-card mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
-            <p className="theme-muted mb-1 text-xs sm:text-sm">ליגה</p>
+            <p className="theme-muted mb-1 text-xs sm:text-sm">{t("league.label")}</p>
 
             <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
-              {league.name}
+              <bdi>{league.name}</bdi>
             </h1>
 
             <div className="theme-panel mt-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
-              <span className="theme-muted text-xs sm:text-sm">קוד</span>
-              <span className="theme-league-code text-xl font-black tracking-widest sm:text-2xl">
-                {league.code}
+              <span className="theme-muted text-xs sm:text-sm">{t("league.code")}</span>
+              <span className="theme-league-code text-xl font-black tracking-widest sm:text-2xl" dir="ltr">
+                <bdi>{league.code}</bdi>
               </span>
             </div>
 
-            <div className="mx-auto mt-3 max-w-xs text-right">
+            <div className="mx-auto mt-3 max-w-xs text-start">
               <label
                 htmlFor="public-stage-selector"
                 className="theme-muted mb-1 block text-xs font-semibold"
               >
-                שלב בטורניר
+                {t("league.tournamentStage")}
               </label>
               <select
                 id="public-stage-selector"
@@ -878,7 +881,9 @@ ${leagueUrl}`;
                 {stages.map((stage) => (
                   <option key={stage.id} value={stage.id}>
                     {stage.display_name}
-                    {stage.id === activeStageId ? " — פעיל" : " — היסטוריה"}
+                    {stage.id === activeStageId
+                      ? ` — ${t("league.activeSuffix")}`
+                      : ` — ${t("league.historySuffix")}`}
                   </option>
                 ))}
               </select>
@@ -886,19 +891,19 @@ ${leagueUrl}`;
 
             {!isSelectedStageActive && (
               <div className="mt-3 rounded-xl border border-blue-400/20 bg-blue-500/10 px-4 py-2 text-xs font-bold text-blue-200">
-                שלב היסטורי — צפייה בלבד
+                {t("league.historicalReadOnly")}
               </div>
             )}
 
             {league.predictions_locked && !isAdminEditActive && (
               <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
-                🔒 הניחושים נסגרו על ידי מנהל הליגה
+                🔒 {t("league.predictionsLocked")}
               </div>
             )}
 
             {isAdminEditActive && (
               <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm font-bold text-amber-200">
-                ⚠️ מצב עריכת מנהל פעיל — ניתן לערוך ניחושים עבור כל שחקן
+                ⚠️ {t("league.adminEditActive")}
               </div>
             )}
           </div>
@@ -909,7 +914,7 @@ ${leagueUrl}`;
                 href={`/league/${league.code}/admin`}
                 className="block rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 sm:col-span-2 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
               >
-                ניהול ליגה
+                {t("league.manage")}
               </Link>
             )}
 
@@ -918,7 +923,7 @@ ${leagueUrl}`;
               onClick={shareOnWhatsApp}
               className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-center text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
-              שתף בוואטסאפ
+              {t("league.shareWhatsApp")}
             </button>
 
             <button
@@ -926,7 +931,7 @@ ${leagueUrl}`;
               onClick={copyLeagueLink}
               className="theme-neutral-button w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
-              העתק לינק להזמנה
+              {t("league.copyInvite")}
             </button>
           </div>
         </div>
@@ -936,11 +941,11 @@ ${leagueUrl}`;
             {!selectedPlayer && (
               <div>
                 <h2 className="mb-2 text-xl font-black sm:text-2xl">
-                  עדיין לא הצטרפת לליגה
+                  {t("league.notJoined")}
                 </h2>
 
                 <p className="theme-muted mb-4 text-sm leading-6 sm:mb-5">
-                  כדי לשלוח ניחושים צריך להתחבר ולהצטרף עם שם שחקן.
+                  {t("league.joinDescription")}
                 </p>
 
                 {!authEmail ? (
@@ -957,11 +962,11 @@ ${leagueUrl}`;
                       }}
                       className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
                     >
-                      התחבר / הירשם כדי להצטרף
+                      {t("league.loginToJoin")}
                     </Link>
 
                     <p className="theme-muted mt-3 text-center text-xs leading-5">
-                      אחרי ההתחברות תחזור אוטומטית לליגה הזאת.
+                      {t("league.returnAfterLogin")}
                     </p>
                   </>
                 ) : (
@@ -970,11 +975,11 @@ ${leagueUrl}`;
                       href={`/join-league?code=${encodeURIComponent(league.code)}`}
                       className="block rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
                     >
-                      הצטרף לליגה הזאת
+                      {t("league.joinThis")}
                     </Link>
 
                     <p className="theme-muted mt-3 text-center text-xs leading-5">
-                      נשאר רק לבחור שם שחקן ולאשר הצטרפות.
+                      {t("league.chooseNameHelp")}
                     </p>
                   </>
                 )}
@@ -985,15 +990,15 @@ ${leagueUrl}`;
 
         <div className="theme-card mb-4 rounded-2xl border p-3 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-5">
           <div className="theme-section-header mb-3 flex items-center justify-between sm:mb-4">
-            <h2 className="text-lg font-black sm:text-xl">טבלת דירוג</h2>
+            <h2 className="text-lg font-black sm:text-xl">{t("league.rankings")}</h2>
 
             <span className="theme-panel theme-muted rounded-full border px-3 py-1 text-[10px] sm:text-xs">
-              {players.length} שחקנים
+              {t("league.playersCount", { count: players.length })}
             </span>
           </div>
 
           {rankedPlayers.length === 0 ? (
-            <p className="theme-muted text-sm">עדיין אין שחקנים.</p>
+            <p className="theme-muted text-sm">{t("league.noPlayers")}</p>
           ) : (
             <>
               <div className="space-y-2 sm:space-y-2.5">
@@ -1008,7 +1013,7 @@ ${leagueUrl}`;
                     index === 0
                       ? {
                           card: "theme-rank-podium-first",
-                          label: "מוביל הליגה",
+                          label: t("league.leader"),
                           labelClass:
                             "border-yellow-300/45 bg-yellow-400/15 theme-warning-text",
                           edge: "bg-yellow-300/70",
@@ -1016,14 +1021,14 @@ ${leagueUrl}`;
                       : index === 1
                         ? {
                             card: "theme-rank-podium-second",
-                            label: "מקום שני",
+                            label: t("league.second"),
                             labelClass:
                               "border-slate-200/30 bg-slate-100/10 theme-muted",
                             edge: "bg-slate-200/60",
                           }
                         : {
                             card: "theme-rank-podium-third",
-                            label: "מקום שלישי",
+                            label: t("league.third"),
                             labelClass:
                               "border-orange-300/35 bg-orange-400/10 theme-warning-text",
                             edge: "bg-orange-300/55",
@@ -1045,12 +1050,12 @@ ${leagueUrl}`;
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="truncate text-sm font-black sm:text-base">
-                                {player.name}
+                                <bdi>{player.name}</bdi>
                               </p>
 
                               {isCurrentPlayer && (
                                 <span className="rounded-full border border-green-400/20 bg-green-500/15 px-1.5 py-0.5 text-[9px] font-black text-green-300 sm:text-[10px]">
-                                  אתה
+                                  {t("league.you")}
                                 </span>
                               )}
                             </div>
@@ -1081,7 +1086,7 @@ ${leagueUrl}`;
                               {stats.points}
                             </p>
                             <p className="theme-muted mt-1 text-[9px] sm:text-[10px]">
-                              נק׳
+                              {t("league.points")}
                             </p>
                           </div>
                         </div>
@@ -1107,7 +1112,7 @@ ${leagueUrl}`;
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="truncate text-base font-black sm:text-xl">
-                              {player.name}
+                              <bdi>{player.name}</bdi>
                             </p>
 
                             {podium.label && (
@@ -1120,7 +1125,7 @@ ${leagueUrl}`;
 
                             {isCurrentPlayer && (
                               <span className="rounded-full border border-green-400/20 bg-green-500/15 px-2 py-0.5 text-[9px] font-black text-green-300 sm:text-[10px]">
-                                אתה
+                                {t("league.you")}
                               </span>
                             )}
                           </div>
@@ -1151,7 +1156,7 @@ ${leagueUrl}`;
                             {stats.points}
                           </p>
                           <p className="theme-muted mt-1 text-[9px] sm:text-[10px]">
-                            נק׳
+                            {t("league.points")}
                           </p>
                         </div>
                       </div>
@@ -1174,18 +1179,20 @@ ${leagueUrl}`;
                   className="theme-neutral-button mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-black transition hover:border-green-400/35"
                 >
                   {visibleRankCount >= rankedPlayers.length
-                    ? "הצג פחות ↑"
-                    : `הצג עוד ${Math.min(
-                        20,
-                        rankedPlayers.length - visibleRankCount,
-                      )} שחקנים ↓`}
+                    ? t("league.showLess")
+                    : t("league.showMorePlayers", {
+                        count: Math.min(
+                          20,
+                          rankedPlayers.length - visibleRankCount,
+                        ),
+                      })}
                 </button>
               )}
 
               <div className="theme-panel mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border px-3 py-2.5 text-[10px] font-bold sm:gap-x-6 sm:text-xs">
-                <span className="text-green-300">↑ עלייה בדירוג</span>
-                <span className="text-red-300">↓ ירידה בדירוג</span>
-                <span className="theme-muted">— ללא שינוי</span>
+                <span className="text-green-300">{t("league.rankUp")}</span>
+                <span className="text-red-300">{t("league.rankDown")}</span>
+                <span className="theme-muted">{t("league.rankSame")}</span>
               </div>
             </>
           )}
@@ -1197,10 +1204,12 @@ ${leagueUrl}`;
               <h2 className="text-base font-black sm:text-lg">
                 {upcomingSummaryMatches.length > 0 &&
                 recentFinishedSummaryMatches.length > 0
-                  ? `ניחושים - המשחקים הקרובים + ${recentFinishedSummaryMatches.length} המשחקים האחרונים`
+                  ? t("league.summaryBoth", {
+                      count: recentFinishedSummaryMatches.length,
+                    })
                   : upcomingSummaryMatches.length > 0
-                    ? "ניחושים - המשחקים הקרובים"
-                    : "ניחושים - 3 המשחקים האחרונים"}
+                    ? t("league.summaryUpcoming")
+                    : t("league.summaryRecent")}
               </h2>
             </div>
 
@@ -1223,7 +1232,7 @@ ${leagueUrl}`;
                       <p className="theme-muted text-[10px] font-bold sm:text-xs">
                         {new Date(
                           closestUpcomingMatch.start_time,
-                        ).toLocaleTimeString("he-IL", {
+                        ).toLocaleTimeString(locale, {
                           hour: "2-digit",
                           minute: "2-digit",
                         })}
@@ -1288,7 +1297,7 @@ ${leagueUrl}`;
                               {missingPicks.length}
                             </p>
                             <p className="theme-muted text-[9px] font-bold">
-                              חסר
+                              {t("league.missing")}
                             </p>
                           </div>
                         </div>
@@ -1300,7 +1309,9 @@ ${leagueUrl}`;
                           }
                           className="theme-neutral-button rounded-xl border px-3 py-2 text-xs font-black"
                         >
-                          {isExpanded ? "הסתר ניחושים ↑" : "הצג ניחושים ↓"}
+                          {isExpanded
+                            ? t("league.hidePredictions")
+                            : t("league.showPredictions")}
                         </button>
 
                         {isExpanded && (
@@ -1312,7 +1323,7 @@ ${leagueUrl}`;
                                   ? homePicks
                                       .map((item) => item.player.name)
                                       .join(" · ")
-                                  : "אין"}
+                                  : t("league.none")}
                               </span>
                             </p>
 
@@ -1323,7 +1334,7 @@ ${leagueUrl}`;
                                   ? drawPicks
                                       .map((item) => item.player.name)
                                       .join(" · ")
-                                  : "אין"}
+                                  : t("league.none")}
                               </span>
                             </p>
 
@@ -1334,13 +1345,13 @@ ${leagueUrl}`;
                                   ? awayPicks
                                       .map((item) => item.player.name)
                                       .join(" · ")
-                                  : "אין"}
+                                  : t("league.none")}
                               </span>
                             </p>
 
                             {missingPicks.length > 0 && (
                               <p className="theme-muted font-black">
-                                חסרים:{" "}
+                                {t("league.missingPlayers")} {" "}
                                 <span className="font-semibold">
                                   {missingPicks
                                     .map((item) => item.player.name)
@@ -1403,7 +1414,7 @@ ${leagueUrl}`;
                               ✓ {correctPlayers.length}
                             </p>
                             <p className="text-[10px] font-bold text-green-200/80">
-                              צדקו
+                              {t("league.correct")}
                             </p>
                           </div>
 
@@ -1412,7 +1423,7 @@ ${leagueUrl}`;
                               × {wrongPlayers.length}
                             </p>
                             <p className="text-[10px] font-bold text-red-200/80">
-                              טעו
+                              {t("league.wrong")}
                             </p>
                           </div>
                         </div>
@@ -1422,36 +1433,38 @@ ${leagueUrl}`;
                           onClick={() => toggleMatchDetails(match.id)}
                           className="theme-neutral-button rounded-xl border px-3 py-2 text-xs font-black"
                         >
-                          {isExpanded ? "הסתר שמות ↑" : "הצג שמות ↓"}
+                          {isExpanded
+                            ? t("league.hideNames")
+                            : t("league.showNames")}
                         </button>
 
                         {isExpanded && (
                           <div className="theme-panel space-y-1.5 rounded-xl border p-2 text-xs">
                             <p className="font-black text-green-300">
-                              ✓ צדקו:{" "}
+                              {t("league.correctLabel")} {" "}
                               <span className="font-semibold">
                                 {correctPlayers.length
                                   ? correctPlayers
                                       .map((item) => item.player.name)
                                       .join(" · ")
-                                  : "אף אחד"}
+                                  : t("league.noOne")}
                               </span>
                             </p>
 
                             <p className="font-black text-red-300">
-                              × טעו:{" "}
+                              {t("league.wrongLabel")} {" "}
                               <span className="font-semibold">
                                 {wrongPlayers.length
                                   ? wrongPlayers
                                       .map((item) => item.player.name)
                                       .join(" · ")
-                                  : "אף אחד"}
+                                  : t("league.noOne")}
                               </span>
                             </p>
 
                             {missingPlayers.length > 0 && (
                               <p className="theme-muted font-black">
-                                ללא ניחוש:{" "}
+                                {t("league.noPrediction")} {" "}
                                 <span className="font-semibold">
                                   {missingPlayers
                                     .map((item) => item.player.name)
@@ -1481,17 +1494,17 @@ ${leagueUrl}`;
 
                   <div>
                     <h2 className="text-xl font-black sm:text-2xl">
-                      הניחושים שלי
+                      {t("league.myPredictions")}
                     </h2>
 
                     <p className="theme-muted mt-0.5 text-xs font-semibold sm:text-sm">
-                      הביצועים שלך עד עכשיו
+                      {t("league.performance")}
                     </p>
                   </div>
                 </div>
 
                 <div className="theme-panel rounded-full border px-3 py-1.5 text-xs font-black theme-score-text sm:px-4 sm:text-sm">
-                  {predictionAccuracy}% פגיעה
+                  {t("league.hitRate", { percent: predictionAccuracy })}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
@@ -1501,7 +1514,7 @@ ${leagueUrl}`;
                     {correctPredictions.length}
                   </p>
                   <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
-                    נכונים
+                    {t("league.correctPlural")}
                   </p>
                 </div>
 
@@ -1511,7 +1524,7 @@ ${leagueUrl}`;
                     {wrongPredictions.length}
                   </p>
                   <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
-                    שגויים
+                    {t("league.wrongPlural")}
                   </p>
                 </div>
 
@@ -1521,14 +1534,14 @@ ${leagueUrl}`;
                     {pendingPredictions.length}
                   </p>
                   <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
-                    ממתינים
+                    {t("league.pending")}
                   </p>
                 </div>
               </div>
 
               <div className="theme-panel mt-4 rounded-2xl border p-4 sm:mt-5 sm:p-5">
                 <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
-                  <span className="font-black">התקדמות כללית</span>
+                  <span className="font-black">{t("league.overallProgress")}</span>
                   <span className="theme-score-text font-black">
                     {selectedPlayerPredictionMatchIds.size}/{matches.length}
                   </span>
@@ -1542,7 +1555,7 @@ ${leagueUrl}`;
                 </div>
 
                 <p className="theme-score-text mt-2 text-xs font-bold sm:text-sm">
-                  {predictionProgress}% הושלמו
+                  {t("league.completed", { percent: predictionProgress })}
                 </p>
               </div>
             </div>
@@ -1551,10 +1564,12 @@ ${leagueUrl}`;
 
         <div className="theme-card rounded-2xl border p-4 backdrop-blur-xl sm:rounded-3xl sm:p-6">
           <div className="theme-section-header mb-4 flex items-center justify-between sm:mb-5">
-            <h2 className="text-xl font-black sm:text-2xl">משחקים וניחושים</h2>
+            <h2 className="text-xl font-black sm:text-2xl">{t("league.matchesAndPredictions")}</h2>
 
             <span className="theme-panel theme-muted rounded-full border px-3 py-1 text-[11px] sm:px-4 sm:py-2 sm:text-xs">
-              {showAllMatches ? matches.length : matchesToShow.length} מוצגים
+              {t("league.shown", {
+                count: showAllMatches ? matches.length : matchesToShow.length,
+              })}
             </span>
           </div>
 
@@ -1564,7 +1579,7 @@ ${leagueUrl}`;
                 htmlFor="admin-edit-player"
                 className="mb-2 block text-sm font-bold text-amber-200"
               >
-                עריכת ניחושים עבור שחקן
+                {t("league.editForPlayer")}
               </label>
 
               <select
@@ -1573,7 +1588,7 @@ ${leagueUrl}`;
                 onChange={(event) => setAdminEditPlayerId(event.target.value)}
                 className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold"
               >
-                <option value="">בחר שחקן...</option>
+                <option value="">{t("league.choosePlayer")}</option>
                 {players.map((player) => (
                   <option key={player.id} value={player.id}>
                     {player.name}
@@ -1583,7 +1598,7 @@ ${leagueUrl}`;
 
               {adminEditPlayer && (
                 <p className="mt-2 text-xs text-amber-100/80">
-                  מציג ושומר ניחושים עבור: {adminEditPlayer.name}
+                  <bdi>{t("league.editingFor", { name: adminEditPlayer.name })}</bdi>
                 </p>
               )}
             </div>
@@ -1591,7 +1606,7 @@ ${leagueUrl}`;
 
           {matches.length === 0 ? (
             <p className="theme-muted text-sm">
-              עדיין לא נוספו משחקים. אפשר להוסיף דרך ניהול ליגה.
+              {t("league.noMatches")}
             </p>
           ) : (
             <>
@@ -1644,18 +1659,18 @@ ${leagueUrl}`;
                             }`}
                           >
                             {match.status === "finished"
-                              ? "הסתיים"
+                              ? t("league.finished")
                               : isMatchLocked
-                                ? "סגור"
-                                : "פתוח"}
+                                ? t("league.closed")
+                                : t("league.open")}
                           </span>
                         </div>
 
                         <div className="theme-panel theme-team-tile theme-match-result-tile min-w-16 rounded-xl border px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
                           <p className="theme-muted text-[10px] sm:text-xs">
-                            תוצאה
+                            {t("league.result")}
                           </p>
-                          <p className="theme-match-score text-lg font-black sm:text-xl">
+                          <p className="theme-match-score text-lg font-black sm:text-xl" dir="ltr">
                             {match.status === "finished"
                               ? `${match.home_score} - ${match.away_score}`
                               : "-"}
@@ -1663,13 +1678,13 @@ ${leagueUrl}`;
                         </div>
                       </div>
 
-                      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3">
-                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+                      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3" dir="ltr">
+                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4" dir={dir}>
                           <p className="theme-muted mb-1 text-[10px] sm:text-xs">
-                            בית
+                            {t("common.homeTeam")}
                           </p>
                           <p className="theme-team-name truncate text-base font-black sm:text-2xl">
-                            {match.home_team}
+                            <bdi>{match.home_team}</bdi>
                           </p>
                         </div>
 
@@ -1677,23 +1692,23 @@ ${leagueUrl}`;
                           VS
                         </div>
 
-                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4" dir={dir}>
                           <p className="theme-muted mb-1 text-[10px] sm:text-xs">
-                            חוץ
+                            {t("common.awayTeam")}
                           </p>
                           <p className="theme-team-name truncate text-base font-black sm:text-2xl">
-                            {match.away_team}
+                            <bdi>{match.away_team}</bdi>
                           </p>
                         </div>
                       </div>
 
                       <p className="theme-match-date theme-muted mb-3 text-center text-xs sm:mb-4 sm:text-sm">
-                        {new Date(match.start_time).toLocaleString("he-IL")}
+                        {new Date(match.start_time).toLocaleString(locale)}
                       </p>
 
                       {!canShowPredictionControls ? null : (
                         <>
-                          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                          <div className="grid grid-cols-3 gap-2 sm:gap-3" dir="ltr">
                             {(["1", "X", "2"] as const).map((pick) => {
                               const isSelected =
                                 currentPrediction?.pick === pick;
@@ -1711,7 +1726,7 @@ ${leagueUrl}`;
                                   ? match.home_team
                                   : pick === "2"
                                     ? match.away_team
-                                    : "תיקו";
+                                    : t("common.draw");
 
                               return (
                                 <button
@@ -1749,7 +1764,9 @@ ${leagueUrl}`;
 
                           {currentPrediction && (
                             <p className="theme-helper-note mt-3 text-center text-xs">
-                              {isAdminEditActive ? "ניחוש השחקן" : "הניחוש שלך"}
+                              {isAdminEditActive
+                                ? t("league.playerPrediction")
+                                : t("league.yourPrediction")}
                               :{" "}
                               <span className="font-bold">
                                 {currentPrediction.pick}
@@ -1761,7 +1778,7 @@ ${leagueUrl}`;
 
                       {matchResult && (
                         <p className="theme-helper-note theme-helper-info mt-2 text-center text-xs">
-                          תוצאה נכונה לניחוש: {matchResult}
+                          {t("league.correctResult", { result: matchResult })}
                         </p>
                       )}
 
@@ -1769,13 +1786,13 @@ ${leagueUrl}`;
                         !isAdminEditActive &&
                         match.status !== "finished" && (
                           <p className="theme-helper-note theme-helper-danger mt-2 text-center text-xs">
-                            הניחושים נסגרו על ידי מנהל הליגה
+                            {t("league.predictionsLocked")}
                           </p>
                         )}
 
                       {!league.predictions_locked && isTimeLocked && (
                         <p className="theme-helper-note theme-helper-danger mt-2 text-center text-xs">
-                          הניחוש למשחק הזה נסגר
+                          {t("league.matchClosed")}
                         </p>
                       )}
                     </div>
@@ -1789,7 +1806,9 @@ ${leagueUrl}`;
                   onClick={() => setShowAllMatches((current) => !current)}
                   className="theme-neutral-button mt-4 w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
-                  {showAllMatches ? "הצג פחות משחקים" : "הצג את כל המשחקים"}
+                  {showAllMatches
+                    ? t("league.showLessMatches")
+                    : t("league.showAllMatches")}
                 </button>
               )}
             </>
@@ -1800,7 +1819,7 @@ ${leagueUrl}`;
           href="/"
           className="theme-muted mt-5 block text-center text-xs hover:text-green-300 sm:mt-6 sm:text-sm"
         >
-          צור / הצטרף לליגה אחרת
+          {t("league.otherLeague")}
         </Link>
       </div>
     </main>

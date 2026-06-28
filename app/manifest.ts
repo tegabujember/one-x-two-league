@@ -1,16 +1,30 @@
 import type { MetadataRoute } from "next";
+import { cookies } from "next/headers";
+import {
+  DEFAULT_LANGUAGE,
+  isLanguage,
+  LANGUAGE_DIRECTIONS,
+  LANGUAGE_STORAGE_KEY,
+} from "@/lib/i18n/config";
+import { he } from "@/lib/i18n/dictionaries/he";
+import { en } from "@/lib/i18n/dictionaries/en";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const storedLanguage = (await cookies()).get(LANGUAGE_STORAGE_KEY)?.value;
+  const language = isLanguage(storedLanguage)
+    ? storedLanguage
+    : DEFAULT_LANGUAGE;
+  const dictionary = language === "en" ? en : he;
+
   return {
     name: "World Cup League 2026",
     short_name: "1X2 League",
-    description:
-      "ליגת ניחושים לחברים למונדיאל 2026: יוצרים ליגה, משתפים קוד ומנחשים 1 / X / 2.",
+    description: dictionary["manifest.description"],
     start_url: "/",
     scope: "/",
     display: "standalone",
-    lang: "he",
-    dir: "rtl",
+    lang: language,
+    dir: LANGUAGE_DIRECTIONS[language],
     theme_color: "#020617",
     background_color: "#020617",
     icons: [

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import InstallAppHelp from "@/components/InstallAppHelp";
 import UserMenu from "@/components/auth/UserMenu";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type MyLeague = {
   playerId: string;
@@ -42,6 +44,7 @@ function getCleanLeagueCode(code: string) {
 export default function Home() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { t } = useLanguage();
 
   const [lastLeagueCode, setLastLeagueCode] = useState("");
   const [lastLeagueName, setLastLeagueName] = useState("");
@@ -187,6 +190,11 @@ export default function Home() {
           }}
         />
       )}
+      {!isCheckingUser && !userEmail && (
+        <div className="absolute start-4 top-4 z-20 sm:start-6 sm:top-6">
+          <LanguageToggle />
+        </div>
+      )}
       <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.28),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.28),_transparent_35%)]" />
 
       <div className="theme-entry-decoration absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
@@ -199,7 +207,7 @@ export default function Home() {
           </div>
 
           <p className="theme-brand-accent theme-entry-kicker text-sm font-semibold tracking-[0.35em]">
-            WORLD CUP MODE
+            {t("home.kicker")}
           </p>
         </div>
 
@@ -209,11 +217,11 @@ export default function Home() {
           </h1>
 
           <p className="theme-text mt-3 text-center text-lg font-semibold">
-            ליגת ניחושים לחברים
+            {t("home.subtitle")}
           </p>
 
           <p className="theme-muted mt-2 text-center text-sm leading-6">
-            צור ליגה, שתף לחברים, נחשו 1 / X / 2 וצברו נקודות לאורך הטורניר.
+            {t("home.description")}
           </p>
 
           {!isCheckingUser && (
@@ -221,10 +229,10 @@ export default function Home() {
               {userEmail ? (
               <div className="theme-feedback theme-feedback-success rounded-2xl border p-4 text-center">
                 <p className="text-sm font-bold">
-                  אתה מחובר למערכת
+                  {t("common.connected")}
                 </p>
                 <p className="theme-muted mt-1 text-xs">
-                  לניהול החשבון או התנתקות לחץ על האייקון למעלה
+                  {t("home.connectedHelp")}
                 </p>
               </div>
               ) : (
@@ -233,7 +241,7 @@ export default function Home() {
                   onClick={saveRedirectBeforeLogin}
                   className="theme-login-cta block w-full rounded-2xl border bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
                 >
-                  התחבר / הירשם
+                  {t("common.loginOrSignup")}
                 </Link>
             )}
             </div>
@@ -245,16 +253,18 @@ export default function Home() {
               href={`/league/${lastLeagueCode}`}
               className="block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
             >
-              {lastLeagueName
-                ? `המשך לליגה: ${lastLeagueName}`
-                : "המשך לליגה שלך"}
+              {lastLeagueName ? (
+                <bdi>{t("home.continueLeague", { name: lastLeagueName })}</bdi>
+              ) : (
+                t("home.continueYourLeague")
+              )}
             </Link>
           )}
 
           {myLeagues.length > 1 && (
             <div className="theme-feedback theme-feedback-success rounded-2xl border p-4">
               <label className="mb-2 block text-sm font-bold">
-                הליגות שלי
+                {t("home.myLeagues")}
               </label>
 
               <select
@@ -277,7 +287,7 @@ export default function Home() {
                 }
                 className="mt-3 block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600"
               >
-                כניסה לליגה שנבחרה
+                {t("home.enterSelectedLeague")}
               </Link>
             </div>
           )}
@@ -286,14 +296,14 @@ export default function Home() {
               href="/create-league"
               className="block w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 text-center font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600"
             >
-              צור ליגה חדשה
+              {t("home.createLeague")}
             </Link>
 
             <Link
               href="/join-league"
               className="theme-neutral-button block w-full rounded-2xl border px-5 py-4 text-center font-bold transition hover:scale-[1.02]"
             >
-              הצטרף לליגה עם קוד
+              {t("home.joinLeague")}
             </Link>
           </div>
 
@@ -302,23 +312,23 @@ export default function Home() {
           <div className="mt-8 grid grid-cols-3 gap-3 text-center">
             <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
               <p className="theme-home-pick-home text-2xl font-black">1</p>
-              <p className="theme-muted text-xs mt-1">בית</p>
+              <p className="theme-muted text-xs mt-1">{t("common.homeTeam")}</p>
             </div>
 
             <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
               <p className="theme-home-pick-draw text-2xl font-black">X</p>
-              <p className="theme-muted text-xs mt-1">תיקו</p>
+              <p className="theme-muted text-xs mt-1">{t("common.draw")}</p>
             </div>
 
             <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
               <p className="theme-home-pick-away text-2xl font-black">2</p>
-              <p className="theme-muted text-xs mt-1">חוץ</p>
+              <p className="theme-muted text-xs mt-1">{t("common.awayTeam")}</p>
             </div>
           </div>
         </div>
 
         <p className="theme-muted mt-5 text-center text-xs">
-          Built for friends, football and bragging rights ⚽
+          {t("home.footer")}
         </p>
       </div>
     </main>

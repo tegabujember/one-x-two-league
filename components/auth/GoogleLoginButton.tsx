@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabaseBrowser";
 import { getGoogleCallbackUrl } from "@/lib/authRedirect";
 import type { ToastType } from "./AuthToast";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type GoogleLoginButtonProps = {
   showToast: (message: string, type?: ToastType) => void;
@@ -12,6 +13,7 @@ export default function GoogleLoginButton({
   showToast,
 }: GoogleLoginButtonProps) {
   const supabase = createClient();
+  const { t } = useLanguage();
 
   async function signInWithGoogle() {
   const callbackUrl = getGoogleCallbackUrl();
@@ -25,7 +27,7 @@ export default function GoogleLoginButton({
 
   if (error) {
     console.error(error);
-    showToast("שגיאה בהתחברות עם Google", "error");
+    showToast(t("auth.googleError"), "error");
   }
 }
   return (
@@ -34,7 +36,7 @@ export default function GoogleLoginButton({
       onClick={signInWithGoogle}
       className="theme-auth-provider-button w-full rounded-2xl border bg-white px-5 py-4 font-bold text-slate-950 transition hover:scale-[1.02]"
     >
-      התחבר / הירשם עם Google
+      {t("auth.google")}
     </button>
   );
 }

@@ -6,6 +6,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
+import type { TranslationKey } from "@/lib/i18n/dictionaries/he";
+import type { TranslationParams } from "@/lib/i18n/config";
 
 type League = {
   id: string;
@@ -117,6 +121,8 @@ type PlayerActivity = {
   last_seen_at: string | null;
 };
 
+type Translator = (key: TranslationKey, params?: TranslationParams) => string;
+
 function formatDateTimeForInput(dateString: string) {
   const date = new Date(dateString);
   const offset = date.getTimezoneOffset();
@@ -133,15 +139,19 @@ function isSameLocalDate(firstDate: Date, secondDate: Date) {
   );
 }
 
-function formatAdminLastSeen(lastSeenAt: string | null) {
+function formatAdminLastSeen(
+  lastSeenAt: string | null,
+  locale: string,
+  t: Translator
+) {
   if (!lastSeenAt) {
-    return "טרם נכנס";
+    return t("admin.neverSeen");
   }
 
   const lastSeenDate = new Date(lastSeenAt);
 
   if (Number.isNaN(lastSeenDate.getTime())) {
-    return "טרם נכנס";
+    return t("admin.neverSeen");
   }
 
   const now = new Date();
@@ -149,32 +159,32 @@ function formatAdminLastSeen(lastSeenAt: string | null) {
     0,
     Math.floor((now.getTime() - lastSeenDate.getTime()) / 60000)
   );
-  const timeText = new Intl.DateTimeFormat("he-IL", {
+  const timeText = new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
   }).format(lastSeenDate);
 
   if (minutesAgo < 3) {
-    return "נראה עכשיו";
+    return t("admin.seenNow");
   }
 
   if (minutesAgo < 60) {
-    return `נראה לפני ${minutesAgo} דקות`;
+    return t("admin.seenMinutesAgo", { count: minutesAgo });
   }
 
   if (isSameLocalDate(lastSeenDate, now)) {
-    return `נראה היום ב־${timeText}`;
+    return t("admin.seenToday", { time: timeText });
   }
 
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
 
   if (isSameLocalDate(lastSeenDate, yesterday)) {
-    return `נראה אתמול ב־${timeText}`;
+    return t("admin.seenYesterday", { time: timeText });
   }
 
-  return new Intl.DateTimeFormat("he-IL", {
+  return new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -184,13 +194,13 @@ function formatAdminLastSeen(lastSeenAt: string | null) {
   }).format(lastSeenDate);
 }
 
-function parseImportDate(dateText: string) {
+function parseImportDate(dateText: string, t: Translator) {
   const match = dateText
     .trim()
     .match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
 
   if (!match) {
-    throw new Error(`פורמט תאריך לא תקין: ${dateText}`);
+    throw new Error(t("admin.invalidDateFormat", { date: dateText }));
   }
 
   const [, year, month, day, hour, minute] = match;
@@ -204,20 +214,20 @@ function parseImportDate(dateText: string) {
   );
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error(`תאריך לא תקין: ${dateText}`);
+    throw new Error(t("admin.invalidDate", { date: dateText }));
   }
 
   return date.toISOString();
 }
 
-function parseMatchesImportText(text: string): ImportedMatch[] {
+function parseMatchesImportText(text: string, t: Translator): ImportedMatch[] {
   const lines = text
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
   if (lines.length === 0) {
-    throw new Error("לא הודבקו משחקים");
+    throw new Error(t("admin.noMatchesPasted"));
   }
 
   return lines.map((line, index) => {
@@ -225,22 +235,20 @@ function parseMatchesImportText(text: string): ImportedMatch[] {
 
     if (parts.length !== 3 && parts.length !== 4) {
       throw new Error(
-        `שורה ${
-          index + 1
-        } לא תקינה. הפורמט צריך להיות: תאריך | בית | חוץ או תאריך | בית | חוץ | תוצאה`
+        t("admin.invalidMatchLineFormat", { line: index + 1 })
       );
     }
 
     const [dateText, homeTeam, awayTeam, scoreText] = parts;
 
     if (!dateText || !homeTeam || !awayTeam) {
-      throw new Error(`שורה ${index + 1} חסרה נתונים`);
+      throw new Error(t("admin.missingLineData", { line: index + 1 }));
     }
 
     const importedMatch: ImportedMatch = {
       home_team: homeTeam,
       away_team: awayTeam,
-      start_time: parseImportDate(dateText),
+      start_time: parseImportDate(dateText, t),
     };
 
     if (scoreText !== undefined) {
@@ -248,7 +256,7 @@ function parseMatchesImportText(text: string): ImportedMatch[] {
 
       if (scoreParts.length !== 2) {
         throw new Error(
-          `שורה ${index + 1} עם תוצאה לא תקינה. לדוגמה: 2-0`
+          t("admin.invalidScoreExampleLine", { line: index + 1 })
         );
       }
 
@@ -261,7 +269,7 @@ function parseMatchesImportText(text: string): ImportedMatch[] {
         homeScore < 0 ||
         awayScore < 0
       ) {
-        throw new Error(`שורה ${index + 1} עם תוצאה לא תקינה`);
+        throw new Error(t("admin.invalidScoreLine", { line: index + 1 }));
       }
 
       importedMatch.home_score = homeScore;
@@ -272,14 +280,17 @@ function parseMatchesImportText(text: string): ImportedMatch[] {
   });
 }
 
-function parsePredictionsImportText(text: string): ImportedPrediction[] {
+function parsePredictionsImportText(
+  text: string,
+  t: Translator
+): ImportedPrediction[] {
   const lines = text
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
 
   if (lines.length === 0) {
-    throw new Error("לא הודבקו ניחושים");
+    throw new Error(t("admin.noPredictionsPasted"));
   }
 
   return lines.map((line, index) => {
@@ -287,7 +298,7 @@ function parsePredictionsImportText(text: string): ImportedPrediction[] {
 
     if (parts.length !== 4) {
       throw new Error(
-        `שורה ${index + 1} לא תקינה. הפורמט צריך להיות: תאריך | בית | חוץ | סימון`
+        t("admin.invalidPredictionLineFormat", { line: index + 1 })
       );
     }
 
@@ -295,19 +306,17 @@ function parsePredictionsImportText(text: string): ImportedPrediction[] {
     const pick = pickText.toUpperCase();
 
     if (!dateText || !homeTeam || !awayTeam || !pick) {
-      throw new Error(`שורה ${index + 1} חסרה נתונים`);
+      throw new Error(t("admin.missingLineData", { line: index + 1 }));
     }
 
     if (pick !== "1" && pick !== "X" && pick !== "2") {
-      throw new Error(
-        `שורה ${index + 1} עם סימון לא תקין. מותר רק 1 / X / 2`
-      );
+      throw new Error(t("admin.invalidPickLine", { line: index + 1 }));
     }
 
     return {
       home_team: homeTeam,
       away_team: awayTeam,
-      start_time: parseImportDate(dateText),
+      start_time: parseImportDate(dateText, t),
       pick,
     };
   });
@@ -328,23 +337,23 @@ function isSameMatchMinute(firstDate: string, secondDate: string) {
   return Math.abs(firstTime - secondTime) < 60 * 1000;
 }
 
-function parseResultLine(line: string): ImportedResult {
+function parseResultLine(line: string, t: Translator): ImportedResult {
   const parts = line.split("|").map((part) => part.trim());
 
   if (parts.length !== 4) {
-    throw new Error("הפורמט צריך להיות: תאריך ושעה | בית | חוץ | תוצאה");
+    throw new Error(t("admin.resultFormat"));
   }
 
   const [dateText, homeTeam, awayTeam, scoreText] = parts;
 
   if (!dateText || !homeTeam || !awayTeam || !scoreText) {
-    throw new Error("השורה חסרה נתונים");
+    throw new Error(t("admin.lineMissingData"));
   }
 
   const scoreParts = scoreText.split("-").map((part) => part.trim());
 
   if (scoreParts.length !== 2) {
-    throw new Error("תוצאה לא תקינה. לדוגמה: 2-1");
+    throw new Error(t("admin.invalidScoreExample"));
   }
 
   const homeScore = Number(scoreParts[0]);
@@ -356,13 +365,13 @@ function parseResultLine(line: string): ImportedResult {
     homeScore < 0 ||
     awayScore < 0
   ) {
-    throw new Error("תוצאה חייבת להיות מספרים חיוביים");
+    throw new Error(t("admin.scorePositive"));
   }
 
   return {
     home_team: homeTeam,
     away_team: awayTeam,
-    start_time: parseImportDate(dateText),
+    start_time: parseImportDate(dateText, t),
     home_score: homeScore,
     away_score: awayScore,
   };
@@ -372,6 +381,7 @@ export default function LeagueAdminPage() {
   const params = useParams();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { locale, dir, t } = useLanguage();
 
   const code = String(params.code).toUpperCase();
 
@@ -430,63 +440,12 @@ export default function LeagueAdminPage() {
           : "future"
         : null;
 
-  function getToastTypeFromMessage(message: string): ToastType {
-    if (
-      message.includes("בהצלחה") ||
-      message.includes("עודכנה") ||
-      message.includes("עודכנו") ||
-      message.includes("נוסף") ||
-      message.includes("נמחק") ||
-      message.includes("יובאו") ||
-      message.includes("נפתחו") ||
-      message.includes("ננעלו") ||
-      message.includes("הסתיימה") ||
-      message.includes("הסתיים")
-    ) {
-      return "success";
-    }
-
-    if (
-      message.includes("שגיאה") ||
-      message.includes("אין לך") ||
-      message.includes("לא נמצאה") ||
-      message.includes("לא נטענה") ||
-      message.includes("לא תקין")
-    ) {
-      return "error";
-    }
-
-    if (
-      message.includes("צריך") ||
-      message.includes("חייבת") ||
-      message.includes("חסרה") ||
-      message.includes("אין תוצאות")
-    ) {
-      return "warning";
-    }
-
-    return "info";
-  }
-
-  function showToast(message: string, type: ToastType = "info") {
+  const showToast = useCallback((message: string, type: ToastType = "info") => {
     setToast({ message, type });
 
     window.setTimeout(() => {
       setToast(null);
     }, 3000);
-  }
-
-  useEffect(() => {
-    const originalAlert = window.alert;
-
-    window.alert = (message?: unknown) => {
-      const text = String(message ?? "");
-      showToast(text, getToastTypeFromMessage(text));
-    };
-
-    return () => {
-      window.alert = originalAlert;
-    };
   }, []);
 
   const loadLeagueAndMatches = useCallback(async (preferredStageId?: string) => {
@@ -529,7 +488,7 @@ export default function LeagueAdminPage() {
       console.error(leagueError);
       setMatches([]);
       finishLoading();
-      alert("הליגה לא נמצאה");
+      showToast(t("admin.leagueNotFound"), "error");
       router.replace("/");
       return;
     }
@@ -547,7 +506,7 @@ export default function LeagueAdminPage() {
       savedAdminCode === leagueData.admin_code;
 
     if (!isAccountOwner && !isLegacyAdmin) {
-      alert("אין לך הרשאת מנהל לליגה הזאת");
+      showToast(t("admin.noAdminPermission"), "error");
       router.replace(`/league/${code}`);
       return;
     }
@@ -573,7 +532,7 @@ export default function LeagueAdminPage() {
 
     if (stagesError) {
       console.error(stagesError);
-      alert("שגיאה בטעינת שלבי הליגה");
+      showToast(t("admin.loadStagesError"), "error");
       setMatches([]);
       finishLoading();
       return;
@@ -594,7 +553,7 @@ export default function LeagueAdminPage() {
       );
 
     if (!resolvedStage) {
-      alert("השלב הפעיל של הליגה לא נמצא");
+      showToast(t("admin.activeStageNotFound"), "error");
       setMatches([]);
       finishLoading();
       return;
@@ -613,7 +572,7 @@ export default function LeagueAdminPage() {
 
     if (playersError) {
       console.error(playersError);
-      alert("שגיאה בטעינת השחקנים");
+      showToast(t("admin.loadPlayersError"), "error");
       setMatches([]);
       finishLoading();
       return;
@@ -669,7 +628,7 @@ export default function LeagueAdminPage() {
 
     if (matchesError) {
       console.error(matchesError);
-      alert("שגיאה בטעינת המשחקים");
+      showToast(t("admin.loadMatchesError"), "error");
       setMatches([]);
       finishLoading();
       return;
@@ -677,7 +636,7 @@ export default function LeagueAdminPage() {
 
     setMatches(matchesData || []);
     finishLoading();
-  }, [code, router, supabase]);
+  }, [code, router, showToast, supabase, t]);
 
   useEffect(() => {
     // Initial external data synchronization for this client-only admin page.
@@ -708,14 +667,14 @@ export default function LeagueAdminPage() {
 
   async function activateSelectedStage() {
     if (!league || !selectedStage || !isAccountOwner) {
-      alert("רק בעל הליגה יכול לשנות את השלב הפעיל");
+      showToast(t("admin.ownerActiveStageOnly"), "error");
       return;
     }
 
     if (selectedStage.id === league.active_stage_id) return;
 
     const shouldActivate = confirm(
-      `להפוך את ${selectedStage.display_name} לשלב הפעיל?\n\nהשלב יוצג כברירת המחדל לכל משתתפי הליגה.`
+      t("admin.activateStageConfirm", { stage: selectedStage.display_name })
     );
 
     if (!shouldActivate) return;
@@ -735,30 +694,33 @@ export default function LeagueAdminPage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת");
+        showToast(t("admin.loginRequired"), "warning");
       } else if (response.status === 403) {
-        alert("רק בעל הליגה יכול לשנות את השלב הפעיל");
+        showToast(t("admin.ownerActiveStageOnly"), "error");
       } else {
-        alert("שגיאה בעדכון השלב הפעיל");
+        showToast(t("admin.updateActiveStageError"), "error");
       }
 
       return;
     }
 
     await loadLeagueAndMatches(selectedStage.id);
-    alert(`${selectedStage.display_name} הוא כעת השלב הפעיל`);
+    showToast(
+      t("admin.stageActivated", { stage: selectedStage.display_name }),
+      "success"
+    );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!league || !selectedStage) {
-      alert("הליגה לא נטענה");
+      showToast(t("admin.leagueNotLoaded"), "error");
       return;
     }
 
     if (!homeTeam.trim() || !awayTeam.trim() || !startTime.trim()) {
-      alert("צריך למלא קבוצה ביתית, קבוצה אורחת ותאריך/שעה");
+      showToast(t("admin.matchFieldsRequired"), "warning");
       return;
     }
 
@@ -782,11 +744,11 @@ export default function LeagueAdminPage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי להוסיף משחק");
+        showToast(t("admin.loginToAddMatch"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה להוסיף משחק לליגה הזאת");
+        showToast(t("admin.noAddMatchPermission"), "error");
       } else {
-        alert("שגיאה בהוספת משחק");
+        showToast(t("admin.addMatchError"), "error");
       }
 
       setIsLoading(false);
@@ -799,27 +761,30 @@ export default function LeagueAdminPage() {
     setIsLoading(false);
 
     await loadLeagueAndMatches(selectedStage.id);
-    alert("המשחק נוסף בהצלחה");
+    showToast(t("admin.matchAdded"), "success");
   }
 
   async function importMatchesFromText() {
   if (!selectedStage) {
-    alert("צריך לבחור שלב");
+    showToast(t("admin.chooseStage"), "warning");
     return;
   }
 
   if (!importText.trim()) {
-    alert("צריך להדביק רשימת משחקים");
+    showToast(t("admin.pasteMatchList"), "warning");
     return;
   }
 
   let parsedMatches: ImportedMatch[];
 
   try {
-    parsedMatches = parseMatchesImportText(importText);
+    parsedMatches = parseMatchesImportText(importText, t);
   } catch (error) {
     console.error(error);
-    alert(error instanceof Error ? error.message : "שגיאה בקריאת הרשימה");
+    showToast(
+      error instanceof Error ? error.message : t("admin.readListError"),
+      "error"
+    );
     return;
   }
 
@@ -880,17 +845,16 @@ export default function LeagueAdminPage() {
   const skippedExisting = parsedMatches.length - newMatches.length;
 
   if (newMatches.length === 0) {
-    alert(
-      "לא נמצאו משחקים חדשים לייבוא. כל המשחקים כבר קיימים בליגה."
-    );
+    showToast(t("admin.noNewMatches"), "warning");
     return;
   }
 
   const shouldImport = confirm(
-    `נמצאו ${parsedMatches.length} משחקים ברשימה.\n\n` +
-      `חדשים לייבוא: ${newMatches.length}\n` +
-      `כבר קיימים / כפולים: ${skippedExisting}\n\n` +
-      `לייבא רק את המשחקים החדשים?`
+    t("admin.importMatchesConfirm", {
+      total: parsedMatches.length,
+      newCount: newMatches.length,
+      skipped: skippedExisting,
+    })
   );
 
   if (!shouldImport) {
@@ -916,11 +880,11 @@ export default function LeagueAdminPage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי לייבא משחקים");
+        showToast(t("admin.loginToImportMatches"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לייבא משחקים לליגה הזאת");
+        showToast(t("admin.noImportMatchesPermission"), "error");
       } else {
-        alert("שגיאה בייבוא המשחקים");
+        showToast(t("admin.importMatchesError"), "error");
       }
 
       return;
@@ -932,15 +896,18 @@ export default function LeagueAdminPage() {
 
     await loadLeagueAndMatches(selectedStage.id);
 
-    alert(
-      `יובאו ${data.imported} משחקים חדשים.\n` +
-        `דולגו: ${skippedExisting}\n` +
-        `הסתיימו: ${data.finished ?? 0}\n` +
-        `עתידיים: ${data.upcoming ?? 0}`
+    showToast(
+      t("admin.importMatchesSuccess", {
+        imported: data.imported,
+        skipped: skippedExisting,
+        finished: data.finished ?? 0,
+        upcoming: data.upcoming ?? 0,
+      }),
+      "success"
     );
   } catch (error) {
     console.error(error);
-    alert("שגיאה בלתי צפויה בייבוא המשחקים");
+    showToast(t("admin.importMatchesUnexpected"), "error");
   } finally {
     setIsImporting(false);
   }
@@ -953,7 +920,7 @@ export default function LeagueAdminPage() {
   //   }
   function previewResultsImport(textToPreview = resultImportText) {
   if (!textToPreview.trim()) {
-    alert("צריך להדביק רשימת תוצאות");
+    showToast(t("admin.pasteResults"), "warning");
     return;
   }
 
@@ -972,13 +939,13 @@ export default function LeagueAdminPage() {
     let imported: ImportedResult;
 
     try {
-      imported = parseResultLine(line);
+      imported = parseResultLine(line, t);
     } catch (error) {
       return {
         lineNumber,
         rawLine: line,
         status: "invalid",
-        message: error instanceof Error ? error.message : "שורה לא תקינה",
+        message: error instanceof Error ? error.message : t("admin.invalidLine"),
       };
     }
 
@@ -991,7 +958,7 @@ export default function LeagueAdminPage() {
         lineNumber,
         rawLine: line,
         status: "duplicate",
-        message: "שורה כפולה באותה הדבקה",
+        message: t("admin.duplicateLine"),
         imported,
       };
     }
@@ -1012,7 +979,7 @@ export default function LeagueAdminPage() {
         lineNumber,
         rawLine: line,
         status: "notFound",
-        message: "לא נמצא משחק קיים בליגה עם אותו תאריך, בית וחוץ",
+        message: t("admin.resultMatchNotFound"),
         imported,
       };
     }
@@ -1025,7 +992,7 @@ export default function LeagueAdminPage() {
         lineNumber,
         rawLine: line,
         status: "hasScore",
-        message: "כבר קיימת תוצאה — לא יידרס",
+        message: t("admin.resultAlreadyExists"),
         imported,
         matchId: existingMatch.id,
         existingScore: `${existingMatch.home_score ?? "-"}-${
@@ -1038,7 +1005,7 @@ export default function LeagueAdminPage() {
       lineNumber,
       rawLine: line,
       status: "ready",
-      message: "מוכן לעדכון",
+      message: t("admin.resultReady"),
       imported,
       matchId: existingMatch.id,
     };
@@ -1051,12 +1018,12 @@ export default function LeagueAdminPage() {
     (item) => item.status === "ready"
   ).length;
 
-  alert(`הבדיקה הסתיימה. ${readyCount} תוצאות מוכנות לעדכון.`);
+  showToast(t("admin.resultsChecked", { count: readyCount }), "success");
 }
 
 async function checkResultsWithAi() {
   if (!selectedStage) {
-    alert("צריך לבחור שלב");
+    showToast(t("admin.chooseStage"), "warning");
     return;
   }
 
@@ -1081,19 +1048,14 @@ async function checkResultsWithAi() {
     if (!response.ok) {
       console.error(data);
 
-      const errorMessage =
-        data && "error" in data && typeof data.error === "string"
-          ? data.error
-          : "שגיאה בבדיקת תוצאות עם AI";
-
-      alert(errorMessage);
+      showToast(t("admin.aiResultsError"), "error");
       return;
     }
 
     const aiData = data as AiResultResponse;
 
     if (aiData.results.length === 0) {
-      alert(aiData.message || "לא נמצאו תוצאות סופיות חדשות.");
+      showToast(t("admin.noFinalResults"), "info");
       return;
     }
 
@@ -1124,13 +1086,19 @@ async function checkResultsWithAi() {
 
     const extraMessage =
       aiData.missingCount > 0
-        ? ` ${aiData.missingCount} משחקים עדיין ללא תוצאה סופית.`
+        ? ` ${t("admin.aiMissingResults", { count: aiData.missingCount })}`
         : "";
 
-    alert(`נמצאו ${aiData.foundCount} תוצאות חדשות. בדוק ואשר.${extraMessage}`);
+    showToast(
+      t("admin.aiResultsFound", {
+        count: aiData.foundCount,
+        extra: extraMessage,
+      }),
+      "success"
+    );
   } catch (error) {
     console.error(error);
-    alert("שגיאה בבדיקת תוצאות עם AI");
+    showToast(t("admin.aiResultsError"), "error");
   } finally {
     setIsCheckingAiResults(false);
   }
@@ -1138,7 +1106,7 @@ async function checkResultsWithAi() {
 
 async function checkMatchesWithAi() {
   if (!selectedStage) {
-    alert("צריך לבחור שלב");
+    showToast(t("admin.chooseStage"), "warning");
     return;
   }
 
@@ -1148,7 +1116,7 @@ async function checkMatchesWithAi() {
       : aiTournament;
 
   if (!tournament) {
-    alert("צריך לכתוב שם לטורניר");
+    showToast(t("admin.tournamentRequired"), "warning");
     return;
   }
 
@@ -1182,18 +1150,14 @@ async function checkMatchesWithAi() {
     if (!response.ok) {
       console.error(data);
 
-      alert(
-        data && typeof data.error === "string"
-          ? data.error
-          : "שגיאה בבדיקת משחקים עם AI"
-      );
+      showToast(t("admin.aiMatchesError"), "error");
       return;
     }
 
     const aiMatches = data?.matches || [];
 
     if (aiMatches.length === 0) {
-      alert(data?.message || "לא נמצאו משחקים חדשים לשלב הזה.");
+      showToast(t("admin.noNewStageMatches"), "info");
       return;
     }
 
@@ -1228,12 +1192,13 @@ async function checkMatchesWithAi() {
     setImportText(formattedMatches);
     setMatchImportMethod("manual");
 
-    alert(
-      `נמצאו ${aiMatches.length} משחקים. בדוק את הרשימה ולחץ "ייבא משחקים".`
+    showToast(
+      t("admin.aiMatchesFound", { count: aiMatches.length }),
+      "success"
     );
   } catch (error) {
     console.error(error);
-    alert("שגיאה בלתי צפויה בבדיקת משחקים עם AI");
+    showToast(t("admin.aiMatchesUnexpected"), "error");
   } finally {
     setIsCheckingAiMatches(false);
   }
@@ -1245,12 +1210,12 @@ async function checkMatchesWithAi() {
     );
 
     if (readyItems.length === 0) {
-      alert("אין תוצאות מוכנות לעדכון");
+      showToast(t("admin.noReadyResults"), "warning");
       return;
     }
 
     const shouldUpdate = confirm(
-      `לעדכן ${readyItems.length} תוצאות? משחקים שכבר יש להם תוצאה לא יידרסו.`
+      t("admin.updateResultsConfirm", { count: readyItems.length })
     );
 
     if (!shouldUpdate) {
@@ -1318,34 +1283,44 @@ async function checkMatchesWithAi() {
       setResultPreview([]);
     }
 
-    alert(
-      `עדכון תוצאות הסתיים.\nעודכנו: ${updated}\nדולגו כי כבר יש תוצאה: ${skippedExisting}\nשגיאות: ${failed}`
+    showToast(
+      t("admin.resultsUpdateSummary", {
+        updated,
+        skipped: skippedExisting,
+        failed,
+      }),
+      failed > 0 ? "warning" : "success"
     );
   }
 
   async function importPredictionsFromText() {
     if (!selectedStage) {
-      alert("צריך לבחור שלב");
+      showToast(t("admin.chooseStage"), "warning");
       return;
     }
 
     if (!predictionPlayerId) {
-      alert("צריך לבחור שחקן");
+      showToast(t("admin.choosePlayerWarning"), "warning");
       return;
     }
 
     if (!predictionImportText.trim()) {
-      alert("צריך להדביק רשימת ניחושים");
+      showToast(t("admin.pastePredictions"), "warning");
       return;
     }
 
     let parsedPredictions: ImportedPrediction[];
 
     try {
-      parsedPredictions = parsePredictionsImportText(predictionImportText);
+      parsedPredictions = parsePredictionsImportText(predictionImportText, t);
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "שגיאה בקריאת הניחושים");
+      showToast(
+        error instanceof Error
+          ? error.message
+          : t("admin.readPredictionsError"),
+        "error"
+      );
       return;
     }
 
@@ -1354,9 +1329,14 @@ async function checkMatchesWithAi() {
     );
 
     const shouldImport = confirm(
-      `נמצאו ${parsedPredictions.length} ניחושים${
-        selectedPlayer ? ` עבור ${selectedPlayer.name}` : ""
-      }. לייבא אותם?`
+      selectedPlayer
+        ? t("admin.importPredictionsForPlayerConfirm", {
+            count: parsedPredictions.length,
+            name: selectedPlayer.name,
+          })
+        : t("admin.importPredictionsConfirm", {
+            count: parsedPredictions.length,
+          })
     );
 
     if (!shouldImport) {
@@ -1382,15 +1362,13 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי לייבא ניחושים");
+        showToast(t("admin.loginToImportPredictions"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לייבא ניחושים לליגה הזאת");
+        showToast(t("admin.noImportPredictionsPermission"), "error");
       } else if (response.status === 400) {
-        alert(
-          "חלק מהניחושים לא תואמים משחקים קיימים או שיש שגיאה בפורמט. בדוק את הקונסול."
-        );
+        showToast(t("admin.invalidPredictions"), "error");
       } else {
-        alert("שגיאה בייבוא הניחושים");
+        showToast(t("admin.importPredictionsError"), "error");
       }
 
       setIsImportingPredictions(false);
@@ -1403,10 +1381,13 @@ async function checkMatchesWithAi() {
     setPredictionPlayerId("");
     setIsImportingPredictions(false);
 
-    alert(
-      `יובאו ${data.imported} ניחושים.\nדולגו קיימים: ${
-        data.skippedExisting ?? 0
-      }\nדולגו משחקים נעולים: ${data.skippedLocked ?? 0}`
+    showToast(
+      t("admin.importPredictionsSuccess", {
+        imported: data.imported,
+        skipped: data.skippedExisting ?? 0,
+        locked: data.skippedLocked ?? 0,
+      }),
+      "success"
     );
   }
 
@@ -1429,7 +1410,7 @@ async function checkMatchesWithAi() {
 
     if (error) {
       console.error(error);
-      alert("שגיאה בהתנתקות");
+      showToast(t("common.signOutError"), "error");
       setIsSigningOut(false);
       return;
     }
@@ -1468,20 +1449,20 @@ async function checkMatchesWithAi() {
 
   async function toggleLeaguePredictionsLock() {
     if (!league || !selectedStage) {
-      alert("הליגה לא נטענה");
+      showToast(t("admin.leagueNotLoaded"), "error");
       return;
     }
 
     if (!isAccountOwner) {
-      alert("רק בעל הליגה יכול לשנות את מצב הניחושים");
+      showToast(t("admin.ownerLockOnly"), "error");
       return;
     }
 
     const nextLockedValue = !selectedStage.predictions_locked;
 
     const message = nextLockedValue
-      ? `לנעול ניחושים בשלב ${selectedStage.display_name}?`
-      : `לפתוח מחדש ניחושים בשלב ${selectedStage.display_name}?`;
+      ? t("admin.lockConfirm", { stage: selectedStage.display_name })
+      : t("admin.unlockConfirm", { stage: selectedStage.display_name });
 
     const shouldUpdate = confirm(message);
 
@@ -1505,11 +1486,11 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת");
+        showToast(t("admin.loginRequired"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לשנות את מצב הניחושים");
+        showToast(t("admin.noLockPermission"), "error");
       } else {
-        alert("שגיאה בעדכון מצב הניחושים");
+        showToast(t("admin.lockUpdateError"), "error");
       }
 
       return;
@@ -1517,34 +1498,35 @@ async function checkMatchesWithAi() {
 
     await loadLeagueAndMatches(selectedStage.id);
 
-    alert(
+    showToast(
       nextLockedValue
-        ? "הניחושים ננעלו לכולם"
-        : "הניחושים נפתחו למשחקים עתידיים"
+        ? t("admin.predictionsLockedAll")
+        : t("admin.predictionsOpened"),
+      "success"
     );
   }
 
   async function toggleAdminEditMode() {
     if (!league || !selectedStage) {
-      alert("הליגה לא נטענה");
+      showToast(t("admin.leagueNotLoaded"), "error");
       return;
     }
 
     if (!isAccountOwner) {
-      alert("רק בעל הליגה יכול לשנות את מצב עריכת המנהל");
+      showToast(t("admin.ownerEditModeOnly"), "error");
       return;
     }
 
     if (!selectedStage.predictions_locked) {
-      alert("מצב עריכת מנהל זמין רק כשהניחושים נעולים");
+      showToast(t("admin.editModeRequiresLock"), "warning");
       return;
     }
 
     const nextAdminEditMode = !selectedStage.admin_edit_mode;
 
     const message = nextAdminEditMode
-      ? "הפעלת מצב עריכת מנהל תאפשר לך לערוך ניחושים עבור כל שחקן בליגה, כולל משחקים שכבר התחילו. להמשיך?"
-      : "לבטל מצב עריכת מנהל? לא תוכל יותר לערוך ניחושים של שחקנים אחרים.";
+      ? t("admin.enableEditModeConfirm")
+      : t("admin.disableEditModeConfirm");
 
     const shouldUpdate = confirm(message);
 
@@ -1568,11 +1550,11 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת");
+        showToast(t("admin.loginRequired"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לשנות את מצב עריכת המנהל");
+        showToast(t("admin.noEditModePermission"), "error");
       } else {
-        alert("שגיאה בעדכון מצב עריכת המנהל");
+        showToast(t("admin.editModeUpdateError"), "error");
       }
 
       return;
@@ -1580,10 +1562,11 @@ async function checkMatchesWithAi() {
 
     await loadLeagueAndMatches(selectedStage.id);
 
-    alert(
+    showToast(
       nextAdminEditMode
-        ? "מצב עריכת מנהל הופעל"
-        : "מצב עריכת מנהל בוטל"
+        ? t("admin.editModeEnabled")
+        : t("admin.editModeDisabled"),
+      "success"
     );
   }
 
@@ -1595,12 +1578,12 @@ async function checkMatchesWithAi() {
     const loadedMatch = matches.find((match) => match.id === matchId);
 
     if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
-      alert("המשחק לא שייך לשלב הנבחר");
+      showToast(t("admin.matchWrongStage"), "error");
       return;
     }
 
     if (homeScore === "" || awayScore === "") {
-      alert("צריך למלא שתי תוצאות");
+      showToast(t("admin.twoScoresRequired"), "warning");
       return;
     }
 
@@ -1613,7 +1596,7 @@ async function checkMatchesWithAi() {
       homeScoreNumber < 0 ||
       awayScoreNumber < 0
     ) {
-      alert("תוצאה חייבת להיות מספר חיובי");
+      showToast(t("admin.scoreNonNegative"), "warning");
       return;
     }
 
@@ -1634,18 +1617,18 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי לעדכן תוצאה");
+        showToast(t("admin.loginToUpdateResult"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לעדכן תוצאה בליגה הזאת");
+        showToast(t("admin.noUpdateResultPermission"), "error");
       } else {
-        alert("שגיאה בעדכון התוצאה");
+        showToast(t("admin.updateResultError"), "error");
       }
 
       return;
     }
 
     await loadLeagueAndMatches(selectedStageId);
-    alert("התוצאה עודכנה בהצלחה");
+    showToast(t("admin.resultUpdated"), "success");
   }
 
   async function updateMatchDetails(
@@ -1657,7 +1640,7 @@ async function checkMatchesWithAi() {
     const loadedMatch = matches.find((match) => match.id === matchId);
 
     if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
-      alert("המשחק לא שייך לשלב הנבחר");
+      showToast(t("admin.matchWrongStage"), "error");
       return;
     }
 
@@ -1666,7 +1649,7 @@ async function checkMatchesWithAi() {
       !awayTeamValue.trim() ||
       !startTimeValue.trim()
     ) {
-      alert("צריך למלא קבוצה ביתית, קבוצה אורחת ותאריך/שעה");
+      showToast(t("admin.matchFieldsRequired"), "warning");
       return;
     }
 
@@ -1688,31 +1671,29 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי לערוך משחק");
+        showToast(t("admin.loginToEditMatch"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה לערוך משחק בליגה הזאת");
+        showToast(t("admin.noEditMatchPermission"), "error");
       } else {
-        alert("שגיאה בעדכון המשחק");
+        showToast(t("admin.editMatchError"), "error");
       }
 
       return;
     }
 
     await loadLeagueAndMatches(selectedStageId);
-    alert("המשחק עודכן בהצלחה");
+    showToast(t("admin.matchUpdated"), "success");
   }
 
   async function deleteMatch(matchId: string) {
     const loadedMatch = matches.find((match) => match.id === matchId);
 
     if (!loadedMatch || loadedMatch.stage_id !== selectedStageId) {
-      alert("המשחק לא שייך לשלב הנבחר");
+      showToast(t("admin.matchWrongStage"), "error");
       return;
     }
 
-    const shouldDelete = confirm(
-      "אתה בטוח שאתה רוצה למחוק את המשחק? כל הניחושים של המשחק הזה יימחקו גם."
-    );
+    const shouldDelete = confirm(t("admin.deleteMatchConfirm"));
 
     if (!shouldDelete) {
       return;
@@ -1727,18 +1708,18 @@ async function checkMatchesWithAi() {
       console.error(errorData);
 
       if (response.status === 401) {
-        alert("צריך להתחבר למערכת כדי למחוק משחק");
+        showToast(t("admin.loginToDeleteMatch"), "warning");
       } else if (response.status === 403) {
-        alert("אין לך הרשאה למחוק משחק בליגה הזאת");
+        showToast(t("admin.noDeleteMatchPermission"), "error");
       } else {
-        alert("שגיאה במחיקת המשחק");
+        showToast(t("admin.deleteMatchError"), "error");
       }
 
       return;
     }
 
     await loadLeagueAndMatches(selectedStageId);
-    alert("המשחק נמחק בהצלחה");
+    showToast(t("admin.matchDeleted"), "success");
   }
 
   if (isLoadingPage) {
@@ -1751,7 +1732,7 @@ async function checkMatchesWithAi() {
             <span className="text-3xl">🏆</span>
           </div>
 
-          <p className="theme-muted font-semibold">טוען ניהול ליגה...</p>
+          <p className="theme-muted font-semibold">{t("admin.loading")}</p>
         </div>
       </main>
     );
@@ -1759,10 +1740,10 @@ async function checkMatchesWithAi() {
 
   const importModeTitle =
     importMode === "matches"
-      ? "ייבוא משחקים חדשים"
+      ? t("admin.importMatches")
       : importMode === "results"
-        ? "עדכון תוצאות למשחקים קיימים"
-        : "ייבוא ניחושים לשחקן";
+        ? t("admin.updateExistingResults")
+        : t("admin.importPlayerPredictions");
 
   return (
     <main className="theme-admin-page theme-page relative min-h-screen overflow-hidden px-3 py-5 sm:px-4 sm:py-8">
@@ -1785,10 +1766,10 @@ async function checkMatchesWithAi() {
       )}
 
       {adminEmail && (
-        <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+        <div className="absolute end-4 top-4 z-20 sm:end-6 sm:top-6">
           <button
             type="button"
-            title="החשבון שלי"
+            title={t("common.account")}
             onClick={() => setIsAccountMenuOpen((current) => !current)}
             className="theme-neutral-button flex h-11 w-11 items-center justify-center rounded-full border text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105"
           >
@@ -1796,15 +1777,19 @@ async function checkMatchesWithAi() {
           </button>
 
           {isAccountMenuOpen && (
-            <div className="theme-popover absolute right-0 mt-3 w-64 rounded-2xl border p-4 text-right backdrop-blur">
-              <p className="theme-muted mb-1 text-xs">מחובר בתור</p>
+            <div className="theme-popover absolute end-0 mt-3 w-64 rounded-2xl border p-4 text-start backdrop-blur">
+              <p className="theme-muted mb-1 text-xs">{t("common.connectedAs")}</p>
 
-              <p className="mb-4 break-all text-sm font-bold text-green-300">
-                {adminEmail}
+              <p className="mb-4 break-all text-sm font-bold text-green-300" dir="ltr">
+                <bdi>{adminEmail}</bdi>
               </p>
 
               <div className="mb-4 flex justify-end">
                 <ThemeToggle />
+              </div>
+
+              <div className="mb-4 flex justify-end">
+                <LanguageToggle />
               </div>
 
               <button
@@ -1813,7 +1798,7 @@ async function checkMatchesWithAi() {
                 disabled={isSigningOut}
                 className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
               >
-                {isSigningOut ? "מתנתק..." : "התנתק"}
+                {isSigningOut ? t("common.signingOut") : t("common.signOut")}
               </button>
             </div>
           )}
@@ -1831,46 +1816,46 @@ async function checkMatchesWithAi() {
           </div>
 
           <p className="text-[10px] font-semibold tracking-[0.28em] text-green-300 sm:text-xs sm:tracking-[0.35em]">
-            ADMIN PANEL
+            {t("admin.kicker")}
           </p>
         </div>
 
         <div className="theme-card theme-admin-section mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
             <p className="theme-muted mb-1 text-xs sm:text-sm">
-              ניהול ליגה
+              {t("admin.title")}
             </p>
 
             <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
-              הוספת משחקים
+              {t("admin.subtitle")}
             </h1>
 
             {league && (
               <div className="theme-panel theme-admin-panel mt-4 inline-flex flex-col items-center rounded-xl border px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
                 <span className="text-base font-bold sm:text-lg">
-                  {league.name}
+                  <bdi>{league.name}</bdi>
                 </span>
 
                 <span className="theme-muted mt-1 text-xs sm:text-sm">
-                  קוד ליגה: {" "}
-                  <span className="theme-league-code font-black tracking-widest">
-                    {league.code}
+                  {t("admin.leagueCode")} {" "}
+                  <span className="theme-league-code font-black tracking-widest" dir="ltr">
+                    <bdi>{league.code}</bdi>
                   </span>
                 </span>
 
                 {adminEmail && (
                   <span className="mt-2 rounded-full border border-green-400/20 bg-green-500/10 px-3 py-1 text-[11px] font-bold text-green-300">
-                    מנהל מחובר: {adminEmail}
+                    {t("admin.adminConnected")} <bdi dir="ltr">{adminEmail}</bdi>
                   </span>
                 )}
 
                 {selectedStage && (
-                  <div className="theme-panel theme-admin-panel mt-4 w-full rounded-2xl border p-3 text-right">
+                  <div className="theme-panel theme-admin-panel mt-4 w-full rounded-2xl border p-3 text-start">
                     <label
                       htmlFor="admin-stage-selector"
                       className="theme-muted mb-2 block text-xs font-bold"
                     >
-                      שלב לניהול
+                      {t("admin.stageToManage")}
                     </label>
                     <select
                       id="admin-stage-selector"
@@ -1907,10 +1892,10 @@ async function checkMatchesWithAi() {
                         }`}
                       >
                         {selectedStageKind === "active"
-                          ? "שלב פעיל"
+                          ? t("admin.stageActive")
                           : selectedStageKind === "history"
-                            ? "שלב היסטורי"
-                            : "שלב עתידי"}
+                            ? t("admin.stageHistory")
+                            : t("admin.stageFuture")}
                       </span>
 
                       {isAccountOwner && selectedStageKind !== "active" && (
@@ -1919,7 +1904,7 @@ async function checkMatchesWithAi() {
                           onClick={activateSelectedStage}
                           className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-700 px-3 py-2 text-xs font-black text-white transition hover:scale-[1.02]"
                         >
-                          הפוך לשלב הפעיל
+                          {t("admin.makeActive")}
                         </button>
                       )}
                     </div>
@@ -1929,7 +1914,9 @@ async function checkMatchesWithAi() {
                 {selectedStage && (
                 <div className="theme-panel theme-admin-panel mt-4 w-full rounded-2xl border p-3">
                   <p className="theme-muted mb-3 text-xs font-bold">
-                    מצב ניחושים ב{selectedStage.display_name}: {" "}
+                    {t("admin.predictionsStatus", {
+                      stage: selectedStage.display_name,
+                    })} {" "}
                     <span
                       className={
                         selectedStage.predictions_locked
@@ -1937,7 +1924,9 @@ async function checkMatchesWithAi() {
                           : "text-green-300"
                       }
                     >
-                      {selectedStage.predictions_locked ? "נעולים" : "פתוחים"}
+                      {selectedStage.predictions_locked
+                        ? t("admin.locked")
+                        : t("admin.open")}
                     </span>
                   </p>
 
@@ -1952,19 +1941,19 @@ async function checkMatchesWithAi() {
                       }`}
                     >
                       {selectedStage.predictions_locked
-                        ? "פתח ניחושים בשלב"
-                        : "נעל ניחושים בשלב"}
+                        ? t("admin.openStage")
+                        : t("admin.lockStage")}
                     </button>
                   ) : (
                     <p className="theme-muted text-[11px]">
-                      רק בעל הליגה יכול לשנות הגדרות שלב.
+                      {t("admin.ownerSettingsOnly")}
                     </p>
                   )}
 
                   {selectedStage.predictions_locked && isAccountOwner && (
                     <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
                       <p className="theme-warning-text mb-2 text-xs font-bold">
-                        מצב עריכת מנהל:{" "}
+                        {t("admin.editMode")} {" "}
                         <span
                           className={
                             selectedStage.admin_edit_mode
@@ -1972,13 +1961,14 @@ async function checkMatchesWithAi() {
                               : "theme-muted"
                           }
                         >
-                          {selectedStage.admin_edit_mode ? "פעיל" : "כבוי"}
+                          {selectedStage.admin_edit_mode
+                            ? t("admin.on")
+                            : t("admin.off")}
                         </span>
                       </p>
 
                       <p className="theme-warning-text mb-3 text-[11px] leading-5">
-                        כשמופעל, תוכל לערוך ניחושים עבור כל שחקן בליגה — גם
-                        אחרי שהמשחק התחיל. שחקנים רגילים יישארו חסומים.
+                        {t("admin.editModeHelp")}
                       </p>
 
                       <button
@@ -1991,8 +1981,8 @@ async function checkMatchesWithAi() {
                         }`}
                       >
                         {selectedStage.admin_edit_mode
-                          ? "בטל מצב עריכת מנהל"
-                          : "הפעל מצב עריכת מנהל"}
+                          ? t("admin.disableEditMode")
+                          : t("admin.enableEditMode")}
                       </button>
                     </div>
                   )}
@@ -2003,22 +1993,22 @@ async function checkMatchesWithAi() {
           </div>
 
           {isAccountOwner && (
-            <div className="theme-panel theme-admin-panel mt-5 rounded-2xl border p-4 text-right sm:mt-6">
+            <div className="theme-panel theme-admin-panel mt-5 rounded-2xl border p-4 text-start sm:mt-6">
               <div className="theme-section-header mb-3 flex items-center justify-between gap-3">
                 <h2 className="text-base font-black sm:text-lg">
-                  פעילות משתתפים
+                  {t("admin.participantActivity")}
                 </h2>
 
                 <span className="theme-neutral-button shrink-0 rounded-full border px-3 py-1 text-[11px]">
-                  {playerActivity.length} משתתפים
+                  {t("admin.participantsCount", { count: playerActivity.length })}
                 </span>
               </div>
 
               {isLoadingPlayerActivity ? (
-                <p className="theme-muted text-xs">טוען פעילות...</p>
+                <p className="theme-muted text-xs">{t("admin.loadingActivity")}</p>
               ) : playerActivity.length === 0 ? (
                 <p className="theme-muted text-xs">
-                  עדיין אין משתתפים להצגה.
+                  {t("admin.noParticipants")}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -2028,7 +2018,7 @@ async function checkMatchesWithAi() {
                       className="theme-neutral-button flex items-center justify-between gap-3 rounded-xl border px-3 py-2"
                     >
                       <span className="min-w-0 truncate text-sm font-bold">
-                        {player.name}
+                        <bdi>{player.name}</bdi>
                       </span>
 
                       <span
@@ -2038,7 +2028,7 @@ async function checkMatchesWithAi() {
                             : "text-slate-500"
                         }`}
                       >
-                        {formatAdminLastSeen(player.last_seen_at)}
+                        {formatAdminLastSeen(player.last_seen_at, locale, t)}
                       </span>
                     </div>
                   ))}
@@ -2051,35 +2041,35 @@ async function checkMatchesWithAi() {
             onSubmit={handleSubmit}
             className="mt-6 space-y-4 sm:mt-8 sm:space-y-5"
           >
-            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
-              <div>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3" dir="ltr">
+              <div dir={dir}>
                 <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
-                  קבוצה ביתית
+                  {t("admin.homeTeam")}
                 </label>
 
                 <input
                   type="text"
                   value={homeTeam}
                   onChange={(event) => setHomeTeam(event.target.value)}
-                  placeholder="בית"
+                  placeholder={t("common.homeTeam")}
                   className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
                 />
               </div>
 
               <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-xs font-black text-yellow-300 sm:mb-2 sm:h-12 sm:w-12">
-                נגד
+                {t("admin.against")}
               </div>
 
-              <div>
+              <div dir={dir}>
                 <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
-                  קבוצה אורחת
+                  {t("admin.awayTeam")}
                 </label>
 
                 <input
                   type="text"
                   value={awayTeam}
                   onChange={(event) => setAwayTeam(event.target.value)}
-                  placeholder="חוץ"
+                  placeholder={t("common.awayTeam")}
                   className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
                 />
               </div>
@@ -2087,7 +2077,7 @@ async function checkMatchesWithAi() {
 
             <div>
               <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
-                תאריך ושעה
+                {t("admin.dateTime")}
               </label>
 
               <input
@@ -2103,23 +2093,22 @@ async function checkMatchesWithAi() {
               disabled={isLoading}
               className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
-              {isLoading ? "מוסיף משחק..." : "הוסף משחק"}
+              {isLoading ? t("admin.addingMatch") : t("admin.addMatch")}
             </button>
           </form>
         </div>
 
         <div className="theme-card theme-admin-section mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="theme-section-header mb-4">
-            <h2 className="text-xl font-black sm:text-2xl">ייבוא נתונים</h2>
+            <h2 className="text-xl font-black sm:text-2xl">{t("admin.importData")}</h2>
 
             <p className="theme-muted mt-2 text-sm leading-6">
-              בחר סוג ייבוא, הדבק רשימה בפורמט הקבוע, והמערכת תבצע רק את הפעולה
-              שבחרת.
+              {t("admin.importHelp")}
             </p>
           </div>
 
           <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
-            סוג ייבוא
+            {t("admin.importType")}
           </label>
 
           <select
@@ -2130,9 +2119,9 @@ async function checkMatchesWithAi() {
             }}
             className="theme-input mb-4 w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
           >
-            <option value="matches">ייבוא משחקים חדשים</option>
-            <option value="results">עדכון תוצאות למשחקים קיימים</option>
-            <option value="predictions">ייבוא ניחושים לשחקן</option>
+            <option value="matches">{t("admin.importMatches")}</option>
+            <option value="results">{t("admin.updateExistingResults")}</option>
+            <option value="predictions">{t("admin.importPlayerPredictions")}</option>
           </select>
 
           <div className="theme-warning-text mb-4 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-xs leading-6">
@@ -2150,7 +2139,7 @@ async function checkMatchesWithAi() {
                 <p>2026-06-18 19:00 | Czechia | South Africa | 1-1</p>
                 <p>2026-06-18 22:00 | Switzerland | Bosnia and Herzegovina | 4-1</p>
                 <p className="theme-warning-text mt-2">
-                  עדכון תוצאות לא מוסיף משחקים ולא דורס תוצאה קיימת.
+                  {t("admin.resultsSafety")}
                 </p>
               </>
             )}
@@ -2176,7 +2165,7 @@ async function checkMatchesWithAi() {
                       : "theme-muted hover:bg-green-500/10 hover:text-green-300"
                   }`}
                 >
-                  ✨ ייבוא עם AI
+                  {t("admin.aiImport")}
                 </button>
 
                 <button
@@ -2188,7 +2177,7 @@ async function checkMatchesWithAi() {
                       : "theme-muted hover:bg-green-500/10 hover:text-green-300"
                   }`}
                 >
-                  ✍️ הדבקה ידנית
+                  {t("admin.manualPaste")}
                 </button>
               </div>
 
@@ -2196,18 +2185,18 @@ async function checkMatchesWithAi() {
                 <div className="theme-ai-panel mb-5 rounded-2xl border border-violet-500/20 bg-violet-950/20 p-4 sm:p-5">
                   <div className="mb-4">
                     <h3 className="text-base font-black sm:text-lg">
-                      ייבוא משחקים עם AI
+                      {t("admin.aiMatchImport")}
                     </h3>
 
                     <p className="theme-muted mt-1 text-sm leading-6">
-                      בחר טורניר, והמערכת תביא את משחקי השלב הנבחר ל־Preview לפני אישור.
+                      {t("admin.aiMatchHelp")}
                     </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
                       <span className="theme-muted mb-2 block text-sm font-bold">
-                        טורניר
+                        {t("admin.tournament")}
                       </span>
 
                       <select
@@ -2215,25 +2204,25 @@ async function checkMatchesWithAi() {
                         onChange={(event) => setAiTournament(event.target.value)}
                         className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition focus:border-violet-400"
                       >
-                        <option value="מונדיאל 2026">מונדיאל 2026</option>
+                        <option value="מונדיאל 2026">{t("admin.worldCup")}</option>
                         <option value="ליגת האלופות 2026/27">
-                          ליגת האלופות 2026/27
+                          {t("admin.championsLeague")}
                         </option>
                         <option value="פרמייר ליג 2026/27">
-                          פרמייר ליג 2026/27
+                          {t("admin.premierLeague")}
                         </option>
-                        <option value="לה ליגה 2026/27">לה ליגה 2026/27</option>
-                        <option value="טורניר אחר">טורניר אחר</option>
+                        <option value="לה ליגה 2026/27">{t("admin.laLiga")}</option>
+                        <option value="טורניר אחר">{t("admin.otherTournament")}</option>
                       </select>
                     </label>
 
                     <div className="block">
                       <span className="theme-muted mb-2 block text-sm font-bold">
-                        שלב נבחר
+                        {t("admin.selectedStage")}
                       </span>
 
                       <div className="theme-panel theme-info-text w-full rounded-xl border px-4 py-3 text-sm font-bold">
-                        {selectedStage?.display_name || "לא נבחר שלב"}
+                        {selectedStage?.display_name || t("admin.noStageSelected")}
                       </div>
                     </div>
                   </div>
@@ -2242,14 +2231,14 @@ async function checkMatchesWithAi() {
                     <div className="mt-3">
                       <label className="block">
                         <span className="theme-muted mb-2 block text-sm font-bold">
-                          שם הטורניר
+                          {t("admin.tournamentName")}
                         </span>
 
                         <input
                           type="text"
                           value={customAiTournament}
                           onChange={(event) => setCustomAiTournament(event.target.value)}
-                          placeholder="לדוגמה: גביע אפריקה 2027"
+                          placeholder={t("admin.tournamentPlaceholder")}
                           className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition focus:border-violet-400"
                         />
                       </label>
@@ -2266,8 +2255,8 @@ async function checkMatchesWithAi() {
                     className="mt-4 w-full rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-violet-950/40 transition hover:scale-[1.02] hover:from-violet-400 hover:to-fuchsia-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                   >
                     {isCheckingAiMatches
-                      ? "AI מחפש משחקים..."
-                      : "✨ הבא את כל משחקי השלב עם AI"}
+                      ? t("admin.aiSearchingMatches")
+                      : t("admin.aiFetchMatches")}
                   </button>
                 </div>
               )}
@@ -2281,6 +2270,7 @@ async function checkMatchesWithAi() {
               2026-06-12 05:00 | South Korea | Czechia | 2-1
               2026-06-17 20:00 | Portugal | DR Congo`}
                     rows={8}
+                    dir="ltr"
                     className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
                   />
 
@@ -2290,7 +2280,9 @@ async function checkMatchesWithAi() {
                     disabled={isImporting || !importText.trim()}
                     className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-purple-400 hover:to-fuchsia-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                   >
-                    {isImporting ? "מייבא משחקים..." : "ייבא משחקים"}
+                    {isImporting
+                      ? t("admin.importingMatches")
+                      : t("admin.importMatchesButton")}
                   </button>
                 </>
               )}
@@ -2309,6 +2301,7 @@ async function checkMatchesWithAi() {
 2026-06-18 22:00 | Switzerland | Bosnia and Herzegovina | 4-1
 2026-06-19 01:00 | Canada | Qatar | 6-0`}
                 rows={8}
+                dir="ltr"
                 className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
               />
 
@@ -2323,7 +2316,9 @@ async function checkMatchesWithAi() {
                   }
                   className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-violet-400 hover:to-purple-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
-                  {isCheckingAiResults ? "מחפש תוצאות..." : "✨ בדוק תוצאות עם AI"}
+                  {isCheckingAiResults
+                    ? t("admin.searchingResults")
+                    : t("admin.checkAiResults")}
                 </button>
                 <button
                   type="button"
@@ -2335,7 +2330,9 @@ async function checkMatchesWithAi() {
                   }
                   className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
-                  {isCheckingResults ? "בודק תוצאות..." : "בדוק תוצאות"}
+                  {isCheckingResults
+                    ? t("admin.checkingResults")
+                    : t("admin.checkResults")}
                 </button>
                 <button
                   type="button"
@@ -2348,8 +2345,8 @@ async function checkMatchesWithAi() {
                   className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
                   {isUpdatingResults
-                    ? "מעדכן תוצאות..."
-                    : "אשר ועדכן תוצאות חדשות"}
+                    ? t("admin.updatingResults")
+                    : t("admin.confirmResults")}
                 </button>
               </div>
 
@@ -2364,7 +2361,7 @@ async function checkMatchesWithAi() {
                           ).length
                         }
                       </p>
-                      <p className="theme-muted text-xs">מוכנים</p>
+                      <p className="theme-muted text-xs">{t("admin.ready")}</p>
                     </div>
 
                     <div className="rounded-xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-center">
@@ -2375,7 +2372,7 @@ async function checkMatchesWithAi() {
                           ).length
                         }
                       </p>
-                      <p className="theme-muted text-xs">כבר יש תוצאה</p>
+                      <p className="theme-muted text-xs">{t("admin.hasResult")}</p>
                     </div>
 
                     <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-center">
@@ -2388,7 +2385,7 @@ async function checkMatchesWithAi() {
                           ).length
                         }
                       </p>
-                      <p className="theme-muted text-xs">שגיאות</p>
+                      <p className="theme-muted text-xs">{t("admin.errors")}</p>
                     </div>
 
                     <div className="theme-panel rounded-xl border p-3 text-center">
@@ -2399,7 +2396,7 @@ async function checkMatchesWithAi() {
                           ).length
                         }
                       </p>
-                      <p className="theme-muted text-xs">כפולים</p>
+                      <p className="theme-muted text-xs">{t("admin.duplicates")}</p>
                     </div>
                   </div>
 
@@ -2415,7 +2412,7 @@ async function checkMatchesWithAi() {
                       }`}
                     >
                       <p className="font-bold">
-                        שורה {item.lineNumber}: {item.message}
+                        {t("admin.lineNumber", { line: item.lineNumber })} {item.message}
                       </p>
 
                       <p className="mt-1 break-words text-xs opacity-80">
@@ -2424,7 +2421,9 @@ async function checkMatchesWithAi() {
 
                       {item.existingScore && (
                         <p className="mt-1 text-xs">
-                          תוצאה קיימת במערכת: {item.existingScore}
+                          {t("admin.existingResult", {
+                            score: item.existingScore,
+                          })}
                         </p>
                       )}
                     </div>
@@ -2437,7 +2436,7 @@ async function checkMatchesWithAi() {
           {importMode === "predictions" && (
             <>
               <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
-                בחר שחקן
+                {t("admin.choosePlayer")}
               </label>
 
               <select
@@ -2445,7 +2444,7 @@ async function checkMatchesWithAi() {
                 onChange={(event) => setPredictionPlayerId(event.target.value)}
                 className="theme-input mb-4 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
               >
-                <option value="">בחר שחקן</option>
+                <option value="">{t("admin.choosePlayer")}</option>
 
                 {players.map((player) => (
                   <option key={player.id} value={player.id}>
@@ -2461,6 +2460,7 @@ async function checkMatchesWithAi() {
 2026-06-12 19:00 | Argentina | Spain | X
 2026-06-12 22:00 | France | Germany | 2`}
                 rows={8}
+                dir="ltr"
                 className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
               />
 
@@ -2475,8 +2475,8 @@ async function checkMatchesWithAi() {
                 className="mt-4 w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-red-950/40 transition hover:scale-[1.02] hover:from-orange-400 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
               >
                 {isImportingPredictions
-                  ? "מייבא ניחושים..."
-                  : "ייבא ניחושים לשחקן"}
+                  ? t("admin.importingPredictions")
+                  : t("admin.importPredictionsButton")}
               </button>
             </>
           )}
@@ -2485,23 +2485,27 @@ async function checkMatchesWithAi() {
         <div className="theme-card theme-admin-section rounded-2xl border p-4 backdrop-blur-xl sm:rounded-3xl sm:p-6">
           <div className="theme-section-header mb-4 flex items-center justify-between gap-3 sm:mb-5">
             <div>
-              <h2 className="text-xl font-black sm:text-2xl">ניהול משחקים</h2>
+              <h2 className="text-xl font-black sm:text-2xl">{t("admin.manageMatches")}</h2>
 
               <p className="theme-muted mt-1 text-xs sm:text-sm">
                 {showAllAdminMatches
-                  ? "מציג את כל המשחקים בליגה"
+                  ? t("admin.showingAllMatches")
                   : pastMatchesWithoutScore.length > 0
-                    ? "מציג משחקים שעברו ועדיין אין להם תוצאה"
-                    : "אין משחקים שעברו ללא תוצאה — מציג את הקרובים ביותר ללא תוצאה"}
+                    ? t("admin.showingPastWithoutResult")
+                    : t("admin.showingUpcomingWithoutResult")}
               </p>
             </div>
 
             <span className="theme-panel theme-muted shrink-0 rounded-full border px-3 py-1 text-[11px] sm:px-4 sm:py-2 sm:text-xs">
               {showAllAdminMatches
-                ? `${matches.length} משחקים`
+                ? t("admin.matchesCount", { count: matches.length })
                 : pastMatchesWithoutScore.length > 0
-                  ? `${pastMatchesWithoutScore.length} עברו ללא תוצאה`
-                  : `${upcomingMatchesWithoutScore.length} קרובים ללא תוצאה`}
+                  ? t("admin.pastWithoutResultCount", {
+                      count: pastMatchesWithoutScore.length,
+                    })
+                  : t("admin.upcomingWithoutResultCount", {
+                      count: upcomingMatchesWithoutScore.length,
+                    })}
             </span>
           </div>
 
@@ -2515,7 +2519,7 @@ async function checkMatchesWithAi() {
                   : "theme-neutral-button border"
               }`}
             >
-              משחקים שצריכים עדכון
+              {t("admin.matchesNeedUpdate")}
             </button>
 
             <button
@@ -2527,22 +2531,22 @@ async function checkMatchesWithAi() {
                   : "theme-neutral-button border"
               }`}
             >
-              כל המשחקים
+              {t("admin.allMatches")}
             </button>
           </div>
 
           {isLoadingStage ? (
-            <p className="theme-muted text-sm">טוען משחקים לשלב...</p>
+            <p className="theme-muted text-sm">{t("admin.loadingStageMatches")}</p>
           ) : matches.length === 0 ? (
-            <p className="theme-muted text-sm">עדיין אין משחקים לעדכן.</p>
+            <p className="theme-muted text-sm">{t("admin.noMatchesToUpdate")}</p>
           ) : !showAllAdminMatches && priorityMatchesWithoutScore.length === 0 ? (
             <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-5 text-center">
               <p className="text-2xl">✅</p>
               <p className="mt-2 text-sm font-bold text-green-300">
-                אין כרגע משחקים שממתינים לעדכון תוצאה
+                {t("admin.noWaitingMatches")}
               </p>
               <p className="theme-muted mt-1 text-xs">
-                אפשר ללחוץ על “כל המשחקים” כדי לערוך משחקים עתידיים או קיימים.
+                {t("admin.allMatchesHelp")}
               </p>
             </div>
           ) : (
@@ -2565,7 +2569,7 @@ async function checkMatchesWithAi() {
                   onClick={() => setShowAllAdminMatches(true)}
                   className="theme-neutral-button mt-4 w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:rounded-2xl"
                 >
-                  הצג את כל המשחקים
+                  {t("admin.showAllMatches")}
                 </button>
               )}
             </>
@@ -2576,7 +2580,7 @@ async function checkMatchesWithAi() {
           href={`/league/${code}`}
           className="theme-muted mt-5 block text-center text-xs hover:text-green-300 sm:mt-6 sm:text-sm"
         >
-          חזור לעמוד הליגה
+          {t("admin.backToLeague")}
         </Link>
       </div>
     </main>
@@ -2599,6 +2603,7 @@ function MatchAdminCard({
   ) => void;
   onDeleteMatch: (matchId: string) => void;
 }) {
+  const { locale, dir, t } = useLanguage();
   const [homeScore, setHomeScore] = useState(
     match.home_score !== null ? String(match.home_score) : ""
   );
@@ -2626,12 +2631,12 @@ function MatchAdminCard({
               : "bg-blue-500/20 text-blue-300"
           }`}
         >
-          {isFinished ? "הסתיים" : "טרם שוחק"}
+          {isFinished ? t("league.finished") : t("admin.notPlayed")}
         </span>
 
         <div className="theme-panel theme-team-tile min-w-16 rounded-xl border px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
-          <p className="theme-muted text-[10px] sm:text-xs">תוצאה</p>
-          <p className="text-lg font-black sm:text-xl">
+          <p className="theme-muted text-[10px] sm:text-xs">{t("league.result")}</p>
+          <p className="text-lg font-black sm:text-xl" dir="ltr">
             {isFinished ? `${match.home_score} - ${match.away_score}` : "-"}
           </p>
         </div>
@@ -2639,40 +2644,40 @@ function MatchAdminCard({
 
       {!isEditing ? (
         <>
-          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3">
-            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3" dir="ltr">
+            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4" dir={dir}>
               <p className="theme-muted mb-1 text-[10px] sm:text-xs">
-                בית
+                {t("common.homeTeam")}
               </p>
               <p className="truncate text-base font-black sm:text-2xl">
-                {match.home_team}
+                <bdi>{match.home_team}</bdi>
               </p>
             </div>
 
             <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-[10px] font-black text-yellow-300 sm:h-12 sm:w-12 sm:text-sm">
-              נגד
+              {t("admin.against")}
             </div>
 
-            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4" dir={dir}>
               <p className="theme-muted mb-1 text-[10px] sm:text-xs">
-                חוץ
+                {t("common.awayTeam")}
               </p>
               <p className="truncate text-base font-black sm:text-2xl">
-                {match.away_team}
+                <bdi>{match.away_team}</bdi>
               </p>
             </div>
           </div>
 
           <p className="theme-muted mb-3 text-center text-xs sm:mb-4 sm:text-sm">
-            {new Date(match.start_time).toLocaleString("he-IL")}
+            {new Date(match.start_time).toLocaleString(locale)}
           </p>
         </>
       ) : (
         <div className="mb-3 space-y-3 sm:mb-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
-            <div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3" dir="ltr">
+            <div dir={dir}>
               <label className="theme-muted mb-1 block text-[11px]">
-                בית
+                {t("common.homeTeam")}
               </label>
               <input
                 type="text"
@@ -2683,12 +2688,12 @@ function MatchAdminCard({
             </div>
 
             <div className="mb-1 flex h-9 w-9 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-[10px] font-black text-yellow-300 sm:h-11 sm:w-11">
-              נגד
+              {t("admin.against")}
             </div>
 
-            <div>
+            <div dir={dir}>
               <label className="theme-muted mb-1 block text-[11px]">
-                חוץ
+                {t("common.awayTeam")}
               </label>
               <input
                 type="text"
@@ -2701,7 +2706,7 @@ function MatchAdminCard({
 
           <div>
             <label className="theme-muted mb-1 block text-[11px]">
-              תאריך ושעה
+              {t("admin.dateTime")}
             </label>
             <input
               type="datetime-local"
@@ -2725,7 +2730,7 @@ function MatchAdminCard({
               }}
               className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
             >
-              שמור עריכה
+              {t("admin.saveEdit")}
             </button>
 
             <button
@@ -2738,19 +2743,19 @@ function MatchAdminCard({
               }}
               className="theme-neutral-button rounded-xl border px-4 py-3 text-sm font-bold transition"
             >
-              ביטול
+              {t("common.cancel")}
             </button>
           </div>
         </div>
       )}
 
-      <div className="mb-3 grid grid-cols-2 gap-2">
+      <div className="mb-3 grid grid-cols-2 gap-2" dir="ltr">
         <input
           type="number"
           min="0"
           value={homeScore}
           onChange={(event) => setHomeScore(event.target.value)}
-          placeholder="בית"
+          placeholder={t("common.homeTeam")}
           className="theme-input w-full rounded-xl border px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
 
@@ -2759,7 +2764,7 @@ function MatchAdminCard({
           min="0"
           value={awayScore}
           onChange={(event) => setAwayScore(event.target.value)}
-          placeholder="חוץ"
+          placeholder={t("common.awayTeam")}
           className="theme-input w-full rounded-xl border px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
       </div>
@@ -2770,7 +2775,7 @@ function MatchAdminCard({
           onClick={() => onUpdateScore(match.id, homeScore, awayScore)}
           className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
         >
-          עדכן תוצאה
+          {t("admin.updateResult")}
         </button>
 
         <button
@@ -2778,7 +2783,7 @@ function MatchAdminCard({
           onClick={() => setIsEditing((current) => !current)}
           className="rounded-xl border border-white/10 bg-blue-600/80 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-600"
         >
-          {isEditing ? "סגור עריכה" : "ערוך משחק"}
+          {isEditing ? t("admin.closeEdit") : t("admin.editMatch")}
         </button>
 
         <button
@@ -2786,7 +2791,7 @@ function MatchAdminCard({
           onClick={() => onDeleteMatch(match.id)}
           className="rounded-xl border border-red-400/20 bg-red-600/80 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
         >
-          מחק משחק
+          {t("admin.deleteMatch")}
         </button>
       </div>
     </div>

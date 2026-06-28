@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import AuthToast from "@/components/auth/AuthToast";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -15,6 +17,7 @@ type ToastState = {
 export default function ResetPasswordPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLanguage();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -33,17 +36,17 @@ export default function ResetPasswordPage() {
     event.preventDefault();
 
     if (!password) {
-      showToast("נא להזין סיסמה חדשה", "warning");
+      showToast(t("reset.required"), "warning");
       return;
     }
 
     if (password.length < 6) {
-      showToast("הסיסמה חייבת להכיל לפחות 6 תווים", "warning");
+      showToast(t("reset.tooShort"), "warning");
       return;
     }
 
     if (password !== confirmPassword) {
-      showToast("הסיסמאות לא תואמות", "warning");
+      showToast(t("reset.mismatch"), "warning");
       return;
     }
 
@@ -57,11 +60,11 @@ export default function ResetPasswordPage() {
 
     if (error) {
       console.error(error);
-      showToast("שגיאה בעדכון הסיסמה", "error");
+      showToast(t("reset.error"), "error");
       return;
     }
 
-    showToast("הסיסמה עודכנה בהצלחה", "success");
+    showToast(t("reset.success"), "success");
 
     window.setTimeout(() => {
       router.push("/");
@@ -72,6 +75,9 @@ export default function ResetPasswordPage() {
   return (
     <main className="theme-entry-page theme-page relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
       <AuthToast toast={toast} />
+      <div className="absolute start-4 top-4 z-20 sm:start-6 sm:top-6">
+        <LanguageToggle />
+      </div>
 
       <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
 
@@ -80,16 +86,16 @@ export default function ResetPasswordPage() {
           <span className="text-3xl">🔐</span>
         </div>
 
-        <h1 className="text-3xl font-black">איפוס סיסמה</h1>
+        <h1 className="text-3xl font-black">{t("reset.title")}</h1>
 
         <p className="theme-muted mt-3 text-sm leading-6">
-          הזן סיסמה חדשה לחשבון שלך.
+          {t("reset.description")}
         </p>
 
-        <form onSubmit={handleResetPassword} className="mt-6 space-y-4 text-right">
+        <form onSubmit={handleResetPassword} className="mt-6 space-y-4 text-start">
           <div>
             <label className="theme-muted mb-2 block text-sm font-semibold">
-              סיסמה חדשה
+              {t("reset.newPassword")}
             </label>
 
             <input
@@ -97,7 +103,7 @@ export default function ResetPasswordPage() {
               dir="ltr"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="לפחות 6 תווים"
+              placeholder={t("reset.passwordPlaceholder")}
               autoComplete="new-password"
               className="theme-input w-full rounded-2xl border px-4 py-4 text-left outline-none transition focus:border-green-400"
             />
@@ -105,7 +111,7 @@ export default function ResetPasswordPage() {
 
           <div>
             <label className="theme-muted mb-2 block text-sm font-semibold">
-              אימות סיסמה
+              {t("reset.confirmPassword")}
             </label>
 
             <input
@@ -113,7 +119,7 @@ export default function ResetPasswordPage() {
               dir="ltr"
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="הקלד שוב את הסיסמה"
+              placeholder={t("reset.confirmPlaceholder")}
               autoComplete="new-password"
               className="theme-input w-full rounded-2xl border px-4 py-4 text-left outline-none transition focus:border-green-400"
             />
@@ -124,7 +130,7 @@ export default function ResetPasswordPage() {
             disabled={isSaving}
             className="theme-disabled-control w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:hover:scale-100"
           >
-            {isSaving ? "מעדכן..." : "עדכן סיסמה"}
+            {isSaving ? t("reset.saving") : t("reset.submit")}
           </button>
         </form>
       </div>
