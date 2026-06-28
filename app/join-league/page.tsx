@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
 import AuthToast from "@/components/auth/AuthToast";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type Player = {
   id: string;
@@ -64,6 +66,7 @@ function getSafeJoinRedirect(code: string) {
 export default function JoinLeaguePage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { t } = useLanguage();
 
   const [playerName, setPlayerName] = useState("");
   const [leagueCode, setLeagueCode] = useState("");
@@ -92,7 +95,7 @@ export default function JoinLeaguePage() {
         localStorage.removeItem("redirect-after-login");
 
         setAutoLoginMessage(
-          "קישור ההזמנה לא תקין. צריך להשתמש בקוד ליגה קצר, לדוגמה UL9D3."
+          t("join.invalidInvite")
         );
       }
       /* eslint-enable react-hooks/set-state-in-effect */
@@ -131,7 +134,7 @@ export default function JoinLeaguePage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, t]);
 
   useEffect(() => {
     const safeLeagueCode = getCleanLeagueCode(leagueCode);
@@ -146,7 +149,7 @@ export default function JoinLeaguePage() {
       const cleanCode = safeLeagueCode;
 
       setIsCheckingExistingPlayer(true);
-      setAutoLoginMessage("בודק אם כבר הצטרפת לליגה הזאת...");
+      setAutoLoginMessage(t("join.checkingExisting"));
 
       try {
         const response = await fetch(
@@ -177,7 +180,7 @@ export default function JoinLeaguePage() {
           localStorage.removeItem("redirect-after-login");
 
           setAutoLoginMessage(
-            `מצאנו את השחקן שלך (${data.player.name}). מעביר אותך לליגה...`
+            t("join.foundExisting", { name: data.player.name })
           );
 
           setTimeout(() => {
@@ -204,7 +207,7 @@ export default function JoinLeaguePage() {
     return () => {
       isCancelled = true;
     };
-  }, [userId, leagueCode, router]);
+  }, [userId, leagueCode, router, t]);
 
   function showToast(message: string, type: ToastType = "info") {
   setToast({ message, type });
@@ -231,7 +234,7 @@ export default function JoinLeaguePage() {
     const cleanCode = getCleanLeagueCode(leagueCode);
 
     if (!userId) {
-      showToast("כדי להצטרף לליגה צריך להתחבר או להירשם", "warning");
+      showToast(t("join.authRequiredToast"), "warning");
       saveRedirectBeforeLogin();
       router.push(
         `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
@@ -240,7 +243,7 @@ export default function JoinLeaguePage() {
     }
 
     if (!playerName.trim() || !cleanCode) {
-      showToast("צריך למלא שם וקוד ליגה", "warning");
+      showToast(t("join.requiredFields"), "warning");
       return;
     }
 
@@ -264,15 +267,15 @@ export default function JoinLeaguePage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        showToast("כדי להצטרף לליגה צריך להתחבר או להירשם", "warning");
+        showToast(t("join.authRequiredToast"), "warning");
         saveRedirectBeforeLogin();
         router.push(
           `/login?next=${encodeURIComponent(getSafeJoinRedirect(cleanCode))}`
         );
       } else if (response.status === 404) {
-        showToast("לא נמצאה ליגה עם הקוד הזה", "error");
+        showToast(t("join.notFound"), "error");
       } else {
-        showToast("שגיאה בהצטרפות לליגה", "error");
+        showToast(t("join.error"), "error");
       }
 
       setIsLoading(false);
@@ -310,6 +313,11 @@ export default function JoinLeaguePage() {
           }}
         />
       )}
+      {!isCheckingUser && !userEmail && (
+        <div className="absolute start-4 top-4 z-20 sm:start-6 sm:top-6">
+          <LanguageToggle />
+        </div>
+      )}
       <AuthToast toast={toast} />
       <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
       <div className="theme-entry-decoration absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
@@ -322,34 +330,34 @@ export default function JoinLeaguePage() {
           </div>
 
           <p className="theme-brand-accent theme-entry-kicker text-sm font-semibold tracking-[0.35em]">
-            JOIN LEAGUE
+            {t("join.kicker")}
           </p>
         </div>
 
         <div className="theme-card theme-entry-card rounded-3xl border p-6 backdrop-blur-xl">
           <h1 className="text-center text-3xl font-black tracking-tight">
-            הצטרף לליגה
+            {t("join.title")}
           </h1>
 
           <p className="theme-muted mt-3 text-center text-sm leading-6">
-            הכנס שם שחקן וקוד ליגה, ותוכל להתחיל לשלוח ניחושים.
+            {t("join.description")}
           </p>
 
           {isCheckingUser ? (
             <div className="theme-panel theme-entry-panel mt-6 rounded-2xl border p-4 text-center">
-              <p className="theme-muted text-sm">בודק התחברות...</p>
+              <p className="theme-muted text-sm">{t("common.checkingLogin")}</p>
             </div>
           ) : userId ? (
             <div className="theme-feedback theme-feedback-success mt-6 rounded-2xl border p-4 text-center">
-              <p className="theme-muted text-xs">מחובר למערכת</p>
-              <p className="mt-1 break-all text-sm font-bold">
-                {userEmail}
+              <p className="theme-muted text-xs">{t("common.connected")}</p>
+              <p className="mt-1 break-all text-sm font-bold" dir="ltr">
+                <bdi>{userEmail}</bdi>
               </p>
             </div>
           ) : (
             <div className="theme-feedback theme-feedback-auth-required mt-6 rounded-2xl border p-4 text-center">
               <p className="text-sm">
-                כדי להצטרף לליגה צריך להתחבר או להירשם.
+                {t("join.authRequired")}
               </p>
 
               <Link
@@ -357,7 +365,7 @@ export default function JoinLeaguePage() {
                 onClick={saveRedirectBeforeLogin}
                 className="theme-login-cta mt-4 block rounded-xl border bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
-                התחבר / הירשם
+                {t("common.loginOrSignup")}
               </Link>
             </div>
           )}
@@ -381,14 +389,14 @@ export default function JoinLeaguePage() {
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 <div>
                   <label className="theme-muted mb-2 block text-sm font-semibold">
-                    השם שלך
+                    {t("join.yourName")}
                   </label>
 
                   <input
                     type="text"
                     value={playerName}
                     onChange={(event) => setPlayerName(event.target.value)}
-                    placeholder="לדוגמה: Tegabu"
+                    placeholder={t("common.exampleName")}
                     disabled={isFormDisabled}
                     className="theme-disabled-control theme-input w-full rounded-2xl border px-4 py-4 outline-none transition focus:border-green-400"
                   />
@@ -396,14 +404,15 @@ export default function JoinLeaguePage() {
 
                 <div>
                   <label className="theme-muted mb-2 block text-sm font-semibold">
-                    קוד ליגה
+                    {t("common.leagueCode")}
                   </label>
 
                   <input
                     type="text"
                     value={leagueCode}
                     onChange={(event) => setLeagueCode(event.target.value.trim())}
-                    placeholder="לדוגמה: AB72K"
+                    placeholder={t("join.codePlaceholder")}
+                    dir="ltr"
                     disabled={isFormDisabled}
                     className="theme-disabled-control theme-input theme-league-code w-full rounded-2xl border px-4 py-4 text-center text-xl font-black tracking-widest outline-none transition focus:border-green-400"
                   />
@@ -415,18 +424,18 @@ export default function JoinLeaguePage() {
                   className="theme-disabled-control w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:hover:scale-100"
                 >
                   {isCheckingExistingPlayer
-                    ? "בודק שחקן קיים..."
+                    ? t("join.checkingPlayer")
                     : isLoading
-                      ? "מצטרף לליגה..."
-                      : "הצטרף לליגה"}
+                      ? t("join.joining")
+                      : t("join.submit")}
                 </button>
               </form>
 
               {leagueCode && (
                 <div className="theme-feedback theme-feedback-success mt-6 rounded-2xl border p-4 text-center">
-                  <p className="theme-muted text-xs mb-1">אתה מצטרף לליגה</p>
-                  <p className="theme-league-code break-words text-2xl font-black tracking-widest">
-                    {leagueCode}
+                  <p className="theme-muted text-xs mb-1">{t("join.joiningLeague")}</p>
+                  <p className="theme-league-code break-words text-2xl font-black tracking-widest" dir="ltr">
+                    <bdi>{leagueCode}</bdi>
                   </p>
                 </div>
               )}
@@ -435,8 +444,7 @@ export default function JoinLeaguePage() {
 
           <div className="theme-feedback theme-feedback-warning mt-6 rounded-2xl border p-4">
             <p className="text-sm leading-6">
-             אם כבר הצטרפת בעבר עם החשבון הזה, נחבר אותך אוטומטית
-לשחקן הקיים שלך.
+              {t("join.existingHelp")}
             </p>
           </div>
 
@@ -444,7 +452,7 @@ export default function JoinLeaguePage() {
             href="/"
             className="theme-accent-link theme-muted mt-6 block text-center text-sm"
           >
-            חזור לדף הבית
+            {t("common.home")}
           </Link>
         </div>
       </div>

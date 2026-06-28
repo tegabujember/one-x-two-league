@@ -5,16 +5,26 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import { getRedirectAfterLogin } from "@/lib/authRedirect";
 import type { ToastType } from "./AuthToast";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type EmailLoginFormProps = {
   showToast: (message: string, type?: ToastType) => void;
 };
 
 type LoadingAction = "login" | "signup" | "forgot" | null;
+type AuthErrorKind =
+  | "invalidCredentials"
+  | "alreadyRegistered"
+  | "rateLimit"
+  | "weakPassword"
+  | "signupDisabled"
+  | "emailNotConfirmed"
+  | "generic";
 
 export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,14 +32,14 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
 
   const isLoading = loadingAction !== null;
 
-  function getAuthErrorMessage(errorMessage: string) {
+  function getAuthErrorKind(errorMessage: string): AuthErrorKind {
     const message = errorMessage.toLowerCase();
 
     if (
       message.includes("invalid login credentials") ||
       message.includes("invalid credentials")
     ) {
-      return "אימייל או סיסמה לא נכונים";
+      return "invalidCredentials";
     }
 
     if (
@@ -37,14 +47,14 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
       message.includes("user already registered") ||
       message.includes("already exists")
     ) {
-      return "האימייל כבר רשום. נסה להתחבר במקום להירשם.";
+      return "alreadyRegistered";
     }
 
     if (
       message.includes("email rate limit exceeded") ||
       message.includes("rate limit")
     ) {
-      return "ניסית יותר מדי פעמים. נסה שוב בעוד כמה דקות.";
+      return "rateLimit";
     }
 
     if (
@@ -52,36 +62,50 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
       message.includes("password should be at least 6") ||
       message.includes("weak password")
     ) {
-      return "הסיסמה חייבת להכיל לפחות 6 תווים";
+      return "weakPassword";
     }
 
     if (
       message.includes("signup disabled") ||
       message.includes("signups not allowed")
     ) {
-      return "הרשמה עם אימייל לא פעילה כרגע במערכת";
+      return "signupDisabled";
     }
 
     if (
       message.includes("email not confirmed") ||
       message.includes("not confirmed")
     ) {
-      return "צריך לאשר את המייל לפני התחברות";
+      return "emailNotConfirmed";
     }
 
-    return "אירעה שגיאה. נסה שוב.";
+    return "generic";
+  }
+
+  function getAuthErrorMessage(errorKind: AuthErrorKind) {
+    const keys = {
+      invalidCredentials: "auth.invalidCredentials",
+      alreadyRegistered: "auth.alreadyRegistered",
+      rateLimit: "auth.rateLimit",
+      weakPassword: "reset.tooShort",
+      signupDisabled: "auth.signupDisabled",
+      emailNotConfirmed: "auth.emailNotConfirmed",
+      generic: "auth.genericError",
+    } as const;
+
+    return t(keys[errorKind]);
   }
 
   function validateEmailOnly() {
     const cleanEmail = email.trim();
 
     if (!cleanEmail) {
-      showToast("נא להזין אימייל", "warning");
+      showToast(t("auth.emailRequired"), "warning");
       return false;
     }
 
     if (!cleanEmail.includes("@")) {
-      showToast("נא להזין אימייל תקין", "warning");
+      showToast(t("auth.emailInvalid"), "warning");
       return false;
     }
 
@@ -94,12 +118,12 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
     }
 
     if (!password) {
-      showToast("נא להזין סיסמה", "warning");
+      showToast(t("auth.passwordRequired"), "warning");
       return false;
     }
 
     if (password.length < 6) {
-      showToast("הסיסמה חייבת להכיל לפחות 6 תווים", "warning");
+      showToast(t("reset.tooShort"), "warning");
       return false;
     }
 
@@ -123,11 +147,11 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
 
     if (error) {
       console.error(error);
-      showToast(getAuthErrorMessage(error.message), "error");
+      showToast(getAuthErrorMessage(getAuthErrorKind(error.message)), "error");
       return;
     }
 
-    showToast("התחברת בהצלחה", "success");
+    showToast(t("auth.loginSuccess"), "success");
     router.push(redirectAfterLogin);
     router.refresh();
   }
@@ -150,9 +174,10 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
     if (error) {
       console.error(error);
 
-      const translatedMessage = getAuthErrorMessage(error.message);
+      const errorKind = getAuthErrorKind(error.message);
+      const translatedMessage = getAuthErrorMessage(errorKind);
 
-      if (translatedMessage.includes("כבר רשום")) {
+      if (errorKind === "alreadyRegistered") {
         showToast(translatedMessage, "warning");
         return;
       }
@@ -162,11 +187,11 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
     }
 
     if (!data.session) {
-      showToast("נשלח אליך מייל אישור. אשר את החשבון ואז התחבר.", "info");
+      showToast(t("auth.confirmationSent"), "info");
       return;
     }
 
-    showToast("נרשמת בהצלחה", "success");
+    showToast(t("auth.signupSuccess"), "success");
     router.push(redirectAfterLogin);
     router.refresh();
   }
@@ -185,16 +210,16 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
 
     if (error) {
       console.error(error);
-      showToast(getAuthErrorMessage(error.message), "error");
+      showToast(getAuthErrorMessage(getAuthErrorKind(error.message)), "error");
       return;
     }
 
-    showToast("נשלח אליך מייל לאיפוס סיסמה", "success");
+    showToast(t("auth.resetSent"), "success");
   }
 
   return (
     <form
-      className="mt-6 space-y-4 text-right"
+      className="mt-6 space-y-4 text-start"
       onSubmit={(event) => {
         event.preventDefault();
         handleLogin();
@@ -202,7 +227,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
     >
       <div>
         <label className="theme-muted mb-2 block text-sm font-semibold">
-          אימייל
+          {t("auth.email")}
         </label>
 
         <input
@@ -218,7 +243,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
 
       <div>
         <label className="theme-muted mb-2 block text-sm font-semibold">
-          סיסמה
+          {t("auth.password")}
         </label>
 
         <input
@@ -226,7 +251,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           dir="ltr"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          placeholder="לפחות 6 תווים"
+          placeholder={t("reset.passwordPlaceholder")}
           autoComplete="current-password"
           className="theme-input w-full rounded-2xl border px-4 py-4 text-left outline-none transition focus:border-green-400"
         />
@@ -238,7 +263,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           disabled={isLoading}
           className="theme-disabled-control rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:hover:scale-100"
         >
-          {loadingAction === "login" ? "מתחבר..." : "התחבר"}
+          {loadingAction === "login" ? t("auth.loggingIn") : t("auth.login")}
         </button>
 
         <button
@@ -247,7 +272,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           disabled={isLoading}
           className="theme-disabled-control theme-neutral-button rounded-2xl border px-5 py-4 font-bold transition hover:scale-[1.02] disabled:hover:scale-100"
         >
-          {loadingAction === "signup" ? "נרשם..." : "הרשמה"}
+          {loadingAction === "signup" ? t("auth.signingUp") : t("auth.signup")}
         </button>
       </div>
 
@@ -257,7 +282,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
         disabled={isLoading}
         className="theme-accent-link theme-disabled-control theme-muted w-full text-center text-sm font-bold transition"
       >
-        {loadingAction === "forgot" ? "שולח מייל..." : "שכחתי סיסמה"}
+        {loadingAction === "forgot" ? t("auth.sendingEmail") : t("auth.forgotPassword")}
       </button>
     </form>
   );

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import AuthToast from "@/components/auth/AuthToast";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -16,6 +18,7 @@ type ToastState = {
 export default function AccountPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +69,7 @@ export default function AccountPage() {
 
     if (error) {
       console.error(error);
-      showToast("שגיאה בהתנתקות", "error");
+      showToast(t("common.signOutError"), "error");
       setIsSigningOut(false);
       return;
     }
@@ -86,7 +89,7 @@ export default function AccountPage() {
             <span className="text-3xl">👤</span>
           </div>
 
-          <p className="theme-muted font-semibold">טוען חשבון...</p>
+          <p className="theme-muted font-semibold">{t("account.loading")}</p>
         </div>
       </main>
     );
@@ -95,6 +98,9 @@ export default function AccountPage() {
   return (
     <main className="theme-entry-page theme-page min-h-screen overflow-hidden relative px-4 py-8">
       <AuthToast toast={toast} />
+      <div className="absolute start-4 top-4 z-20 sm:start-6 sm:top-6">
+        <LanguageToggle />
+      </div>
 
       <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
       <div className="theme-entry-decoration absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
@@ -107,20 +113,20 @@ export default function AccountPage() {
           </div>
 
           <p className="theme-brand-accent theme-entry-kicker text-[10px] font-semibold tracking-[0.35em]">
-            ACCOUNT
+            {t("account.kicker")}
           </p>
 
-          <h1 className="mt-2 text-3xl font-black">החשבון שלי</h1>
+          <h1 className="mt-2 text-3xl font-black">{t("account.title")}</h1>
         </div>
 
         <div className="theme-card theme-entry-card rounded-3xl border p-6 backdrop-blur-xl">
           {email ? (
             <>
-              <p className="theme-muted mb-2 text-sm">מחובר בתור</p>
+              <p className="theme-muted mb-2 text-sm">{t("common.connectedAs")}</p>
 
               <div className="theme-panel theme-entry-panel mb-5 rounded-2xl border px-4 py-4">
-                <p className="theme-success-text break-all text-base font-bold">
-                  {email}
+                <p className="theme-success-text break-all text-base font-bold" dir="ltr">
+                  <bdi>{email}</bdi>
                 </p>
               </div>
 
@@ -131,12 +137,12 @@ export default function AccountPage() {
                   disabled={isSigningOut}
                   className="theme-disabled-control w-full rounded-2xl bg-gradient-to-r from-red-500 to-rose-700 px-5 py-4 text-base font-black shadow-lg shadow-red-950/40 transition hover:scale-[1.02] disabled:hover:scale-100"
                 >
-                  התנתק
+                  {t("common.signOut")}
                 </button>
               ) : (
                 <div className="theme-feedback theme-feedback-error theme-feedback-confirm rounded-2xl border p-4 text-center">
                   <p className="text-sm font-bold">
-                    אתה בטוח שאתה רוצה להתנתק?
+                    {t("common.signOutConfirm")}
                   </p>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
@@ -146,7 +152,7 @@ export default function AccountPage() {
                       disabled={isSigningOut}
                       className="theme-disabled-control theme-neutral-button rounded-xl border px-4 py-3 text-sm font-bold transition"
                     >
-                      ביטול
+                      {t("common.cancel")}
                     </button>
 
                     <button
@@ -155,7 +161,7 @@ export default function AccountPage() {
                       disabled={isSigningOut}
                       className="theme-disabled-control rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:hover:scale-100"
                     >
-                      {isSigningOut ? "מתנתק..." : "כן, התנתק"}
+                      {isSigningOut ? t("common.signingOut") : t("common.yesSignOut")}
                     </button>
                   </div>
                 </div>
@@ -164,14 +170,14 @@ export default function AccountPage() {
           ) : (
             <>
               <p className="theme-muted mb-5 text-center text-sm leading-6">
-                כרגע אין משתמש מחובר.
+                {t("account.noUser")}
               </p>
 
               <Link
                 href="/"
                 className="block w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 text-center text-base font-black shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
               >
-                חזור לדף הבית
+                {t("common.home")}
               </Link>
             </>
           )}
@@ -181,7 +187,7 @@ export default function AccountPage() {
           href="/"
           className="theme-accent-link theme-muted mt-5 block text-center text-sm"
         >
-          חזור לדף הבית
+          {t("common.home")}
         </Link>
       </div>
     </main>

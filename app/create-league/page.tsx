@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
 import AuthToast from "@/components/auth/AuthToast";
+import LanguageToggle from "@/components/i18n/LanguageToggle";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type CreateLeagueResponse = {
   league: {
@@ -34,6 +36,7 @@ type ToastState = {
 export default function CreateLeaguePage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { t } = useLanguage();
 
   const [leagueName, setLeagueName] = useState("");
   const [adminName, setAdminName] = useState("");
@@ -80,14 +83,14 @@ export default function CreateLeaguePage() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      showToast("כדי ליצור ליגה צריך להתחבר או להירשם", "warning");
+      showToast(t("create.authRequiredToast"), "warning");
       localStorage.setItem("redirect-after-login", "/create-league");
       router.push("/login?next=/create-league");
       return;
     }
 
     if (!leagueName.trim() || !adminName.trim()) {
-      showToast("צריך למלא שם ליגה ואת השם שלך", "warning");
+      showToast(t("create.requiredFields"), "warning");
       return;
     }
 
@@ -109,11 +112,11 @@ export default function CreateLeaguePage() {
       console.error(errorData);
 
       if (response.status === 401) {
-        showToast("כדי ליצור ליגה צריך להתחבר או להירשם", "warning");
+        showToast(t("create.authRequiredToast"), "warning");
         localStorage.setItem("redirect-after-login", "/create-league");
         router.push("/login?next=/create-league");
       } else {
-        showToast("שגיאה ביצירת הליגה", "error");
+        showToast(t("create.error"), "error");
       }
 
       setIsLoading(false);
@@ -143,6 +146,11 @@ export default function CreateLeaguePage() {
             }}
           />
         )}
+      {!isCheckingUser && !userEmail && (
+        <div className="absolute start-4 top-4 z-20 sm:start-6 sm:top-6">
+          <LanguageToggle />
+        </div>
+      )}
       <AuthToast toast={toast} />
 
       <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
@@ -156,34 +164,34 @@ export default function CreateLeaguePage() {
           </div>
 
           <p className="theme-brand-accent theme-entry-kicker text-sm font-semibold tracking-[0.35em]">
-            CREATE LEAGUE
+            {t("create.kicker")}
           </p>
         </div>
 
         <div className="theme-card theme-entry-card rounded-3xl border p-6 backdrop-blur-xl">
           <h1 className="text-center text-3xl font-black tracking-tight">
-            צור ליגה חדשה
+            {t("create.title")}
           </h1>
 
           <p className="theme-muted mt-3 text-center text-sm leading-6">
-            פתח ליגת ניחושים, קבל קוד מנהל, ושתף את הלינק לחברים.
+            {t("create.description")}
           </p>
 
           {isCheckingUser ? (
             <div className="theme-panel theme-entry-panel mt-6 rounded-2xl border p-4 text-center">
-              <p className="theme-muted text-sm">בודק התחברות...</p>
+              <p className="theme-muted text-sm">{t("common.checkingLogin")}</p>
             </div>
           ) : userEmail ? (
             <div className="theme-feedback theme-feedback-success mt-6 rounded-2xl border p-4 text-center">
-              <p className="theme-muted text-xs">מחובר למערכת</p>
-              <p className="mt-1 break-all text-sm font-bold">
-                {userEmail}
+              <p className="theme-muted text-xs">{t("common.connected")}</p>
+              <p className="mt-1 break-all text-sm font-bold" dir="ltr">
+                <bdi>{userEmail}</bdi>
               </p>
             </div>
           ) : (
             <div className="theme-feedback theme-feedback-auth-required mt-6 rounded-2xl border p-4 text-center">
               <p className="text-sm">
-                כדי ליצור ליגה צריך להתחבר או להירשם.
+                {t("create.authRequired")}
               </p>
 
               <Link
@@ -191,7 +199,7 @@ export default function CreateLeaguePage() {
                 onClick={saveCreateLeagueRedirect}
                 className="theme-login-cta mt-4 block rounded-xl border bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
-                התחבר / הירשם
+                {t("common.loginOrSignup")}
               </Link>
             </div>
           )}
@@ -200,14 +208,14 @@ export default function CreateLeaguePage() {
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
                 <label className="theme-muted mb-2 block text-sm font-semibold">
-                  שם הליגה
+                  {t("create.leagueName")}
                 </label>
 
                 <input
                   type="text"
                   value={leagueName}
                   onChange={(event) => setLeagueName(event.target.value)}
-                  placeholder="לדוגמה: מונדיאל חברים"
+                  placeholder={t("create.leagueNamePlaceholder")}
                   disabled={!userEmail || isCheckingUser}
                   className="theme-disabled-control theme-input w-full rounded-2xl border px-4 py-4 outline-none transition focus:border-green-400"
                 />
@@ -215,14 +223,14 @@ export default function CreateLeaguePage() {
 
               <div>
                 <label className="theme-muted mb-2 block text-sm font-semibold">
-                  השם שלך
+                  {t("create.yourName")}
                 </label>
 
                 <input
                   type="text"
                   value={adminName}
                   onChange={(event) => setAdminName(event.target.value)}
-                  placeholder="לדוגמה: Tegabu"
+                  placeholder={t("common.exampleName")}
                   disabled={!userEmail || isCheckingUser}
                   className="theme-disabled-control theme-input w-full rounded-2xl border px-4 py-4 outline-none transition focus:border-green-400"
                 />
@@ -233,15 +241,14 @@ export default function CreateLeaguePage() {
                 disabled={isLoading || isCheckingUser || !userEmail}
                 className="theme-disabled-control w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-700 px-5 py-4 font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:hover:scale-100"
               >
-                {isLoading ? "יוצר ליגה..." : "צור ליגה"}
+                {isLoading ? t("create.creating") : t("create.submit")}
               </button>
             </form>
           )}
 
           <div className="theme-feedback theme-feedback-warning mt-6 rounded-2xl border p-4">
             <p className="text-sm leading-6">
-             יצירת הליגה מתבצעת עכשיו דרך API מאובטח. הליגה תיקשר לחשבון
-שלך והשחקן הראשון ייווצר עבורך אוטומטית.
+              {t("create.secureApi")}
             </p>
           </div>
 
@@ -249,7 +256,7 @@ export default function CreateLeaguePage() {
             href="/"
             className="theme-accent-link theme-muted mt-6 block text-center text-sm"
           >
-            חזור לדף הבית
+            {t("common.home")}
           </Link>
         </div>
       </div>
