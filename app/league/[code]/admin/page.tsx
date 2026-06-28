@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 type League = {
   id: string;
@@ -1742,15 +1743,15 @@ async function checkMatchesWithAi() {
 
   if (isLoadingPage) {
     return (
-      <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
+      <main className="theme-admin-page theme-page relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+        <div className="theme-admin-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
 
         <div className="relative text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600 shadow-2xl shadow-yellow-900/30">
             <span className="text-3xl">🏆</span>
           </div>
 
-          <p className="text-slate-300 font-semibold">טוען ניהול ליגה...</p>
+          <p className="theme-muted font-semibold">טוען ניהול ליגה...</p>
         </div>
       </main>
     );
@@ -1764,7 +1765,7 @@ async function checkMatchesWithAi() {
         : "ייבוא ניחושים לשחקן";
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative px-3 py-5 sm:px-4 sm:py-8">
+    <main className="theme-admin-page theme-page relative min-h-screen overflow-hidden px-3 py-5 sm:px-4 sm:py-8">
       {toast && (
         <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
           <div
@@ -1789,18 +1790,22 @@ async function checkMatchesWithAi() {
             type="button"
             title="החשבון שלי"
             onClick={() => setIsAccountMenuOpen((current) => !current)}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-slate-900/80 text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105 hover:bg-slate-800"
+            className="theme-neutral-button flex h-11 w-11 items-center justify-center rounded-full border text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105"
           >
             👤
           </button>
 
           {isAccountMenuOpen && (
-            <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-4 text-right shadow-2xl shadow-black/40 backdrop-blur">
-              <p className="mb-1 text-xs text-slate-400">מחובר בתור</p>
+            <div className="theme-popover absolute right-0 mt-3 w-64 rounded-2xl border p-4 text-right backdrop-blur">
+              <p className="theme-muted mb-1 text-xs">מחובר בתור</p>
 
               <p className="mb-4 break-all text-sm font-bold text-green-300">
                 {adminEmail}
               </p>
+
+              <div className="mb-4 flex justify-end">
+                <ThemeToggle />
+              </div>
 
               <button
                 type="button"
@@ -1815,9 +1820,9 @@ async function checkMatchesWithAi() {
         </div>
       )}
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
-      <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
-      <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
+      <div className="theme-admin-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.20),_transparent_32%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.18),_transparent_34%)]" />
+      <div className="theme-admin-decoration absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
+      <div className="theme-admin-decoration absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" />
 
       <div className="relative mx-auto w-full max-w-3xl">
         <div className="mb-4 text-center sm:mb-6">
@@ -1830,9 +1835,9 @@ async function checkMatchesWithAi() {
           </p>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+        <div className="theme-card theme-admin-section mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
-            <p className="mb-1 text-xs text-slate-400 sm:text-sm">
+            <p className="theme-muted mb-1 text-xs sm:text-sm">
               ניהול ליגה
             </p>
 
@@ -1841,14 +1846,14 @@ async function checkMatchesWithAi() {
             </h1>
 
             {league && (
-              <div className="mt-4 inline-flex flex-col items-center rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
+              <div className="theme-panel theme-admin-panel mt-4 inline-flex flex-col items-center rounded-xl border px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
                 <span className="text-base font-bold sm:text-lg">
                   {league.name}
                 </span>
 
-                <span className="mt-1 text-xs text-slate-400 sm:text-sm">
+                <span className="theme-muted mt-1 text-xs sm:text-sm">
                   קוד ליגה: {" "}
-                  <span className="font-black tracking-widest text-green-300">
+                  <span className="theme-league-code font-black tracking-widest">
                     {league.code}
                   </span>
                 </span>
@@ -1860,10 +1865,10 @@ async function checkMatchesWithAi() {
                 )}
 
                 {selectedStage && (
-                  <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3 text-right">
+                  <div className="theme-panel theme-admin-panel mt-4 w-full rounded-2xl border p-3 text-right">
                     <label
                       htmlFor="admin-stage-selector"
-                      className="mb-2 block text-xs font-bold text-slate-300"
+                      className="theme-muted mb-2 block text-xs font-bold"
                     >
                       שלב לניהול
                     </label>
@@ -1882,7 +1887,7 @@ async function checkMatchesWithAi() {
                         isCheckingAiMatches ||
                         isImportingPredictions
                       }
-                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm font-bold text-white outline-none transition focus:border-green-400 disabled:opacity-50"
+                      className="theme-input w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none transition focus:border-green-400 disabled:opacity-50"
                     >
                       {stages.map((stage) => (
                         <option key={stage.id} value={stage.id}>
@@ -1922,8 +1927,8 @@ async function checkMatchesWithAi() {
                 )}
 
                 {selectedStage && (
-                <div className="mt-4 w-full rounded-2xl border border-white/10 bg-slate-950/70 p-3">
-                  <p className="mb-3 text-xs font-bold text-slate-300">
+                <div className="theme-panel theme-admin-panel mt-4 w-full rounded-2xl border p-3">
+                  <p className="theme-muted mb-3 text-xs font-bold">
                     מצב ניחושים ב{selectedStage.display_name}: {" "}
                     <span
                       className={
@@ -1951,27 +1956,27 @@ async function checkMatchesWithAi() {
                         : "נעל ניחושים בשלב"}
                     </button>
                   ) : (
-                    <p className="text-[11px] text-slate-400">
+                    <p className="theme-muted text-[11px]">
                       רק בעל הליגה יכול לשנות הגדרות שלב.
                     </p>
                   )}
 
                   {selectedStage.predictions_locked && isAccountOwner && (
                     <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 p-3">
-                      <p className="mb-2 text-xs font-bold text-amber-200">
+                      <p className="theme-warning-text mb-2 text-xs font-bold">
                         מצב עריכת מנהל:{" "}
                         <span
                           className={
                             selectedStage.admin_edit_mode
-                              ? "text-amber-100"
-                              : "text-slate-300"
+                              ? "theme-warning-text"
+                              : "theme-muted"
                           }
                         >
                           {selectedStage.admin_edit_mode ? "פעיל" : "כבוי"}
                         </span>
                       </p>
 
-                      <p className="mb-3 text-[11px] leading-5 text-amber-100/80">
+                      <p className="theme-warning-text mb-3 text-[11px] leading-5">
                         כשמופעל, תוכל לערוך ניחושים עבור כל שחקן בליגה — גם
                         אחרי שהמשחק התחיל. שחקנים רגילים יישארו חסומים.
                       </p>
@@ -1998,21 +2003,21 @@ async function checkMatchesWithAi() {
           </div>
 
           {isAccountOwner && (
-            <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-right sm:mt-6">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 className="text-base font-black text-white sm:text-lg">
+            <div className="theme-panel theme-admin-panel mt-5 rounded-2xl border p-4 text-right sm:mt-6">
+              <div className="theme-section-header mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-base font-black sm:text-lg">
                   פעילות משתתפים
                 </h2>
 
-                <span className="shrink-0 rounded-full border border-white/10 bg-slate-900/80 px-3 py-1 text-[11px] text-slate-400">
+                <span className="theme-neutral-button shrink-0 rounded-full border px-3 py-1 text-[11px]">
                   {playerActivity.length} משתתפים
                 </span>
               </div>
 
               {isLoadingPlayerActivity ? (
-                <p className="text-xs text-slate-400">טוען פעילות...</p>
+                <p className="theme-muted text-xs">טוען פעילות...</p>
               ) : playerActivity.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="theme-muted text-xs">
                   עדיין אין משתתפים להצגה.
                 </p>
               ) : (
@@ -2020,9 +2025,9 @@ async function checkMatchesWithAi() {
                   {playerActivity.map((player) => (
                     <div
                       key={player.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2"
+                      className="theme-neutral-button flex items-center justify-between gap-3 rounded-xl border px-3 py-2"
                     >
-                      <span className="min-w-0 truncate text-sm font-bold text-slate-100">
+                      <span className="min-w-0 truncate text-sm font-bold">
                         {player.name}
                       </span>
 
@@ -2048,7 +2053,7 @@ async function checkMatchesWithAi() {
           >
             <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
               <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+                <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
                   קבוצה ביתית
                 </label>
 
@@ -2057,7 +2062,7 @@ async function checkMatchesWithAi() {
                   value={homeTeam}
                   onChange={(event) => setHomeTeam(event.target.value)}
                   placeholder="בית"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-center text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
+                  className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
                 />
               </div>
 
@@ -2066,7 +2071,7 @@ async function checkMatchesWithAi() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+                <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
                   קבוצה אורחת
                 </label>
 
@@ -2075,13 +2080,13 @@ async function checkMatchesWithAi() {
                   value={awayTeam}
                   onChange={(event) => setAwayTeam(event.target.value)}
                   placeholder="חוץ"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-center text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
+                  className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+              <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
                 תאריך ושעה
               </label>
 
@@ -2089,31 +2094,31 @@ async function checkMatchesWithAi() {
                 type="datetime-local"
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-3 text-sm text-white outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
+                className="theme-input w-full rounded-xl border px-3 py-3 text-sm outline-none transition focus:border-green-400 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-base"
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
               {isLoading ? "מוסיף משחק..." : "הוסף משחק"}
             </button>
           </form>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
-          <div className="mb-4">
+        <div className="theme-card theme-admin-section mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+          <div className="theme-section-header mb-4">
             <h2 className="text-xl font-black sm:text-2xl">ייבוא נתונים</h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-400">
+            <p className="theme-muted mt-2 text-sm leading-6">
               בחר סוג ייבוא, הדבק רשימה בפורמט הקבוע, והמערכת תבצע רק את הפעולה
               שבחרת.
             </p>
           </div>
 
-          <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+          <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
             סוג ייבוא
           </label>
 
@@ -2123,14 +2128,14 @@ async function checkMatchesWithAi() {
               setImportMode(event.target.value as ImportMode);
               setResultPreview([]);
             }}
-            className="mb-4 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm font-bold outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
+            className="theme-input mb-4 w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
           >
             <option value="matches">ייבוא משחקים חדשים</option>
             <option value="results">עדכון תוצאות למשחקים קיימים</option>
             <option value="predictions">ייבוא ניחושים לשחקן</option>
           </select>
 
-          <div className="mb-4 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-xs leading-6 text-yellow-100">
+          <div className="theme-warning-text mb-4 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-xs leading-6">
             <p className="mb-1 font-bold">{importModeTitle}</p>
 
             {importMode === "matches" && (
@@ -2144,7 +2149,7 @@ async function checkMatchesWithAi() {
               <>
                 <p>2026-06-18 19:00 | Czechia | South Africa | 1-1</p>
                 <p>2026-06-18 22:00 | Switzerland | Bosnia and Herzegovina | 4-1</p>
-                <p className="mt-2 text-yellow-200">
+                <p className="theme-warning-text mt-2">
                   עדכון תוצאות לא מוסיף משחקים ולא דורס תוצאה קיימת.
                 </p>
               </>
@@ -2161,14 +2166,14 @@ async function checkMatchesWithAi() {
 
           {importMode === "matches" && (
             <>
-              <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-950/70 p-2">
+              <div className="theme-panel theme-admin-panel mb-5 grid grid-cols-2 gap-2 rounded-2xl p-2">
                 <button
                   type="button"
                   onClick={() => setMatchImportMethod("ai")}
                   className={`rounded-xl px-4 py-3 text-sm font-black transition ${
                     matchImportMethod === "ai"
                       ? "bg-gradient-to-r from-violet-500 to-fuchsia-700 text-white shadow-lg shadow-violet-950/40"
-                      : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      : "theme-muted hover:bg-green-500/10 hover:text-green-300"
                   }`}
                 >
                   ✨ ייבוא עם AI
@@ -2180,7 +2185,7 @@ async function checkMatchesWithAi() {
                   className={`rounded-xl px-4 py-3 text-sm font-black transition ${
                     matchImportMethod === "manual"
                       ? "bg-gradient-to-r from-blue-500 to-indigo-700 text-white shadow-lg shadow-blue-950/40"
-                      : "text-slate-400 hover:bg-white/5 hover:text-white"
+                      : "theme-muted hover:bg-green-500/10 hover:text-green-300"
                   }`}
                 >
                   ✍️ הדבקה ידנית
@@ -2188,27 +2193,27 @@ async function checkMatchesWithAi() {
               </div>
 
               {matchImportMethod === "ai" && (
-                <div className="mb-5 rounded-2xl border border-violet-500/20 bg-violet-950/20 p-4 sm:p-5">
+                <div className="theme-ai-panel mb-5 rounded-2xl border border-violet-500/20 bg-violet-950/20 p-4 sm:p-5">
                   <div className="mb-4">
-                    <h3 className="text-base font-black text-white sm:text-lg">
+                    <h3 className="text-base font-black sm:text-lg">
                       ייבוא משחקים עם AI
                     </h3>
 
-                    <p className="mt-1 text-sm leading-6 text-slate-400">
+                    <p className="theme-muted mt-1 text-sm leading-6">
                       בחר טורניר, והמערכת תביא את משחקי השלב הנבחר ל־Preview לפני אישור.
                     </p>
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="block">
-                      <span className="mb-2 block text-sm font-bold text-slate-200">
+                      <span className="theme-muted mb-2 block text-sm font-bold">
                         טורניר
                       </span>
 
                       <select
                         value={aiTournament}
                         onChange={(event) => setAiTournament(event.target.value)}
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-white outline-none transition focus:border-violet-400"
+                        className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition focus:border-violet-400"
                       >
                         <option value="מונדיאל 2026">מונדיאל 2026</option>
                         <option value="ליגת האלופות 2026/27">
@@ -2223,11 +2228,11 @@ async function checkMatchesWithAi() {
                     </label>
 
                     <div className="block">
-                      <span className="mb-2 block text-sm font-bold text-slate-200">
+                      <span className="theme-muted mb-2 block text-sm font-bold">
                         שלב נבחר
                       </span>
 
-                      <div className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-violet-200">
+                      <div className="theme-panel theme-info-text w-full rounded-xl border px-4 py-3 text-sm font-bold">
                         {selectedStage?.display_name || "לא נבחר שלב"}
                       </div>
                     </div>
@@ -2236,7 +2241,7 @@ async function checkMatchesWithAi() {
                   {aiTournament === "טורניר אחר" && (
                     <div className="mt-3">
                       <label className="block">
-                        <span className="mb-2 block text-sm font-bold text-slate-200">
+                        <span className="theme-muted mb-2 block text-sm font-bold">
                           שם הטורניר
                         </span>
 
@@ -2245,7 +2250,7 @@ async function checkMatchesWithAi() {
                           value={customAiTournament}
                           onChange={(event) => setCustomAiTournament(event.target.value)}
                           placeholder="לדוגמה: גביע אפריקה 2027"
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-white outline-none transition placeholder:text-slate-600 focus:border-violet-400"
+                          className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none transition focus:border-violet-400"
                         />
                       </label>
                     </div>
@@ -2276,14 +2281,14 @@ async function checkMatchesWithAi() {
               2026-06-12 05:00 | South Korea | Czechia | 2-1
               2026-06-17 20:00 | Portugal | DR Congo`}
                     rows={8}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                    className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
                   />
 
                   <button
                     type="button"
                     onClick={importMatchesFromText}
                     disabled={isImporting || !importText.trim()}
-                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-700 px-4 py-3 text-sm font-bold shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-purple-400 hover:to-fuchsia-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                    className="mt-4 w-full rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-purple-400 hover:to-fuchsia-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                   >
                     {isImporting ? "מייבא משחקים..." : "ייבא משחקים"}
                   </button>
@@ -2304,7 +2309,7 @@ async function checkMatchesWithAi() {
 2026-06-18 22:00 | Switzerland | Bosnia and Herzegovina | 4-1
 2026-06-19 01:00 | Canada | Qatar | 6-0`}
                 rows={8}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
               />
 
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -2316,7 +2321,7 @@ async function checkMatchesWithAi() {
                     isCheckingResults ||
                     isUpdatingResults
                   }
-                  className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-700 px-4 py-3 text-sm font-bold shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-violet-400 hover:to-purple-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                  className="w-full rounded-xl bg-gradient-to-r from-violet-500 to-purple-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-purple-950/40 transition hover:scale-[1.02] hover:from-violet-400 hover:to-purple-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
                   {isCheckingAiResults ? "מחפש תוצאות..." : "✨ בדוק תוצאות עם AI"}
                 </button>
@@ -2328,7 +2333,7 @@ async function checkMatchesWithAi() {
                     isUpdatingResults ||
                     !resultImportText.trim()
                   }
-                  className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                  className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-blue-950/40 transition hover:scale-[1.02] hover:from-blue-400 hover:to-indigo-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
                   {isCheckingResults ? "בודק תוצאות..." : "בדוק תוצאות"}
                 </button>
@@ -2340,7 +2345,7 @@ async function checkMatchesWithAi() {
                     resultPreview.filter((item) => item.status === "ready")
                       .length === 0
                   }
-                  className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                  className="w-full rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
                   {isUpdatingResults
                     ? "מעדכן תוצאות..."
@@ -2352,29 +2357,29 @@ async function checkMatchesWithAi() {
                 <div className="mt-5 space-y-2">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <div className="rounded-xl border border-green-400/20 bg-green-500/10 p-3 text-center">
-                      <p className="text-xl font-black text-green-300">
+                      <p className="theme-success-text text-xl font-black">
                         {
                           resultPreview.filter(
                             (item) => item.status === "ready"
                           ).length
                         }
                       </p>
-                      <p className="text-xs text-slate-400">מוכנים</p>
+                      <p className="theme-muted text-xs">מוכנים</p>
                     </div>
 
                     <div className="rounded-xl border border-yellow-400/20 bg-yellow-500/10 p-3 text-center">
-                      <p className="text-xl font-black text-yellow-300">
+                      <p className="theme-warning-text text-xl font-black">
                         {
                           resultPreview.filter(
                             (item) => item.status === "hasScore"
                           ).length
                         }
                       </p>
-                      <p className="text-xs text-slate-400">כבר יש תוצאה</p>
+                      <p className="theme-muted text-xs">כבר יש תוצאה</p>
                     </div>
 
                     <div className="rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-center">
-                      <p className="text-xl font-black text-red-300">
+                      <p className="theme-danger-text text-xl font-black">
                         {
                           resultPreview.filter(
                             (item) =>
@@ -2383,18 +2388,18 @@ async function checkMatchesWithAi() {
                           ).length
                         }
                       </p>
-                      <p className="text-xs text-slate-400">שגיאות</p>
+                      <p className="theme-muted text-xs">שגיאות</p>
                     </div>
 
-                    <div className="rounded-xl border border-white/10 bg-slate-950/60 p-3 text-center">
-                      <p className="text-xl font-black text-slate-200">
+                    <div className="theme-panel rounded-xl border p-3 text-center">
+                      <p className="text-xl font-black">
                         {
                           resultPreview.filter(
                             (item) => item.status === "duplicate"
                           ).length
                         }
                       </p>
-                      <p className="text-xs text-slate-400">כפולים</p>
+                      <p className="theme-muted text-xs">כפולים</p>
                     </div>
                   </div>
 
@@ -2403,10 +2408,10 @@ async function checkMatchesWithAi() {
                       key={`${item.lineNumber}-${item.rawLine}`}
                       className={`rounded-xl border p-3 text-sm ${
                         item.status === "ready"
-                          ? "border-green-400/20 bg-green-500/10 text-green-100"
+                          ? "border-green-400/20 bg-green-500/10 theme-success-text"
                           : item.status === "hasScore"
-                            ? "border-yellow-400/20 bg-yellow-500/10 text-yellow-100"
-                            : "border-red-400/20 bg-red-500/10 text-red-100"
+                            ? "border-yellow-400/20 bg-yellow-500/10 theme-warning-text"
+                            : "border-red-400/20 bg-red-500/10 theme-danger-text"
                       }`}
                     >
                       <p className="font-bold">
@@ -2431,14 +2436,14 @@ async function checkMatchesWithAi() {
 
           {importMode === "predictions" && (
             <>
-              <label className="mb-2 block text-xs font-semibold text-slate-300 sm:text-sm">
+              <label className="theme-muted mb-2 block text-xs font-semibold sm:text-sm">
                 בחר שחקן
               </label>
 
               <select
                 value={predictionPlayerId}
                 onChange={(event) => setPredictionPlayerId(event.target.value)}
-                className="mb-4 w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
+                className="theme-input mb-4 w-full rounded-xl border px-4 py-3 text-sm outline-none focus:border-green-400 sm:rounded-2xl sm:py-4 sm:text-base"
               >
                 <option value="">בחר שחקן</option>
 
@@ -2456,7 +2461,7 @@ async function checkMatchesWithAi() {
 2026-06-12 19:00 | Argentina | Spain | X
 2026-06-12 22:00 | France | Germany | 2`}
                 rows={8}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+                className="theme-input w-full rounded-2xl border px-4 py-4 text-sm outline-none transition focus:border-green-400"
               />
 
               <button
@@ -2467,7 +2472,7 @@ async function checkMatchesWithAi() {
                   !predictionImportText.trim() ||
                   !predictionPlayerId
                 }
-                className="mt-4 w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-700 px-4 py-3 text-sm font-bold shadow-lg shadow-red-950/40 transition hover:scale-[1.02] hover:from-orange-400 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                className="mt-4 w-full rounded-xl bg-gradient-to-r from-orange-500 to-red-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-red-950/40 transition hover:scale-[1.02] hover:from-orange-400 hover:to-red-600 disabled:opacity-50 disabled:hover:scale-100 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
               >
                 {isImportingPredictions
                   ? "מייבא ניחושים..."
@@ -2477,12 +2482,12 @@ async function checkMatchesWithAi() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
-          <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5">
+        <div className="theme-card theme-admin-section rounded-2xl border p-4 backdrop-blur-xl sm:rounded-3xl sm:p-6">
+          <div className="theme-section-header mb-4 flex items-center justify-between gap-3 sm:mb-5">
             <div>
               <h2 className="text-xl font-black sm:text-2xl">ניהול משחקים</h2>
 
-              <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+              <p className="theme-muted mt-1 text-xs sm:text-sm">
                 {showAllAdminMatches
                   ? "מציג את כל המשחקים בליגה"
                   : pastMatchesWithoutScore.length > 0
@@ -2491,7 +2496,7 @@ async function checkMatchesWithAi() {
               </p>
             </div>
 
-            <span className="shrink-0 rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
+            <span className="theme-panel theme-muted shrink-0 rounded-full border px-3 py-1 text-[11px] sm:px-4 sm:py-2 sm:text-xs">
               {showAllAdminMatches
                 ? `${matches.length} משחקים`
                 : pastMatchesWithoutScore.length > 0
@@ -2507,7 +2512,7 @@ async function checkMatchesWithAi() {
               className={`rounded-xl px-4 py-3 text-sm font-bold transition sm:rounded-2xl ${
                 !showAllAdminMatches
                   ? "bg-gradient-to-r from-green-500 to-emerald-700 text-white shadow-lg shadow-green-950/40"
-                  : "border border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
+                  : "theme-neutral-button border"
               }`}
             >
               משחקים שצריכים עדכון
@@ -2519,7 +2524,7 @@ async function checkMatchesWithAi() {
               className={`rounded-xl px-4 py-3 text-sm font-bold transition sm:rounded-2xl ${
                 showAllAdminMatches
                   ? "bg-gradient-to-r from-blue-500 to-indigo-700 text-white shadow-lg shadow-blue-950/40"
-                  : "border border-white/10 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
+                  : "theme-neutral-button border"
               }`}
             >
               כל המשחקים
@@ -2527,16 +2532,16 @@ async function checkMatchesWithAi() {
           </div>
 
           {isLoadingStage ? (
-            <p className="text-sm text-slate-400">טוען משחקים לשלב...</p>
+            <p className="theme-muted text-sm">טוען משחקים לשלב...</p>
           ) : matches.length === 0 ? (
-            <p className="text-sm text-slate-400">עדיין אין משחקים לעדכן.</p>
+            <p className="theme-muted text-sm">עדיין אין משחקים לעדכן.</p>
           ) : !showAllAdminMatches && priorityMatchesWithoutScore.length === 0 ? (
             <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-5 text-center">
               <p className="text-2xl">✅</p>
               <p className="mt-2 text-sm font-bold text-green-300">
                 אין כרגע משחקים שממתינים לעדכון תוצאה
               </p>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="theme-muted mt-1 text-xs">
                 אפשר ללחוץ על “כל המשחקים” כדי לערוך משחקים עתידיים או קיימים.
               </p>
             </div>
@@ -2558,7 +2563,7 @@ async function checkMatchesWithAi() {
                 <button
                   type="button"
                   onClick={() => setShowAllAdminMatches(true)}
-                  className="mt-4 w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:rounded-2xl"
+                  className="theme-neutral-button mt-4 w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:rounded-2xl"
                 >
                   הצג את כל המשחקים
                 </button>
@@ -2569,7 +2574,7 @@ async function checkMatchesWithAi() {
 
         <Link
           href={`/league/${code}`}
-          className="mt-5 block text-center text-xs text-slate-400 hover:text-white sm:mt-6 sm:text-sm"
+          className="theme-muted mt-5 block text-center text-xs hover:text-green-300 sm:mt-6 sm:text-sm"
         >
           חזור לעמוד הליגה
         </Link>
@@ -2612,7 +2617,7 @@ function MatchAdminCard({
   const isFinished = match.status === "finished";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-3 sm:rounded-3xl sm:p-4">
+    <div className="theme-panel theme-admin-panel rounded-2xl border p-3 sm:rounded-3xl sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
         <span
           className={`rounded-full px-2 py-1 text-[11px] font-bold sm:px-3 sm:text-xs ${
@@ -2624,8 +2629,8 @@ function MatchAdminCard({
           {isFinished ? "הסתיים" : "טרם שוחק"}
         </span>
 
-        <div className="min-w-16 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
-          <p className="text-[10px] text-slate-500 sm:text-xs">תוצאה</p>
+        <div className="theme-panel theme-team-tile min-w-16 rounded-xl border px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
+          <p className="theme-muted text-[10px] sm:text-xs">תוצאה</p>
           <p className="text-lg font-black sm:text-xl">
             {isFinished ? `${match.home_score} - ${match.away_score}` : "-"}
           </p>
@@ -2635,8 +2640,8 @@ function MatchAdminCard({
       {!isEditing ? (
         <>
           <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3">
-            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
-              <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+              <p className="theme-muted mb-1 text-[10px] sm:text-xs">
                 בית
               </p>
               <p className="truncate text-base font-black sm:text-2xl">
@@ -2648,8 +2653,8 @@ function MatchAdminCard({
               נגד
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
-              <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+            <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+              <p className="theme-muted mb-1 text-[10px] sm:text-xs">
                 חוץ
               </p>
               <p className="truncate text-base font-black sm:text-2xl">
@@ -2658,7 +2663,7 @@ function MatchAdminCard({
             </div>
           </div>
 
-          <p className="mb-3 text-center text-xs text-slate-400 sm:mb-4 sm:text-sm">
+          <p className="theme-muted mb-3 text-center text-xs sm:mb-4 sm:text-sm">
             {new Date(match.start_time).toLocaleString("he-IL")}
           </p>
         </>
@@ -2666,14 +2671,14 @@ function MatchAdminCard({
         <div className="mb-3 space-y-3 sm:mb-4">
           <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2 sm:gap-3">
             <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
+              <label className="theme-muted mb-1 block text-[11px]">
                 בית
               </label>
               <input
                 type="text"
                 value={editHomeTeam}
                 onChange={(event) => setEditHomeTeam(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
+                className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
               />
             </div>
 
@@ -2682,27 +2687,27 @@ function MatchAdminCard({
             </div>
 
             <div>
-              <label className="mb-1 block text-[11px] text-slate-400">
+              <label className="theme-muted mb-1 block text-[11px]">
                 חוץ
               </label>
               <input
                 type="text"
                 value={editAwayTeam}
                 onChange={(event) => setEditAwayTeam(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
+                className="theme-input w-full rounded-xl border px-3 py-3 text-center text-sm font-bold outline-none focus:border-green-400 sm:text-base"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-[11px] text-slate-400">
+            <label className="theme-muted mb-1 block text-[11px]">
               תאריך ושעה
             </label>
             <input
               type="datetime-local"
               value={editStartTime}
               onChange={(event) => setEditStartTime(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm outline-none focus:border-green-400 sm:text-base"
+              className="theme-input w-full rounded-xl border px-3 py-3 text-sm outline-none focus:border-green-400 sm:text-base"
             />
           </div>
 
@@ -2718,7 +2723,7 @@ function MatchAdminCard({
                 );
                 setIsEditing(false);
               }}
-              className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
+              className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
             >
               שמור עריכה
             </button>
@@ -2731,7 +2736,7 @@ function MatchAdminCard({
                 setEditStartTime(formatDateTimeForInput(match.start_time));
                 setIsEditing(false);
               }}
-              className="rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm font-bold transition hover:bg-slate-800"
+              className="theme-neutral-button rounded-xl border px-4 py-3 text-sm font-bold transition"
             >
               ביטול
             </button>
@@ -2746,7 +2751,7 @@ function MatchAdminCard({
           value={homeScore}
           onChange={(event) => setHomeScore(event.target.value)}
           placeholder="בית"
-          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
+          className="theme-input w-full rounded-xl border px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
 
         <input
@@ -2755,7 +2760,7 @@ function MatchAdminCard({
           value={awayScore}
           onChange={(event) => setAwayScore(event.target.value)}
           placeholder="חוץ"
-          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
+          className="theme-input w-full rounded-xl border px-3 py-3 text-center text-lg font-black outline-none transition focus:border-green-400 sm:text-xl"
         />
       </div>
 
@@ -2763,7 +2768,7 @@ function MatchAdminCard({
         <button
           type="button"
           onClick={() => onUpdateScore(match.id, homeScore, awayScore)}
-          className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
+          className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-green-950/40 transition hover:scale-[1.02]"
         >
           עדכן תוצאה
         </button>
@@ -2771,7 +2776,7 @@ function MatchAdminCard({
         <button
           type="button"
           onClick={() => setIsEditing((current) => !current)}
-          className="rounded-xl border border-white/10 bg-blue-600/80 px-4 py-3 text-sm font-bold transition hover:bg-blue-600"
+          className="rounded-xl border border-white/10 bg-blue-600/80 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-600"
         >
           {isEditing ? "סגור עריכה" : "ערוך משחק"}
         </button>

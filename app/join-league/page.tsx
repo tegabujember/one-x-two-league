@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabaseBrowser";
 import UserMenu from "@/components/auth/UserMenu";
+import AuthToast from "@/components/auth/AuthToast";
 
 type Player = {
   id: string;
@@ -82,6 +83,8 @@ export default function JoinLeaguePage() {
     if (codeFromUrl) {
       const cleanCode = getCleanLeagueCode(codeFromUrl);
 
+      // This intentionally mirrors the original immediate URL-code hydration.
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (cleanCode) {
         setLeagueCode(cleanCode);
       } else {
@@ -92,6 +95,7 @@ export default function JoinLeaguePage() {
           "קישור ההזמנה לא תקין. צריך להשתמש בקוד ליגה קצר, לדוגמה UL9D3."
         );
       }
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
 
     async function loadUser() {
@@ -292,7 +296,7 @@ export default function JoinLeaguePage() {
   )}`;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+    <main className="theme-entry-page theme-page min-h-screen overflow-hidden relative flex items-center justify-center px-4 py-10">
       {userEmail && (
         <UserMenu
           email={userEmail}
@@ -306,26 +310,10 @@ export default function JoinLeaguePage() {
           }}
         />
       )}
-      {toast && (
-        <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
-          <div
-            className={`rounded-2xl border px-4 py-3 text-center text-sm font-bold shadow-2xl backdrop-blur-xl ${
-              toast.type === "success"
-                ? "border-green-400/30 bg-green-500/20 text-green-100"
-                : toast.type === "error"
-                  ? "border-red-400/30 bg-red-500/20 text-red-100"
-                  : toast.type === "warning"
-                    ? "border-yellow-400/30 bg-yellow-500/20 text-yellow-100"
-                    : "border-blue-400/30 bg-blue-500/20 text-blue-100"
-            }`}
-          >
-            {toast.message}
-          </div>
-        </div>
-      )}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
-      <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
-      <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
+      <AuthToast toast={toast} />
+      <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.24),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.22),_transparent_35%)]" />
+      <div className="theme-entry-decoration absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
+      <div className="theme-entry-decoration absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-6 text-center">
@@ -333,41 +321,41 @@ export default function JoinLeaguePage() {
             <span className="text-4xl">⚽</span>
           </div>
 
-          <p className="text-sm font-semibold tracking-[0.35em] text-green-300">
+          <p className="theme-brand-accent theme-entry-kicker text-sm font-semibold tracking-[0.35em]">
             JOIN LEAGUE
           </p>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="theme-card theme-entry-card rounded-3xl border p-6 backdrop-blur-xl">
           <h1 className="text-center text-3xl font-black tracking-tight">
             הצטרף לליגה
           </h1>
 
-          <p className="mt-3 text-center text-sm leading-6 text-slate-400">
+          <p className="theme-muted mt-3 text-center text-sm leading-6">
             הכנס שם שחקן וקוד ליגה, ותוכל להתחיל לשלוח ניחושים.
           </p>
 
           {isCheckingUser ? (
-            <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-4 text-center">
-              <p className="text-sm text-slate-300">בודק התחברות...</p>
+            <div className="theme-panel theme-entry-panel mt-6 rounded-2xl border p-4 text-center">
+              <p className="theme-muted text-sm">בודק התחברות...</p>
             </div>
           ) : userId ? (
-            <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-              <p className="text-xs text-slate-400">מחובר למערכת</p>
-              <p className="mt-1 break-all text-sm font-bold text-green-300">
+            <div className="theme-feedback theme-feedback-success mt-6 rounded-2xl border p-4 text-center">
+              <p className="theme-muted text-xs">מחובר למערכת</p>
+              <p className="mt-1 break-all text-sm font-bold">
                 {userEmail}
               </p>
             </div>
           ) : (
-            <div className="mt-6 rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-center">
-              <p className="text-sm text-red-200">
+            <div className="theme-feedback theme-feedback-auth-required mt-6 rounded-2xl border p-4 text-center">
+              <p className="text-sm">
                 כדי להצטרף לליגה צריך להתחבר או להירשם.
               </p>
 
               <Link
                 href={loginHref}
                 onClick={saveRedirectBeforeLogin}
-                className="mt-4 block rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
+                className="theme-login-cta mt-4 block rounded-xl border bg-white px-4 py-3 text-sm font-bold text-slate-950 transition hover:scale-[1.02]"
               >
                 התחבר / הירשם
               </Link>
@@ -375,8 +363,14 @@ export default function JoinLeaguePage() {
           )}
 
           {autoLoginMessage && (
-            <div className="mt-6 rounded-2xl border border-blue-400/20 bg-blue-500/10 p-4 text-center">
-              <p className="text-sm font-semibold text-blue-100">
+            <div
+              className={`theme-feedback mt-6 rounded-2xl border p-4 text-center ${
+                leagueCode
+                  ? "theme-feedback-info"
+                  : "theme-feedback-invalid-invite"
+              }`}
+            >
+              <p className="text-sm font-semibold">
                 {autoLoginMessage}
               </p>
             </div>
@@ -386,7 +380,7 @@ export default function JoinLeaguePage() {
             <>
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  <label className="theme-muted mb-2 block text-sm font-semibold">
                     השם שלך
                   </label>
 
@@ -396,12 +390,12 @@ export default function JoinLeaguePage() {
                     onChange={(event) => setPlayerName(event.target.value)}
                     placeholder="לדוגמה: Tegabu"
                     disabled={isFormDisabled}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-white outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                    className="theme-disabled-control theme-input w-full rounded-2xl border px-4 py-4 outline-none transition focus:border-green-400"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  <label className="theme-muted mb-2 block text-sm font-semibold">
                     קוד ליגה
                   </label>
 
@@ -411,14 +405,14 @@ export default function JoinLeaguePage() {
                     onChange={(event) => setLeagueCode(event.target.value.trim())}
                     placeholder="לדוגמה: AB72K"
                     disabled={isFormDisabled}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-center text-xl font-black tracking-widest text-green-300 outline-none transition placeholder:text-slate-600 focus:border-green-400 disabled:opacity-50"
+                    className="theme-disabled-control theme-input theme-league-code w-full rounded-2xl border px-4 py-4 text-center text-xl font-black tracking-widest outline-none transition focus:border-green-400"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isFormDisabled}
-                  className="w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
+                  className="theme-disabled-control w-full rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:hover:scale-100"
                 >
                   {isCheckingExistingPlayer
                     ? "בודק שחקן קיים..."
@@ -429,9 +423,9 @@ export default function JoinLeaguePage() {
               </form>
 
               {leagueCode && (
-                <div className="mt-6 rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-                  <p className="text-xs text-slate-400 mb-1">אתה מצטרף לליגה</p>
-                  <p className="break-words text-2xl font-black tracking-widest text-green-300">
+                <div className="theme-feedback theme-feedback-success mt-6 rounded-2xl border p-4 text-center">
+                  <p className="theme-muted text-xs mb-1">אתה מצטרף לליגה</p>
+                  <p className="theme-league-code break-words text-2xl font-black tracking-widest">
                     {leagueCode}
                   </p>
                 </div>
@@ -439,8 +433,8 @@ export default function JoinLeaguePage() {
             </>
           )}
 
-          <div className="mt-6 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4">
-            <p className="text-sm leading-6 text-yellow-100">
+          <div className="theme-feedback theme-feedback-warning mt-6 rounded-2xl border p-4">
+            <p className="text-sm leading-6">
              אם כבר הצטרפת בעבר עם החשבון הזה, נחבר אותך אוטומטית
 לשחקן הקיים שלך.
             </p>
@@ -448,7 +442,7 @@ export default function JoinLeaguePage() {
 
           <Link
             href="/"
-            className="mt-6 block text-center text-sm text-slate-400 hover:text-white"
+            className="theme-accent-link theme-muted mt-6 block text-center text-sm"
           >
             חזור לדף הבית
           </Link>

@@ -32,7 +32,7 @@ export default function GoogleLoginButton({
     <button
       type="button"
       onClick={signInWithGoogle}
-      className="w-full rounded-2xl bg-white px-5 py-4 font-bold text-slate-950 transition hover:scale-[1.02]"
+      className="theme-auth-provider-button w-full rounded-2xl border bg-white px-5 py-4 font-bold text-slate-950 transition hover:scale-[1.02]"
     >
       התחבר / הירשם עם Google
     </button>
