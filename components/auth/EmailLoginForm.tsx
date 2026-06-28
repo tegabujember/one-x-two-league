@@ -201,7 +201,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
       }}
     >
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-300">
+        <label className="theme-muted mb-2 block text-sm font-semibold">
           אימייל
         </label>
 
@@ -212,12 +212,12 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           onChange={(event) => setEmail(event.target.value)}
           placeholder="name@example.com"
           autoComplete="email"
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-left text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+          className="theme-input w-full rounded-2xl border px-4 py-4 text-left outline-none transition focus:border-green-400"
         />
       </div>
 
       <div>
-        <label className="mb-2 block text-sm font-semibold text-slate-300">
+        <label className="theme-muted mb-2 block text-sm font-semibold">
           סיסמה
         </label>
 
@@ -228,7 +228,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           onChange={(event) => setPassword(event.target.value)}
           placeholder="לפחות 6 תווים"
           autoComplete="current-password"
-          className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-4 text-left text-white outline-none transition placeholder:text-slate-600 focus:border-green-400"
+          className="theme-input w-full rounded-2xl border px-4 py-4 text-left outline-none transition focus:border-green-400"
         />
       </div>
 
@@ -236,7 +236,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:opacity-50 disabled:hover:scale-100"
+          className="theme-disabled-control rounded-2xl bg-gradient-to-r from-green-500 to-emerald-700 px-5 py-4 font-bold shadow-lg shadow-green-950/40 transition hover:scale-[1.02] hover:from-green-400 hover:to-emerald-600 disabled:hover:scale-100"
         >
           {loadingAction === "login" ? "מתחבר..." : "התחבר"}
         </button>
@@ -245,7 +245,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
           type="button"
           onClick={handleSignup}
           disabled={isLoading}
-          className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 font-bold text-white transition hover:scale-[1.02] hover:bg-white/15 disabled:opacity-50 disabled:hover:scale-100"
+          className="theme-disabled-control theme-neutral-button rounded-2xl border px-5 py-4 font-bold transition hover:scale-[1.02] disabled:hover:scale-100"
         >
           {loadingAction === "signup" ? "נרשם..." : "הרשמה"}
         </button>
@@ -255,7 +255,7 @@ export default function EmailLoginForm({ showToast }: EmailLoginFormProps) {
         type="button"
         onClick={handleForgotPassword}
         disabled={isLoading}
-        className="w-full text-center text-sm font-bold text-slate-400 transition hover:text-white disabled:opacity-50"
+        className="theme-accent-link theme-disabled-control theme-muted w-full text-center text-sm font-bold transition"
       >
         {loadingAction === "forgot" ? "שולח מייל..." : "שכחתי סיסמה"}
       </button>

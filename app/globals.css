@@ -1,21 +1,121 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;
+  --foreground: #f8fafc;
+  --surface: #0f172a;
+  --surface-muted: #111827;
+  --surface-glass: rgba(255, 255, 255, 0.1);
+  --surface-subtle: rgba(2, 6, 23, 0.6);
+  --surface-popover: rgba(2, 6, 23, 0.95);
+  --input-background: rgba(2, 6, 23, 0.7);
+  --neutral-button-background: rgba(15, 23, 42, 0.8);
+  --neutral-button-hover: #1e293b;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --muted-foreground: #94a3b8;
+  --placeholder-foreground: #475569;
+  --league-code-accent: #86efac;
+  --success-text: #86efac;
+  --warning-text: #fde68a;
+  --danger-text: #fca5a5;
+  --info-text: #93c5fd;
+  --shadow-strong: rgba(0, 0, 0, 0.4);
+  --card-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  --popover-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  --score-emphasis: #86efac;
+  --pick-count-text: #a5f3fc;
+}
+
+:root[data-theme="dark"] {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --surface: #0f172a;
+  --surface-muted: #111827;
+  --surface-glass: rgba(255, 255, 255, 0.1);
+  --surface-subtle: rgba(2, 6, 23, 0.6);
+  --surface-popover: rgba(2, 6, 23, 0.95);
+  --input-background: rgba(2, 6, 23, 0.7);
+  --neutral-button-background: rgba(15, 23, 42, 0.8);
+  --neutral-button-hover: #1e293b;
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --muted-foreground: #94a3b8;
+  --placeholder-foreground: #475569;
+  --league-code-accent: #86efac;
+  --success-text: #86efac;
+  --warning-text: #fde68a;
+  --danger-text: #fca5a5;
+  --info-text: #93c5fd;
+  --shadow-strong: rgba(0, 0, 0, 0.4);
+  --card-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  --popover-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  --score-emphasis: #86efac;
+  --pick-count-text: #a5f3fc;
+}
+
+:root[data-theme="light"] {
+  --background: #e5f1f8;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #e3edf6;
+  --surface-glass: rgba(248, 252, 255, 0.48);
+  --surface-subtle: rgba(239, 246, 255, 0.78);
+  --surface-popover: rgba(248, 252, 255, 0.94);
+  --input-background: rgba(255, 255, 255, 0.98);
+  --neutral-button-background: rgba(248, 250, 252, 0.96);
+  --neutral-button-hover: #eaf0f7;
+  --border-subtle: rgba(15, 23, 42, 0.14);
+  --muted-foreground: #475569;
+  --placeholder-foreground: #64748b;
+  --league-code-accent: #047857;
+  --success-text: #047857;
+  --warning-text: #92400e;
+  --danger-text: #b91c1c;
+  --info-text: #1d4ed8;
+  --shadow-strong: rgba(15, 23, 42, 0.1);
+  --card-shadow:
+    0 18px 50px rgba(15, 23, 42, 0.08), 0 2px 10px rgba(15, 23, 42, 0.04);
+  --popover-shadow:
+    0 18px 40px rgba(15, 23, 42, 0.1), 0 2px 10px rgba(15, 23, 42, 0.04);
+  --score-emphasis: #047857;
+  --pick-count-text: #0369a1;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-muted-foreground: var(--muted-foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme]) {
+    --background: #020617;
+    --foreground: #f8fafc;
+    --surface: #0f172a;
+    --surface-muted: #111827;
+    --surface-glass: rgba(255, 255, 255, 0.1);
+    --surface-subtle: rgba(2, 6, 23, 0.6);
+    --surface-popover: rgba(2, 6, 23, 0.95);
+    --input-background: rgba(2, 6, 23, 0.7);
+    --neutral-button-background: rgba(15, 23, 42, 0.8);
+    --neutral-button-hover: #1e293b;
+    --border-subtle: rgba(255, 255, 255, 0.1);
+    --muted-foreground: #94a3b8;
+    --placeholder-foreground: #475569;
+    --league-code-accent: #86efac;
+    --success-text: #86efac;
+    --warning-text: #fde68a;
+    --danger-text: #fca5a5;
+    --info-text: #93c5fd;
+    --shadow-strong: rgba(0, 0, 0, 0.4);
+    --card-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+    --popover-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+    --score-emphasis: #86efac;
+    --pick-count-text: #a5f3fc;
   }
 }
 
@@ -23,4 +123,1014 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.theme-page {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+:root[data-theme="dark"] .theme-league-page {
+  background: transparent;
+}
+
+:root[data-theme="dark"] .theme-entry-page {
+  background: transparent;
+  isolation: isolate;
+}
+
+:root[data-theme="dark"] .theme-entry-page::before {
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(2, 6, 23, 0.08) 0%,
+      rgba(2, 6, 23, 0.16) 52%,
+      rgba(2, 6, 23, 0.32) 100%
+    ),
+    url("/world-cup-2026-stadium-background.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
+}
+
+:root[data-theme="dark"] .theme-admin-page {
+  background: transparent;
+  isolation: isolate;
+}
+
+:root[data-theme="dark"] .theme-admin-page::before {
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(2, 6, 23, 0.08) 0%,
+      rgba(2, 6, 23, 0.16) 52%,
+      rgba(2, 6, 23, 0.32) 100%
+    ),
+    url("/world-cup-2026-stadium-background.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: fixed;
+  z-index: -1;
+}
+
+:root[data-theme="dark"]
+  .theme-entry-card:has(.theme-feedback-warning) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-card {
+  background: var(--surface-glass);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+  box-shadow: var(--card-shadow);
+}
+
+.theme-panel {
+  background: var(--surface-subtle);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+}
+
+.theme-popover {
+  background: var(--surface-popover);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+  box-shadow: var(--popover-shadow);
+}
+
+.theme-input {
+  background: var(--input-background);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+}
+
+.theme-input::placeholder {
+  color: var(--placeholder-foreground);
+}
+
+.theme-feedback {
+  border-style: solid;
+}
+
+.theme-feedback-success {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+  color: #86efac;
+}
+
+.theme-feedback-warning {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(250, 204, 21, 0.2);
+  color: #fef9c3;
+}
+
+.theme-feedback-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+.theme-feedback-info {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(96, 165, 250, 0.2);
+  color: #dbeafe;
+}
+
+.theme-feedback-helper {
+  background: var(--surface-subtle);
+  border-color: var(--border-subtle);
+  color: var(--muted-foreground);
+}
+
+.theme-feedback-toast.theme-feedback-success {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: #dcfce7;
+}
+
+.theme-feedback-toast.theme-feedback-warning {
+  background: rgba(234, 179, 8, 0.2);
+  border-color: rgba(250, 204, 21, 0.3);
+  color: #fef9c3;
+}
+
+.theme-feedback-toast.theme-feedback-error {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: #fee2e2;
+}
+
+.theme-feedback-toast.theme-feedback-info {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(96, 165, 250, 0.3);
+  color: #dbeafe;
+}
+
+.theme-feedback-auth-required {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+.theme-feedback-invalid-invite {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(96, 165, 250, 0.2);
+  color: #dbeafe;
+}
+
+.theme-feedback-confirm {
+  color: #fee2e2;
+}
+
+.theme-feedback-install {
+  background: var(--surface-subtle);
+  border-color: var(--border-subtle);
+  color: var(--muted-foreground);
+}
+
+.theme-install-heading {
+  color: #86efac;
+}
+
+.theme-brand-accent {
+  color: #86efac;
+}
+
+.theme-accent-link:hover {
+  color: #86efac;
+}
+
+.theme-home-pick-home {
+  color: #86efac;
+}
+
+.theme-home-pick-draw {
+  color: #fde047;
+}
+
+.theme-home-pick-away {
+  color: #93c5fd;
+}
+
+.theme-auth-provider-button,
+.theme-login-cta {
+  border-color: transparent;
+  border-width: 0;
+}
+
+.theme-disabled-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.theme-neutral-button {
+  background: var(--neutral-button-background);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+}
+
+.theme-neutral-button:hover {
+  background: var(--neutral-button-hover);
+}
+
+.theme-muted {
+  color: var(--muted-foreground);
+}
+
+.theme-text {
+  color: var(--foreground);
+}
+
+.theme-league-code {
+  color: var(--league-code-accent);
+}
+
+.theme-success-text {
+  color: var(--success-text);
+}
+
+.theme-warning-text {
+  color: var(--warning-text);
+}
+
+.theme-warning-accent-text {
+  color: #fde047;
+}
+
+.theme-danger-text {
+  color: var(--danger-text);
+}
+
+.theme-info-text {
+  color: var(--info-text);
+}
+
+.theme-score-text {
+  color: var(--score-emphasis);
+}
+
+.theme-pick-count-text {
+  color: var(--pick-count-text);
+}
+
+.theme-status-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.theme-status-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.theme-status-result {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+}
+
+.theme-status-danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.theme-status-warning {
+  background: rgba(250, 204, 21, 0.1);
+  border-color: rgba(253, 224, 71, 0.2);
+  color: #fde047;
+}
+
+.theme-helper-note {
+  color: var(--muted-foreground);
+}
+
+.theme-helper-danger {
+  color: #fca5a5;
+}
+
+.theme-helper-info {
+  color: var(--muted-foreground);
+}
+
+.theme-stadium-background {
+  background-image: url("/world-cup-2026-stadium-background.jpg");
+  opacity: 1;
+}
+
+.theme-stadium-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(2, 6, 23, 0.02) 0%,
+    rgba(2, 6, 23, 0.08) 45%,
+    rgba(2, 6, 23, 0.2) 100%
+  );
+}
+
+:root[data-theme="light"] .theme-stadium-background {
+  background-image: url("/day-stadium-background.jpg");
+  opacity: 1;
+  filter: blur(2px) saturate(1.03) contrast(0.98) brightness(1.01);
+  transform: scale(1.01);
+}
+
+:root[data-theme="light"] .theme-stadium-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(224, 242, 254, 0.14) 0%,
+    rgba(248, 250, 252, 0.2) 52%,
+    rgba(220, 252, 231, 0.14) 100%
+  );
+}
+
+:root[data-theme="light"] .theme-card {
+  -webkit-backdrop-filter: blur(12px) saturate(1.06);
+  backdrop-filter: blur(12px) saturate(1.06);
+  border-color: rgba(100, 116, 139, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 20px 56px rgba(30, 64, 175, 0.1),
+    0 4px 14px rgba(15, 23, 42, 0.06);
+}
+
+.theme-rank-compact {
+  background: var(--surface-subtle);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+}
+
+.theme-rank-compact-current {
+  border-color: rgba(34, 197, 94, 0.4);
+  box-shadow: 0 0 14px rgba(34, 197, 94, 0.08);
+}
+
+.theme-rank-number {
+  background: var(--surface-muted);
+  border-color: var(--border-subtle);
+  color: var(--foreground);
+}
+
+.theme-rank-divider {
+  background: var(--border-subtle);
+}
+
+.theme-rank-podium-first {
+  background:
+    radial-gradient(
+      circle at 16% 50%,
+      rgba(250, 204, 21, 0.24),
+      transparent 30%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(120, 83, 10, 0.3),
+      rgba(18, 24, 38, 0.72) 48%,
+      rgba(2, 6, 23, 0.88)
+    );
+  border-color: rgba(253, 224, 71, 0.75);
+  box-shadow: 0 0 24px rgba(250, 204, 21, 0.16);
+  color: #f8fafc;
+}
+
+.theme-rank-podium-second {
+  background:
+    radial-gradient(
+      circle at 16% 50%,
+      rgba(226, 232, 240, 0.16),
+      transparent 28%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(71, 85, 105, 0.38),
+      rgba(20, 29, 45, 0.78) 48%,
+      rgba(2, 6, 23, 0.88)
+    );
+  border-color: rgba(226, 232, 240, 0.55);
+  box-shadow: 0 0 18px rgba(226, 232, 240, 0.08);
+  color: #f8fafc;
+}
+
+.theme-rank-podium-third {
+  background:
+    radial-gradient(
+      circle at 12% 50%,
+      rgba(251, 146, 60, 0.18),
+      transparent 22%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(124, 45, 18, 0.34),
+      rgba(16, 24, 38, 0.8) 44%,
+      rgba(2, 6, 23, 0.94)
+    );
+  border-color: rgba(253, 186, 116, 0.5);
+  box-shadow: 0 0 16px rgba(251, 146, 60, 0.08);
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .theme-rank-podium-first {
+  background:
+    radial-gradient(
+      circle at 16% 50%,
+      rgba(250, 204, 21, 0.22),
+      transparent 30%
+    ),
+    linear-gradient(90deg, rgba(254, 249, 195, 0.95), rgba(255, 255, 255, 0.96));
+  border-color: rgba(202, 138, 4, 0.42);
+  box-shadow: 0 12px 30px rgba(202, 138, 4, 0.12);
+  color: var(--foreground);
+}
+
+:root[data-theme="light"] .theme-rank-podium-second {
+  background:
+    radial-gradient(
+      circle at 16% 50%,
+      rgba(148, 163, 184, 0.18),
+      transparent 28%
+    ),
+    linear-gradient(90deg, rgba(241, 245, 249, 0.98), rgba(255, 255, 255, 0.96));
+  border-color: rgba(100, 116, 139, 0.32);
+  box-shadow: 0 10px 26px rgba(100, 116, 139, 0.1);
+  color: var(--foreground);
+}
+
+:root[data-theme="light"] .theme-rank-podium-third {
+  background:
+    radial-gradient(
+      circle at 12% 50%,
+      rgba(251, 146, 60, 0.18),
+      transparent 22%
+    ),
+    linear-gradient(90deg, rgba(255, 237, 213, 0.96), rgba(255, 255, 255, 0.96));
+  border-color: rgba(234, 88, 12, 0.34);
+  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.1);
+  color: var(--foreground);
+}
+
+:root[data-theme="light"] .theme-rank-compact {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(239, 246, 255, 0.7)
+  );
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+
+:root[data-theme="light"] .theme-rank-compact-current {
+  background: linear-gradient(
+    90deg,
+    rgba(236, 253, 245, 0.98),
+    rgba(255, 255, 255, 0.96)
+  );
+  border-color: rgba(5, 150, 105, 0.34);
+  box-shadow: 0 10px 26px rgba(5, 150, 105, 0.1);
+}
+
+:root[data-theme="light"] .theme-rank-number {
+  background: #e2e8f0;
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .theme-rank-divider {
+  background: rgba(15, 23, 42, 0.14);
+}
+
+:root[data-theme="light"] .theme-section-header {
+  background: linear-gradient(
+    90deg,
+    rgba(236, 254, 255, 0.9),
+    rgba(239, 246, 255, 0.95),
+    rgba(245, 243, 255, 0.88)
+  );
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  border-radius: 1rem;
+  border-color: rgba(59, 130, 246, 0.14);
+  color: #0f172a;
+  padding: 0.625rem 0.75rem;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+:root[data-theme="light"] .theme-warning-accent-text {
+  color: var(--warning-text);
+}
+
+:root[data-theme="light"] .theme-input {
+  border-color: #cbd5e1;
+}
+
+:root[data-theme="light"] .theme-input:focus,
+:root[data-theme="light"] .theme-input:focus-visible {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+}
+
+:root[data-theme="light"] .theme-feedback-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+:root[data-theme="light"] .theme-feedback-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #78350f;
+}
+
+:root[data-theme="light"] .theme-feedback-error {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+:root[data-theme="light"] .theme-feedback-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+:root[data-theme="light"] .theme-feedback-helper {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+:root[data-theme="light"] .theme-feedback-toast.theme-feedback-success {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+
+:root[data-theme="light"] .theme-feedback-error,
+:root[data-theme="light"] .theme-feedback-confirm,
+:root[data-theme="light"] .theme-feedback-auth-required {
+  background: rgba(255, 241, 242, 0.92) !important;
+  border-color: rgba(244, 63, 94, 0.55) !important;
+  color: #be123c !important;
+  font-weight: 700;
+}
+
+:root[data-theme="light"] .theme-feedback-toast.theme-feedback-error,
+:root[data-theme="light"] .theme-feedback-invalid-invite,
+:root[data-theme="light"] .theme-feedback-confirm {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+:root[data-theme="light"] .theme-feedback-toast.theme-feedback-info,
+:root[data-theme="light"] .theme-feedback-install {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+:root[data-theme="light"] .theme-install-heading {
+  color: #1e3a8a;
+}
+
+:root[data-theme="light"] .theme-brand-accent,
+:root[data-theme="light"] .theme-home-pick-home {
+  color: #047857;
+}
+
+:root[data-theme="light"] .theme-accent-link:hover {
+  color: #047857;
+}
+
+:root[data-theme="light"] .theme-home-pick-draw {
+  color: #a16207;
+}
+
+:root[data-theme="light"] .theme-home-pick-away {
+  color: #1d4ed8;
+}
+
+:root[data-theme="light"] .theme-auth-provider-button,
+:root[data-theme="light"] .theme-login-cta {
+  border-color: #cbd5e1;
+  border-width: 1px;
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+:root[data-theme="light"] .theme-disabled-control:disabled {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  box-shadow: none;
+  color: #475569;
+  opacity: 1;
+}
+
+:root[data-theme="light"] .theme-disabled-control:disabled::placeholder {
+  color: #475569;
+}
+
+:root[data-theme="light"] .theme-entry-page {
+  background-color: #dcecf6;
+  isolation: isolate;
+}
+
+:root[data-theme="light"] .theme-entry-page::before {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(224, 242, 254, 0.14) 0%,
+      rgba(248, 252, 255, 0.2) 48%,
+      rgba(220, 252, 231, 0.14) 100%
+    ),
+    url("/day-stadium-background.jpg");
+  background-position:
+    center,
+    center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  content: "";
+  filter: blur(2px) saturate(1.03) contrast(0.98);
+  inset: -4px;
+  pointer-events: none;
+  position: fixed;
+  transform: scale(1.01);
+  z-index: -1;
+}
+
+:root[data-theme="light"] .theme-entry-decoration {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-entry-card {
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  backdrop-filter: blur(10px) saturate(1.05);
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.4),
+    rgba(239, 246, 255, 0.3)
+  );
+  border-color: rgba(59, 130, 246, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 24px 70px rgba(30, 64, 175, 0.14),
+    0 6px 20px rgba(15, 23, 42, 0.07);
+}
+
+:root[data-theme="light"] .theme-entry-panel {
+  background: rgba(239, 246, 255, 0.8);
+  border-color: rgba(59, 130, 246, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 20px rgba(30, 64, 175, 0.05);
+}
+
+:root[data-theme="light"] .theme-entry-page .theme-input {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: #b9cbe0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+:root[data-theme="light"] .theme-entry-page .theme-input:focus,
+:root[data-theme="light"] .theme-entry-page .theme-input:focus-visible {
+  border-color: #16a34a;
+  box-shadow:
+    0 0 0 3px rgba(22, 163, 74, 0.14),
+    0 8px 20px rgba(37, 99, 235, 0.07);
+}
+
+:root[data-theme="light"] .theme-entry-page .theme-neutral-button {
+  background: rgba(241, 245, 249, 0.92);
+  border-color: rgba(71, 85, 105, 0.2);
+}
+
+:root[data-theme="light"] .theme-entry-page .theme-popover {
+  background: rgba(248, 252, 255, 0.94);
+  border-color: rgba(59, 130, 246, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 18px 44px rgba(30, 64, 175, 0.14);
+}
+
+:root[data-theme="light"] .theme-entry-kicker {
+  color: #0f766e;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85),
+    0 6px 18px rgba(37, 99, 235, 0.14);
+}
+
+:root[data-theme="light"] .theme-league-page {
+  background: #dcecf6;
+  isolation: isolate;
+}
+
+:root[data-theme="light"] .theme-admin-page {
+  background-color: #e4f0f7;
+  isolation: isolate;
+}
+
+:root[data-theme="light"] .theme-admin-page::before {
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(224, 242, 254, 0.38) 0%,
+      rgba(248, 250, 252, 0.48) 52%,
+      rgba(220, 252, 231, 0.36) 100%
+    ),
+    url("/day-stadium-background.jpg");
+  background-position:
+    center,
+    center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  content: "";
+  filter: blur(2px) saturate(1.02) contrast(0.98);
+  inset: -4px;
+  pointer-events: none;
+  position: fixed;
+  transform: scale(1.01);
+  z-index: -1;
+}
+
+:root[data-theme="light"] .theme-admin-decoration {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-status-badge {
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+:root[data-theme="light"] .theme-status-info {
+  background: linear-gradient(
+    180deg,
+    rgba(191, 219, 254, 0.98),
+    rgba(219, 234, 254, 0.94)
+  );
+  color: #1e3a8a;
+  box-shadow:
+    inset 0 0 0 1px rgba(29, 78, 216, 0.22),
+    0 5px 14px rgba(37, 99, 235, 0.12);
+}
+
+:root[data-theme="light"] .theme-status-success {
+  background: linear-gradient(
+    180deg,
+    rgba(187, 247, 208, 0.98),
+    rgba(220, 252, 231, 0.94)
+  );
+  color: #065f46;
+  box-shadow:
+    inset 0 0 0 1px rgba(4, 120, 87, 0.2),
+    0 5px 14px rgba(5, 150, 105, 0.1);
+}
+
+:root[data-theme="light"] .theme-status-result {
+  background: linear-gradient(
+    180deg,
+    rgba(221, 214, 254, 0.98),
+    rgba(237, 233, 254, 0.94)
+  );
+  color: #4c1d95;
+  box-shadow:
+    inset 0 0 0 1px rgba(109, 40, 217, 0.2),
+    0 5px 14px rgba(109, 40, 217, 0.1);
+}
+
+:root[data-theme="light"] .theme-status-danger {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 228, 230, 0.98),
+    rgba(254, 226, 226, 0.95)
+  );
+  color: #9f1239;
+  box-shadow:
+    inset 0 0 0 1px rgba(190, 18, 60, 0.22),
+    0 5px 14px rgba(225, 29, 72, 0.11);
+}
+
+:root[data-theme="light"] .theme-status-warning {
+  background: linear-gradient(
+    180deg,
+    rgba(253, 230, 138, 0.98),
+    rgba(255, 237, 213, 0.96)
+  );
+  border-color: rgba(180, 83, 9, 0.22);
+  color: #7c2d12;
+  box-shadow:
+    inset 0 0 0 1px rgba(180, 83, 9, 0.18),
+    0 5px 14px rgba(217, 119, 6, 0.12);
+}
+
+:root[data-theme="light"] .theme-helper-note {
+  background: rgba(248, 250, 252, 0.86);
+  border-radius: 0.75rem;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  color: #334155;
+  padding: 0.5rem 0.75rem;
+}
+
+:root[data-theme="light"] .theme-helper-info {
+  background: rgba(219, 234, 254, 0.86);
+  box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.16);
+  color: #1e3a8a;
+}
+
+:root[data-theme="light"] .theme-helper-danger {
+  background: rgba(255, 228, 230, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(190, 18, 60, 0.18);
+  color: #9f1239;
+}
+
+:root[data-theme="light"] .theme-match-shell,
+:root[data-theme="light"] .theme-prediction-shell,
+:root[data-theme="light"] .theme-admin-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.78),
+    rgba(241, 245, 249, 0.66)
+  );
+  border-color: rgba(59, 130, 246, 0.13);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.055);
+}
+
+:root[data-theme="light"] .theme-match-state-open {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(239, 246, 255, 0.7)
+  );
+  border-color: rgba(37, 99, 235, 0.2);
+  box-shadow:
+    inset -4px 0 0 rgba(37, 99, 235, 0.36),
+    0 12px 30px rgba(37, 99, 235, 0.08);
+}
+
+:root[data-theme="light"] .theme-match-state-locked {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(239, 246, 255, 0.7)
+  );
+  border-color: rgba(190, 18, 60, 0.2);
+  box-shadow:
+    inset -4px 0 0 rgba(225, 29, 72, 0.32),
+    0 12px 30px rgba(225, 29, 72, 0.07);
+}
+
+:root[data-theme="light"] .theme-match-state-finished {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(239, 246, 255, 0.7)
+  );
+  border-color: rgba(109, 40, 217, 0.18);
+  box-shadow:
+    inset -4px 0 0 rgba(109, 40, 217, 0.28),
+    0 12px 30px rgba(109, 40, 217, 0.07);
+}
+
+:root[data-theme="light"] .theme-admin-section {
+  background: rgba(248, 252, 255, 0.66);
+  border-color: rgba(59, 130, 246, 0.18);
+  box-shadow: var(--card-shadow);
+}
+
+:root[data-theme="light"] .theme-admin-page .theme-admin-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(248, 252, 255, 0.88),
+    rgba(239, 246, 255, 0.78)
+  );
+  border-color: rgba(59, 130, 246, 0.16);
+}
+
+:root[data-theme="light"] .theme-team-tile {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    rgba(239, 246, 255, 0.7)
+  );
+  border-color: rgba(59, 130, 246, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme="light"] .theme-match-result-tile {
+  background: linear-gradient(
+    180deg,
+    rgba(239, 246, 255, 0.96),
+    rgba(255, 255, 255, 0.94)
+  );
+  border-color: rgba(29, 78, 216, 0.16);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.045);
+}
+
+:root[data-theme="light"] .theme-team-name {
+  color: #0f172a;
+}
+
+:root[data-theme="light"] .theme-match-score {
+  color: #111827;
+}
+
+:root[data-theme="light"] .theme-match-date {
+  color: #334155;
+  font-weight: 700;
+}
+
+:root[data-theme="light"] .theme-prediction-choice {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+:root[data-theme="light"] .theme-prediction-choice-selected {
+  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  border-color: #1e40af;
+  box-shadow:
+    0 10px 22px rgba(37, 99, 235, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+:root[data-theme="light"] .theme-prediction-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.74;
+}
+
+:root[data-theme="light"]
+  .theme-prediction-choice:disabled:not(.theme-prediction-choice-selected):not(
+    .theme-prediction-choice-correct
+  ):not(.theme-prediction-choice-wrong) {
+  background: linear-gradient(
+    180deg,
+    rgba(226, 232, 240, 0.98),
+    rgba(241, 245, 249, 0.92)
+  );
+  border-color: rgba(71, 85, 105, 0.22);
+  color: #475569;
+}
+
+:root[data-theme="light"] .theme-prediction-choice-selected:disabled,
+:root[data-theme="light"] .theme-prediction-choice-correct:disabled,
+:root[data-theme="light"] .theme-prediction-choice-wrong:disabled {
+  opacity: 0.9;
+}
+
+:root[data-theme="light"] .theme-stat-tile {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.045);
+}
+
+:root[data-theme="light"] .theme-stat-success {
+  background: linear-gradient(
+    180deg,
+    rgba(236, 253, 245, 0.95),
+    rgba(255, 255, 255, 0.94)
+  );
+  border-color: rgba(5, 150, 105, 0.2);
+}
+
+:root[data-theme="light"] .theme-stat-danger {
+  background: linear-gradient(
+    180deg,
+    rgba(254, 242, 242, 0.96),
+    rgba(255, 255, 255, 0.94)
+  );
+  border-color: rgba(220, 38, 38, 0.18);
+}
+
+:root[data-theme="light"] .theme-stat-warning {
+  background: linear-gradient(
+    180deg,
+    rgba(254, 252, 232, 0.98),
+    rgba(255, 255, 255, 0.94)
+  );
+  border-color: rgba(202, 138, 4, 0.18);
+}
+
+:root[data-theme="light"] .theme-ai-panel {
+  background: linear-gradient(
+    135deg,
+    rgba(250, 245, 255, 0.96),
+    rgba(245, 243, 255, 0.9)
+  );
+  border-color: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 10px 26px rgba(88, 28, 135, 0.06);
+}
+
+:root[data-theme="light"] .theme-league-page .theme-card,
+:root[data-theme="light"] .theme-entry-page .theme-entry-card,
+:root[data-theme="light"] .theme-admin-page .theme-admin-section {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.24),
+    rgba(219, 234, 254, 0.17)
+  ) !important;
+
+  -webkit-backdrop-filter: blur(4px) saturate(1.05);
+  backdrop-filter: blur(4px) saturate(1.05);
 }

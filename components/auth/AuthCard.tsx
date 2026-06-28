@@ -10,28 +10,28 @@ type AuthCardProps = {
 
 export default function AuthCard({ showToast }: AuthCardProps) {
   return (
-    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-6 text-center shadow-2xl backdrop-blur-xl">
+    <div className="theme-card theme-entry-card w-full max-w-md rounded-3xl border p-6 text-center backdrop-blur-xl">
       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-yellow-300 to-yellow-600">
         <span className="text-3xl">🏆</span>
       </div>
 
       <h1 className="mb-3 text-3xl font-black">התחברות</h1>
 
-      <p className="mb-6 text-sm leading-6 text-slate-400">
+      <p className="theme-muted mb-6 text-sm leading-6">
         התחבר כדי לשמור את הליגות והניחושים שלך בכל מכשיר.
       </p>
 
       <GoogleLoginButton showToast={showToast} />
 
       <div className="my-6 flex items-center gap-3">
-        <div className="h-px flex-1 bg-white/10" />
-        <span className="text-xs font-bold text-slate-500">או</span>
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="h-px flex-1 bg-[var(--border-subtle)]" />
+        <span className="theme-muted text-xs font-bold">או</span>
+        <div className="h-px flex-1 bg-[var(--border-subtle)]" />
       </div>
 
       <EmailLoginForm showToast={showToast} />
 
-      <p className="mt-5 text-xs leading-5 text-slate-500">
+      <p className="theme-muted mt-5 text-xs leading-5">
         אפשר להתחבר עם Google או עם אימייל וסיסמה. שתי הדרכים שומרות את החשבון
         שלך במערכת.
       </p>

@@ -534,8 +534,7 @@ export default function LeagueClient({
         (match) =>
           match.status !== "finished" &&
           getMatchResult(match) === null &&
-          getLocalCalendarHourKey(match.start_time) ===
-            closestUpcomingHourKey,
+          getLocalCalendarHourKey(match.start_time) === closestUpcomingHourKey,
       )
     : [];
 
@@ -796,7 +795,7 @@ ${leagueUrl}`;
   }
 
   return (
-    <main className="relative min-h-screen bg-transparent px-3 py-5 text-white sm:px-4 sm:py-8">
+    <main className="theme-league-page theme-page relative min-h-screen px-3 py-5 sm:px-4 sm:py-8">
       {toast && (
         <div className="fixed left-1/2 top-5 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2">
           <div
@@ -831,13 +830,8 @@ ${leagueUrl}`;
       <div className="absolute top-10 left-8 h-20 w-20 rounded-full bg-green-500/20 blur-3xl" />
       <div className="absolute bottom-10 right-8 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl" /> */}
 
-      <div
-        className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/world-cup-2026-stadium-background.jpg')",
-        }}
-      />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.02)_0%,rgba(2,6,23,0.08)_45%,rgba(2,6,23,0.20)_100%)]" />
+      <div className="theme-stadium-background pointer-events-none fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat" />
+      <div className="theme-stadium-overlay pointer-events-none fixed inset-0 -z-10" />
       {/* <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_50%_28%,rgba(15,23,42,0.02),rgba(2,6,23,0.22)_42%,rgba(2,6,23,0.62)_100%)]" />
 
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[linear-gradient(to_bottom,rgba(2,6,23,0.05)_0%,rgba(2,6,23,0.12)_35%,rgba(2,6,23,0.42)_78%,rgba(2,6,23,0.72)_100%)]" />
@@ -853,17 +847,17 @@ ${leagueUrl}`;
           </p>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+        <div className="theme-card mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
           <div className="text-center">
-            <p className="mb-1 text-xs text-slate-400 sm:text-sm">ליגה</p>
+            <p className="theme-muted mb-1 text-xs sm:text-sm">ליגה</p>
 
             <h1 className="text-2xl font-black tracking-tight sm:text-4xl">
               {league.name}
             </h1>
 
-            <div className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
-              <span className="text-xs text-slate-400 sm:text-sm">קוד</span>
-              <span className="text-xl font-black tracking-widest text-green-300 sm:text-2xl">
+            <div className="theme-panel mt-4 inline-flex items-center gap-2 rounded-xl border px-4 py-2 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-3">
+              <span className="theme-muted text-xs sm:text-sm">קוד</span>
+              <span className="theme-league-code text-xl font-black tracking-widest sm:text-2xl">
                 {league.code}
               </span>
             </div>
@@ -871,7 +865,7 @@ ${leagueUrl}`;
             <div className="mx-auto mt-3 max-w-xs text-right">
               <label
                 htmlFor="public-stage-selector"
-                className="mb-1 block text-xs font-semibold text-slate-400"
+                className="theme-muted mb-1 block text-xs font-semibold"
               >
                 שלב בטורניר
               </label>
@@ -879,7 +873,7 @@ ${leagueUrl}`;
                 id="public-stage-selector"
                 value={selectedStage.id}
                 onChange={(event) => handleStageChange(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm font-bold text-white outline-none transition focus:border-green-400"
+                className="theme-input w-full rounded-xl border px-3 py-2 text-sm font-bold outline-none transition focus:border-green-400"
               >
                 {stages.map((stage) => (
                   <option key={stage.id} value={stage.id}>
@@ -930,7 +924,7 @@ ${leagueUrl}`;
             <button
               type="button"
               onClick={copyLeagueLink}
-              className="w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+              className="theme-neutral-button w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
             >
               העתק לינק להזמנה
             </button>
@@ -938,14 +932,14 @@ ${leagueUrl}`;
         </div>
 
         {!selectedPlayer && (
-          <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+          <div className="theme-card mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
             {!selectedPlayer && (
               <div>
                 <h2 className="mb-2 text-xl font-black sm:text-2xl">
                   עדיין לא הצטרפת לליגה
                 </h2>
 
-                <p className="mb-4 text-sm leading-6 text-slate-400 sm:mb-5">
+                <p className="theme-muted mb-4 text-sm leading-6 sm:mb-5">
                   כדי לשלוח ניחושים צריך להתחבר ולהצטרף עם שם שחקן.
                 </p>
 
@@ -966,7 +960,7 @@ ${leagueUrl}`;
                       התחבר / הירשם כדי להצטרף
                     </Link>
 
-                    <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                    <p className="theme-muted mt-3 text-center text-xs leading-5">
                       אחרי ההתחברות תחזור אוטומטית לליגה הזאת.
                     </p>
                   </>
@@ -979,7 +973,7 @@ ${leagueUrl}`;
                       הצטרף לליגה הזאת
                     </Link>
 
-                    <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                    <p className="theme-muted mt-3 text-center text-xs leading-5">
                       נשאר רק לבחור שם שחקן ולאשר הצטרפות.
                     </p>
                   </>
@@ -989,17 +983,17 @@ ${leagueUrl}`;
           </div>
         )}
 
-        <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-3 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-5">
-          <div className="mb-3 flex items-center justify-between sm:mb-4">
+        <div className="theme-card mb-4 rounded-2xl border p-3 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-5">
+          <div className="theme-section-header mb-3 flex items-center justify-between sm:mb-4">
             <h2 className="text-lg font-black sm:text-xl">טבלת דירוג</h2>
 
-            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[10px] text-slate-400 sm:text-xs">
+            <span className="theme-panel theme-muted rounded-full border px-3 py-1 text-[10px] sm:text-xs">
               {players.length} שחקנים
             </span>
           </div>
 
           {rankedPlayers.length === 0 ? (
-            <p className="text-sm text-slate-400">עדיין אין שחקנים.</p>
+            <p className="theme-muted text-sm">עדיין אין שחקנים.</p>
           ) : (
             <>
               <div className="space-y-2 sm:space-y-2.5">
@@ -1013,25 +1007,25 @@ ${leagueUrl}`;
                   const podium =
                     index === 0
                       ? {
-                          card: "border-yellow-300/75 bg-[radial-gradient(circle_at_16%_50%,rgba(250,204,21,0.24),transparent_30%),linear-gradient(90deg,rgba(120,83,10,0.30),rgba(18,24,38,0.72)_48%,rgba(2,6,23,0.88))] shadow-[0_0_24px_rgba(250,204,21,0.16)]",
+                          card: "theme-rank-podium-first",
                           label: "מוביל הליגה",
                           labelClass:
-                            "border-yellow-300/45 bg-yellow-400/15 text-yellow-100",
+                            "border-yellow-300/45 bg-yellow-400/15 theme-warning-text",
                           edge: "bg-yellow-300/70",
                         }
                       : index === 1
                         ? {
-                            card: "border-slate-200/55 bg-[radial-gradient(circle_at_16%_50%,rgba(226,232,240,0.16),transparent_28%),linear-gradient(90deg,rgba(71,85,105,0.38),rgba(20,29,45,0.78)_48%,rgba(2,6,23,0.88))] shadow-[0_0_18px_rgba(226,232,240,0.08)]",
+                            card: "theme-rank-podium-second",
                             label: "מקום שני",
                             labelClass:
-                              "border-slate-200/30 bg-slate-100/10 text-slate-100",
+                              "border-slate-200/30 bg-slate-100/10 theme-muted",
                             edge: "bg-slate-200/60",
                           }
                         : {
-                            card: "border-orange-300/50 bg-[radial-gradient(circle_at_12%_50%,rgba(251,146,60,0.18),transparent_22%),linear-gradient(90deg,rgba(124,45,18,0.34),rgba(16,24,38,0.80)_44%,rgba(2,6,23,0.94))] shadow-[0_0_16px_rgba(251,146,60,0.08)]",
+                            card: "theme-rank-podium-third",
                             label: "מקום שלישי",
                             labelClass:
-                              "border-orange-300/35 bg-orange-400/10 text-orange-100",
+                              "border-orange-300/35 bg-orange-400/10 theme-warning-text",
                             edge: "bg-orange-300/55",
                           };
 
@@ -1039,20 +1033,18 @@ ${leagueUrl}`;
                     return (
                       <div
                         key={player.id}
-                        className={`flex min-h-[58px] items-center justify-between rounded-2xl border px-3 py-2 sm:min-h-[62px] sm:px-4 ${
-                          isCurrentPlayer
-                            ? "border-green-400/40 bg-slate-950/70 shadow-[0_0_14px_rgba(34,197,94,0.08)]"
-                            : "border-white/10 bg-slate-950/60"
+                        className={`theme-rank-compact flex min-h-[58px] items-center justify-between rounded-2xl border px-3 py-2 sm:min-h-[62px] sm:px-4 ${
+                          isCurrentPlayer ? "theme-rank-compact-current" : ""
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-slate-900 text-base font-black text-white sm:h-10 sm:w-10 sm:text-lg">
+                          <div className="theme-rank-number flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-base font-black sm:h-10 sm:w-10 sm:text-lg">
                             {index + 1}
                           </div>
 
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="truncate text-sm font-black text-white sm:text-base">
+                              <p className="truncate text-sm font-black sm:text-base">
                                 {player.name}
                               </p>
 
@@ -1076,19 +1068,19 @@ ${leagueUrl}`;
                                 ↓{movement.amount}
                               </span>
                             ) : (
-                              <span className="text-xl font-black text-slate-400">
+                              <span className="theme-muted text-xl font-black">
                                 —
                               </span>
                             )}
                           </div>
 
-                          <div className="h-8 w-px bg-white/10 sm:h-9" />
+                          <div className="theme-rank-divider h-8 w-px sm:h-9" />
 
                           <div className="w-8 text-left sm:w-9">
-                            <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                            <p className="theme-score-text text-2xl font-black leading-none sm:text-3xl">
                               {stats.points}
                             </p>
-                            <p className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">
+                            <p className="theme-muted mt-1 text-[9px] sm:text-[10px]">
                               נק׳
                             </p>
                           </div>
@@ -1114,7 +1106,7 @@ ${leagueUrl}`;
 
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="truncate text-base font-black text-white sm:text-xl">
+                            <p className="truncate text-base font-black sm:text-xl">
                               {player.name}
                             </p>
 
@@ -1146,7 +1138,7 @@ ${leagueUrl}`;
                               ↓{movement.amount}
                             </span>
                           ) : (
-                            <span className="text-2xl font-black leading-none text-slate-400 sm:text-3xl">
+                            <span className="theme-muted text-2xl font-black leading-none sm:text-3xl">
                               —
                             </span>
                           )}
@@ -1155,10 +1147,10 @@ ${leagueUrl}`;
                         <div className={`h-9 w-px sm:h-10 ${podium.edge}`} />
 
                         <div className="w-9 text-left sm:w-10">
-                          <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                          <p className="theme-score-text text-2xl font-black leading-none sm:text-3xl">
                             {stats.points}
                           </p>
-                          <p className="mt-1 text-[9px] text-slate-500 sm:text-[10px]">
+                          <p className="theme-muted mt-1 text-[9px] sm:text-[10px]">
                             נק׳
                           </p>
                         </div>
@@ -1179,7 +1171,7 @@ ${leagueUrl}`;
                       );
                     }
                   }}
-                  className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm font-black text-white transition hover:border-green-400/35 hover:bg-green-500/10"
+                  className="theme-neutral-button mt-3 w-full rounded-2xl border px-4 py-3 text-sm font-black transition hover:border-green-400/35"
                 >
                   {visibleRankCount >= rankedPlayers.length
                     ? "הצג פחות ↑"
@@ -1190,19 +1182,19 @@ ${leagueUrl}`;
                 </button>
               )}
 
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-slate-950/50 px-3 py-2.5 text-[10px] font-bold sm:gap-x-6 sm:text-xs">
+              <div className="theme-panel mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border px-3 py-2.5 text-[10px] font-bold sm:gap-x-6 sm:text-xs">
                 <span className="text-green-300">↑ עלייה בדירוג</span>
                 <span className="text-red-300">↓ ירידה בדירוג</span>
-                <span className="text-slate-400">— ללא שינוי</span>
+                <span className="theme-muted">— ללא שינוי</span>
               </div>
             </>
           )}
         </div>
         {(upcomingSummaryMatches.length > 0 ||
           recentFinishedSummaryMatches.length > 0) && (
-          <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-white/10 shadow-xl backdrop-blur-xl sm:mb-5">
-            <div className="border-b border-white/10 bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
-              <h2 className="text-base font-black text-white sm:text-lg">
+          <div className="theme-card mb-4 overflow-hidden rounded-2xl border shadow-xl backdrop-blur-xl sm:mb-5">
+            <div className="theme-section-header border-b border-[var(--border-subtle)] bg-gradient-to-r from-cyan-500/15 via-blue-500/10 to-violet-500/15 px-3 py-3 text-center">
+              <h2 className="text-base font-black sm:text-lg">
                 {upcomingSummaryMatches.length > 0 &&
                 recentFinishedSummaryMatches.length > 0
                   ? `ניחושים - המשחקים הקרובים + ${recentFinishedSummaryMatches.length} המשחקים האחרונים`
@@ -1216,19 +1208,19 @@ ${leagueUrl}`;
               {upcomingSummaryMatches.map((closestUpcomingMatch) => (
                 <div
                   key={closestUpcomingMatch.id}
-                  className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                  className="theme-panel theme-match-shell grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
                 >
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                  <div className="theme-team-tile flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
+                    <p className="w-full truncate text-xs font-black sm:text-sm">
                       {closestUpcomingMatch.home_team}
                     </p>
 
                     <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-center">
-                      <p className="text-base font-black text-yellow-300 sm:text-lg">
+                      <p className="theme-warning-accent-text text-base font-black sm:text-lg">
                         VS
                       </p>
 
-                      <p className="text-[10px] font-bold text-slate-200 sm:text-xs">
+                      <p className="theme-muted text-[10px] font-bold sm:text-xs">
                         {new Date(
                           closestUpcomingMatch.start_time,
                         ).toLocaleTimeString("he-IL", {
@@ -1238,7 +1230,7 @@ ${leagueUrl}`;
                       </p>
                     </div>
 
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                    <p className="w-full truncate text-xs font-black sm:text-sm">
                       {closestUpcomingMatch.away_team}
                     </p>
                   </div>
@@ -1265,37 +1257,37 @@ ${leagueUrl}`;
                       <div className="flex min-w-0 flex-col justify-center gap-2 py-1">
                         <div className="grid grid-cols-4 gap-1.5 text-center">
                           <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
-                            <p className="text-base font-black text-cyan-200">
+                            <p className="theme-pick-count-text text-base font-black">
                               {homePicks.length}
                             </p>
-                            <p className="text-[9px] font-bold text-slate-400">
+                            <p className="theme-muted text-[9px] font-bold">
                               1
                             </p>
                           </div>
 
                           <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
-                            <p className="text-base font-black text-cyan-200">
+                            <p className="theme-pick-count-text text-base font-black">
                               {drawPicks.length}
                             </p>
-                            <p className="text-[9px] font-bold text-slate-400">
+                            <p className="theme-muted text-[9px] font-bold">
                               X
                             </p>
                           </div>
 
                           <div className="rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-1 py-2">
-                            <p className="text-base font-black text-cyan-200">
+                            <p className="theme-pick-count-text text-base font-black">
                               {awayPicks.length}
                             </p>
-                            <p className="text-[9px] font-bold text-slate-400">
+                            <p className="theme-muted text-[9px] font-bold">
                               2
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-slate-400/20 bg-slate-800/60 px-1 py-2">
-                            <p className="text-base font-black text-slate-200">
+                          <div className="theme-neutral-button rounded-xl border px-1 py-2">
+                            <p className="text-base font-black">
                               {missingPicks.length}
                             </p>
-                            <p className="text-[9px] font-bold text-slate-400">
+                            <p className="theme-muted text-[9px] font-bold">
                               חסר
                             </p>
                           </div>
@@ -1306,16 +1298,16 @@ ${leagueUrl}`;
                           onClick={() =>
                             toggleMatchDetails(closestUpcomingMatch.id)
                           }
-                          className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs font-black text-slate-200"
+                          className="theme-neutral-button rounded-xl border px-3 py-2 text-xs font-black"
                         >
                           {isExpanded ? "הסתר ניחושים ↑" : "הצג ניחושים ↓"}
                         </button>
 
                         {isExpanded && (
-                          <div className="space-y-1.5 rounded-xl border border-white/10 bg-slate-950/55 p-2 text-xs">
-                            <p className="font-black text-cyan-200">
+                          <div className="theme-panel space-y-1.5 rounded-xl border p-2 text-xs">
+                            <p className="theme-pick-count-text font-black">
                               1:{" "}
-                              <span className="font-semibold text-slate-200">
+                              <span className="font-semibold">
                                 {homePicks.length
                                   ? homePicks
                                       .map((item) => item.player.name)
@@ -1324,9 +1316,9 @@ ${leagueUrl}`;
                               </span>
                             </p>
 
-                            <p className="font-black text-cyan-200">
+                            <p className="theme-pick-count-text font-black">
                               X:{" "}
-                              <span className="font-semibold text-slate-200">
+                              <span className="font-semibold">
                                 {drawPicks.length
                                   ? drawPicks
                                       .map((item) => item.player.name)
@@ -1335,9 +1327,9 @@ ${leagueUrl}`;
                               </span>
                             </p>
 
-                            <p className="font-black text-cyan-200">
+                            <p className="theme-pick-count-text font-black">
                               2:{" "}
-                              <span className="font-semibold text-slate-200">
+                              <span className="font-semibold">
                                 {awayPicks.length
                                   ? awayPicks
                                       .map((item) => item.player.name)
@@ -1347,9 +1339,9 @@ ${leagueUrl}`;
                             </p>
 
                             {missingPicks.length > 0 && (
-                              <p className="font-black text-slate-400">
+                              <p className="theme-muted font-black">
                                 חסרים:{" "}
-                                <span className="font-semibold text-slate-200">
+                                <span className="font-semibold">
                                   {missingPicks
                                     .map((item) => item.player.name)
                                     .join(" · ")}
@@ -1367,18 +1359,18 @@ ${leagueUrl}`;
               {recentFinishedSummaryMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border border-white/10 bg-slate-950/70 p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
+                  className="theme-panel theme-match-shell grid grid-cols-[76px_minmax(0,1fr)] gap-2 rounded-xl border p-2.5 shadow-lg sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-3 sm:p-3"
                 >
-                  <div className="flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                  <div className="theme-team-tile flex flex-col items-center justify-center rounded-xl border border-blue-400/20 bg-blue-950/20 px-1.5 py-2 text-center">
+                    <p className="w-full truncate text-xs font-black sm:text-sm">
                       {match.home_team}
                     </p>
 
-                    <div className="my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-base font-black text-yellow-300 sm:text-lg">
+                    <div className="theme-warning-accent-text my-1.5 rounded-lg border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-base font-black sm:text-lg">
                       {match.home_score} - {match.away_score}
                     </div>
 
-                    <p className="w-full truncate text-xs font-black text-white sm:text-sm">
+                    <p className="w-full truncate text-xs font-black sm:text-sm">
                       {match.away_team}
                     </p>
                   </div>
@@ -1428,16 +1420,16 @@ ${leagueUrl}`;
                         <button
                           type="button"
                           onClick={() => toggleMatchDetails(match.id)}
-                          className="rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-xs font-black text-slate-200"
+                          className="theme-neutral-button rounded-xl border px-3 py-2 text-xs font-black"
                         >
                           {isExpanded ? "הסתר שמות ↑" : "הצג שמות ↓"}
                         </button>
 
                         {isExpanded && (
-                          <div className="space-y-1.5 rounded-xl border border-white/10 bg-slate-950/55 p-2 text-xs">
+                          <div className="theme-panel space-y-1.5 rounded-xl border p-2 text-xs">
                             <p className="font-black text-green-300">
                               ✓ צדקו:{" "}
-                              <span className="font-semibold text-slate-200">
+                              <span className="font-semibold">
                                 {correctPlayers.length
                                   ? correctPlayers
                                       .map((item) => item.player.name)
@@ -1448,7 +1440,7 @@ ${leagueUrl}`;
 
                             <p className="font-black text-red-300">
                               × טעו:{" "}
-                              <span className="font-semibold text-slate-200">
+                              <span className="font-semibold">
                                 {wrongPlayers.length
                                   ? wrongPlayers
                                       .map((item) => item.player.name)
@@ -1458,9 +1450,9 @@ ${leagueUrl}`;
                             </p>
 
                             {missingPlayers.length > 0 && (
-                              <p className="font-black text-slate-400">
+                              <p className="theme-muted font-black">
                                 ללא ניחוש:{" "}
-                                <span className="font-semibold text-slate-200">
+                                <span className="font-semibold">
                                   {missingPlayers
                                     .map((item) => item.player.name)
                                     .join(" · ")}
@@ -1480,76 +1472,76 @@ ${leagueUrl}`;
 
         {selectedPlayer && (
           <>
-            <div className="mb-4 rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
+            <div className="theme-card mb-4 rounded-2xl border p-4 backdrop-blur-xl sm:mb-6 sm:rounded-3xl sm:p-6">
               <div className="mb-4 flex items-center justify-between sm:mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70 text-2xl shadow-lg shadow-slate-950/30 sm:h-12 sm:w-12">
+                  <div className="theme-panel flex h-11 w-11 items-center justify-center rounded-2xl border text-2xl shadow-lg shadow-slate-950/30 sm:h-12 sm:w-12">
                     🎯
                   </div>
 
                   <div>
-                    <h2 className="text-xl font-black text-white  sm:text-2xl">
+                    <h2 className="text-xl font-black sm:text-2xl">
                       הניחושים שלי
                     </h2>
 
-                    <p className="mt-0.5 text-xs font-semibold text-slate-400 sm:text-sm">
+                    <p className="theme-muted mt-0.5 text-xs font-semibold sm:text-sm">
                       הביצועים שלך עד עכשיו
                     </p>
                   </div>
                 </div>
 
-                <div className="rounded-full border border-green-400/20 bg-slate-950/70 px-3 py-1.5 text-xs font-black text-green-300 sm:px-4 sm:text-sm">
+                <div className="theme-panel rounded-full border px-3 py-1.5 text-xs font-black theme-score-text sm:px-4 sm:text-sm">
                   {predictionAccuracy}% פגיעה
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
-                <div className="rounded-2xl border border-green-400/20 bg-slate-950/70 p-3 sm:p-5">
+                <div className="theme-panel theme-stat-tile theme-stat-success rounded-2xl border p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">✓</p>
-                  <p className="mt-2 text-3xl font-black text-green-300 sm:text-4xl">
+                  <p className="theme-success-text mt-2 text-3xl font-black sm:text-4xl">
                     {correctPredictions.length}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
                     נכונים
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-red-400/20 bg-slate-950/70 p-3 sm:p-5">
+                <div className="theme-panel theme-stat-tile theme-stat-danger rounded-2xl border p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">×</p>
-                  <p className="mt-2 text-3xl font-black text-red-300 sm:text-4xl">
+                  <p className="theme-danger-text mt-2 text-3xl font-black sm:text-4xl">
                     {wrongPredictions.length}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
                     שגויים
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-yellow-400/20 bg-slate-950/70 p-3 sm:p-5">
+                <div className="theme-panel theme-stat-tile theme-stat-warning rounded-2xl border p-3 sm:p-5">
                   <p className="text-2xl sm:text-3xl">⌛</p>
-                  <p className="mt-2 text-3xl font-black text-yellow-300 sm:text-4xl">
+                  <p className="theme-warning-accent-text mt-2 text-3xl font-black sm:text-4xl">
                     {pendingPredictions.length}
                   </p>
-                  <p className="mt-1 text-[11px] font-bold text-slate-400 sm:text-sm">
+                  <p className="theme-muted mt-1 text-[11px] font-bold sm:text-sm">
                     ממתינים
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:mt-5 sm:p-5">
+              <div className="theme-panel mt-4 rounded-2xl border p-4 sm:mt-5 sm:p-5">
                 <div className="mb-2 flex items-center justify-between text-sm sm:text-base">
-                  <span className="font-black text-white">התקדמות כללית</span>
-                  <span className="font-black text-green-300">
+                  <span className="font-black">התקדמות כללית</span>
+                  <span className="theme-score-text font-black">
                     {selectedPlayerPredictionMatchIds.size}/{matches.length}
                   </span>
                 </div>
 
-                <div className="h-4 overflow-hidden rounded-full bg-slate-800">
+                <div className="theme-neutral-button h-4 overflow-hidden rounded-full">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-600 transition-all"
                     style={{ width: `${predictionProgress}%` }}
                   />
                 </div>
 
-                <p className="mt-2 text-xs font-bold text-green-300 sm:text-sm">
+                <p className="theme-score-text mt-2 text-xs font-bold sm:text-sm">
                   {predictionProgress}% הושלמו
                 </p>
               </div>
@@ -1557,11 +1549,11 @@ ${leagueUrl}`;
           </>
         )}
 
-        <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6">
-          <div className="mb-4 flex items-center justify-between sm:mb-5">
+        <div className="theme-card rounded-2xl border p-4 backdrop-blur-xl sm:rounded-3xl sm:p-6">
+          <div className="theme-section-header mb-4 flex items-center justify-between sm:mb-5">
             <h2 className="text-xl font-black sm:text-2xl">משחקים וניחושים</h2>
 
-            <span className="rounded-full border border-white/10 bg-slate-950/70 px-3 py-1 text-[11px] text-slate-400 sm:px-4 sm:py-2 sm:text-xs">
+            <span className="theme-panel theme-muted rounded-full border px-3 py-1 text-[11px] sm:px-4 sm:py-2 sm:text-xs">
               {showAllMatches ? matches.length : matchesToShow.length} מוצגים
             </span>
           </div>
@@ -1579,7 +1571,7 @@ ${leagueUrl}`;
                 id="admin-edit-player"
                 value={adminEditPlayerId}
                 onChange={(event) => setAdminEditPlayerId(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm font-bold text-white"
+                className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold"
               >
                 <option value="">בחר שחקן...</option>
                 {players.map((player) => (
@@ -1598,7 +1590,7 @@ ${leagueUrl}`;
           )}
 
           {matches.length === 0 ? (
-            <p className="text-sm text-slate-400">
+            <p className="theme-muted text-sm">
               עדיין לא נוספו משחקים. אפשר להוסיף דרך ניהול ליגה.
             </p>
           ) : (
@@ -1626,23 +1618,29 @@ ${leagueUrl}`;
                   return (
                     <div
                       key={match.id}
-                      className="rounded-2xl border border-white/10 bg-slate-950/60 p-3 sm:rounded-3xl sm:p-4"
+                      className={`theme-panel theme-prediction-shell rounded-2xl border p-3 sm:rounded-3xl sm:p-4 ${
+                        match.status === "finished"
+                          ? "theme-match-state-finished"
+                          : isMatchLocked
+                            ? "theme-match-state-locked"
+                            : "theme-match-state-open"
+                      }`}
                     >
                       <div className="mb-3 flex items-center justify-between gap-3 sm:mb-4">
                         <div className="flex flex-wrap items-center gap-2">
                           {featuredLabel && (
-                            <span className="rounded-full border border-yellow-300/20 bg-yellow-400/10 px-2 py-1 text-[11px] font-bold text-yellow-300 sm:px-3 sm:text-xs">
+                            <span className="theme-status-badge theme-status-warning rounded-full border px-2 py-1 text-[11px] font-bold sm:px-3 sm:text-xs">
                               {featuredLabel}
                             </span>
                           )}
 
                           <span
-                            className={`rounded-full px-2 py-1 text-[11px] font-bold sm:px-3 sm:text-xs ${
+                            className={`theme-status-badge rounded-full px-2 py-1 text-[11px] font-bold sm:px-3 sm:text-xs ${
                               match.status === "finished"
-                                ? "bg-green-500/20 text-green-300"
+                                ? "theme-status-result"
                                 : isMatchLocked
-                                  ? "bg-red-500/20 text-red-300"
-                                  : "bg-blue-500/20 text-blue-300"
+                                  ? "theme-status-danger"
+                                  : "theme-status-info"
                             }`}
                           >
                             {match.status === "finished"
@@ -1653,11 +1651,11 @@ ${leagueUrl}`;
                           </span>
                         </div>
 
-                        <div className="min-w-16 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
-                          <p className="text-[10px] text-slate-500 sm:text-xs">
+                        <div className="theme-panel theme-team-tile theme-match-result-tile min-w-16 rounded-xl border px-3 py-2 text-center sm:min-w-20 sm:rounded-2xl sm:px-4">
+                          <p className="theme-muted text-[10px] sm:text-xs">
                             תוצאה
                           </p>
-                          <p className="text-lg font-black sm:text-xl">
+                          <p className="theme-match-score text-lg font-black sm:text-xl">
                             {match.status === "finished"
                               ? `${match.home_score} - ${match.away_score}`
                               : "-"}
@@ -1666,30 +1664,30 @@ ${leagueUrl}`;
                       </div>
 
                       <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:mb-4 sm:gap-3">
-                        <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
-                          <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+                          <p className="theme-muted mb-1 text-[10px] sm:text-xs">
                             בית
                           </p>
-                          <p className="truncate text-base font-black sm:text-2xl">
+                          <p className="theme-team-name truncate text-base font-black sm:text-2xl">
                             {match.home_team}
                           </p>
                         </div>
 
-                        <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-xs font-black text-yellow-300 sm:h-12 sm:w-12 sm:text-base">
+                        <div className="theme-warning-accent-text mx-auto flex h-8 w-8 items-center justify-center rounded-full border border-yellow-300/20 bg-yellow-400/10 text-xs font-black sm:h-12 sm:w-12 sm:text-base">
                           VS
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-slate-900/80 p-2 text-center sm:rounded-2xl sm:p-4">
-                          <p className="mb-1 text-[10px] text-slate-500 sm:text-xs">
+                        <div className="theme-panel theme-team-tile rounded-xl border p-2 text-center sm:rounded-2xl sm:p-4">
+                          <p className="theme-muted mb-1 text-[10px] sm:text-xs">
                             חוץ
                           </p>
-                          <p className="truncate text-base font-black sm:text-2xl">
+                          <p className="theme-team-name truncate text-base font-black sm:text-2xl">
                             {match.away_team}
                           </p>
                         </div>
                       </div>
 
-                      <p className="mb-3 text-center text-xs text-slate-400 sm:mb-4 sm:text-sm">
+                      <p className="theme-match-date theme-muted mb-3 text-center text-xs sm:mb-4 sm:text-sm">
                         {new Date(match.start_time).toLocaleString("he-IL")}
                       </p>
 
@@ -1725,14 +1723,14 @@ ${leagueUrl}`;
                                     !canEditPredictions
                                   }
                                   onClick={() => savePrediction(match.id, pick)}
-                                  className={`rounded-xl border px-1 py-2 font-black transition sm:rounded-2xl sm:px-2 sm:py-4 ${
+                                  className={`theme-prediction-choice rounded-xl border px-1 py-2 font-black transition sm:rounded-2xl sm:px-2 sm:py-4 ${
                                     isCorrect
-                                      ? "border-green-400 bg-green-600 text-white"
+                                      ? "theme-prediction-choice-correct border-green-400 bg-green-600 text-white"
                                       : isWrong
-                                        ? "border-red-500 bg-red-700 text-white"
+                                        ? "theme-prediction-choice-wrong border-red-500 bg-red-700 text-white"
                                         : isSelected
-                                          ? "border-blue-400 bg-blue-600 text-white"
-                                          : "border-white/10 bg-slate-900 text-slate-300 hover:bg-slate-800"
+                                          ? "theme-prediction-choice-selected border-blue-400 bg-blue-600 text-white"
+                                          : "theme-neutral-button"
                                   } disabled:opacity-40`}
                                 >
                                   <span className="block text-2xl sm:text-3xl">
@@ -1741,7 +1739,7 @@ ${leagueUrl}`;
                                     {isWrong && " ❌"}
                                   </span>
 
-                                  <span className="mt-1 block truncate text-[10px] font-semibold text-slate-300 sm:mt-2 sm:text-xs">
+                                  <span className="theme-muted mt-1 block truncate text-[10px] font-semibold sm:mt-2 sm:text-xs">
                                     {pickLabel}
                                   </span>
                                 </button>
@@ -1750,10 +1748,10 @@ ${leagueUrl}`;
                           </div>
 
                           {currentPrediction && (
-                            <p className="mt-3 text-center text-xs text-slate-400">
+                            <p className="theme-helper-note mt-3 text-center text-xs">
                               {isAdminEditActive ? "ניחוש השחקן" : "הניחוש שלך"}
                               :{" "}
-                              <span className="font-bold text-white">
+                              <span className="font-bold">
                                 {currentPrediction.pick}
                               </span>
                             </p>
@@ -1762,7 +1760,7 @@ ${leagueUrl}`;
                       )}
 
                       {matchResult && (
-                        <p className="mt-2 text-center text-xs text-slate-300">
+                        <p className="theme-helper-note theme-helper-info mt-2 text-center text-xs">
                           תוצאה נכונה לניחוש: {matchResult}
                         </p>
                       )}
@@ -1770,13 +1768,13 @@ ${leagueUrl}`;
                       {league.predictions_locked &&
                         !isAdminEditActive &&
                         match.status !== "finished" && (
-                          <p className="mt-2 text-center text-xs text-red-300">
+                          <p className="theme-helper-note theme-helper-danger mt-2 text-center text-xs">
                             הניחושים נסגרו על ידי מנהל הליגה
                           </p>
                         )}
 
                       {!league.predictions_locked && isTimeLocked && (
-                        <p className="mt-2 text-center text-xs text-red-300">
+                        <p className="theme-helper-note theme-helper-danger mt-2 text-center text-xs">
                           הניחוש למשחק הזה נסגר
                         </p>
                       )}
@@ -1789,7 +1787,7 @@ ${leagueUrl}`;
                 <button
                   type="button"
                   onClick={() => setShowAllMatches((current) => !current)}
-                  className="mt-4 w-full rounded-xl border border-white/10 bg-slate-900/80 px-4 py-3 text-center text-sm font-bold text-slate-100 transition hover:bg-slate-800 sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                  className="theme-neutral-button mt-4 w-full rounded-xl border px-4 py-3 text-center text-sm font-bold transition sm:mt-5 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
                 >
                   {showAllMatches ? "הצג פחות משחקים" : "הצג את כל המשחקים"}
                 </button>
@@ -1800,7 +1798,7 @@ ${leagueUrl}`;
 
         <Link
           href="/"
-          className="mt-5 block text-center text-xs text-slate-400 hover:text-white sm:mt-6 sm:text-sm"
+          className="theme-muted mt-5 block text-center text-xs hover:text-green-300 sm:mt-6 sm:text-sm"
         >
           צור / הצטרף לליגה אחרת
         </Link>

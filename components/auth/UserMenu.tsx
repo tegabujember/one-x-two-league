@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabaseBrowser";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 type UserMenuProps = {
   email: string;
@@ -67,23 +68,26 @@ export default function UserMenu({
         type="button"
         title="החשבון שלי"
         onClick={() => setIsOpen((current) => !current)}
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-slate-900/80 text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105 hover:bg-slate-800"
+        className="theme-neutral-button flex h-11 w-11 items-center justify-center rounded-full border text-xl shadow-lg shadow-black/30 backdrop-blur transition hover:scale-105"
       >
         👤
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-64 rounded-2xl border border-white/10 bg-slate-950/95 p-4 text-right shadow-2xl shadow-black/40 backdrop-blur">
-          <p className="mb-1 text-xs text-slate-400">מחובר בתור</p>
+        <div className="theme-popover absolute right-0 mt-3 w-64 rounded-2xl border p-4 text-right backdrop-blur">
+          <p className="theme-muted mb-1 text-xs">מחובר בתור</p>
 
-          <p className="mb-4 break-all text-sm font-bold text-green-300">
+          <p className="theme-success-text mb-4 break-all text-sm font-bold">
             {email}
           </p>
+          <div className="mb-4 flex justify-end">
+            <ThemeToggle />
+          </div>
           <button
             type="button"
             onClick={signOut}
             disabled={isSigningOut}
-            className="w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+            className="theme-disabled-control w-full rounded-xl bg-gradient-to-r from-red-500 to-rose-700 px-4 py-3 text-sm font-black text-white transition hover:scale-[1.02] disabled:hover:scale-100"
           >
             {isSigningOut ? "מתנתק..." : "התנתק"}
           </button>

@@ -16,7 +16,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-white">
+    <main className="theme-entry-page theme-page flex min-h-screen items-center justify-center px-4 py-10">
       <AuthToast toast={toast} />
 
       <AuthCard showToast={showToast} />

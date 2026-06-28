@@ -41,16 +41,16 @@ export default function InstallAppHelp() {
   return (
     <section
       aria-labelledby="install-app-heading"
-      className="mt-5 rounded-2xl border border-white/10 bg-slate-950/50 p-4 text-right"
+      className="theme-feedback theme-feedback-install mt-5 rounded-2xl border p-4 text-right"
     >
       <h2
         id="install-app-heading"
-        className="text-sm font-black text-green-300"
+        className="theme-install-heading text-sm font-black"
       >
         התקנת האפליקציה
       </h2>
 
-      <div className="mt-2 space-y-2 text-xs leading-5 text-slate-300">
+      <div className="mt-2 space-y-2 text-xs leading-5">
         <p>
           באייפון: פתחו ב-Safari, לחצו על שיתוף ואז &quot;הוסף למסך
           הבית&quot;.

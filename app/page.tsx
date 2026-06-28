@@ -173,7 +173,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-slate-950 text-white relative flex items-center justify-center px-4 py-10">
+    <main className="theme-entry-page theme-page min-h-screen overflow-hidden relative flex items-center justify-center px-4 py-10">
       {userEmail && (
         <UserMenu
           email={userEmail}
@@ -187,10 +187,10 @@ export default function Home() {
           }}
         />
       )}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.28),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.28),_transparent_35%)]" />
+      <div className="theme-entry-decoration absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.28),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(37,99,235,0.28),_transparent_35%)]" />
 
-      <div className="absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
-      <div className="absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
+      <div className="theme-entry-decoration absolute top-10 left-8 h-24 w-24 rounded-full bg-green-500/20 blur-3xl" />
+      <div className="theme-entry-decoration absolute bottom-10 right-8 h-32 w-32 rounded-full bg-blue-500/20 blur-3xl" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-6 text-center">
@@ -198,32 +198,32 @@ export default function Home() {
             <span className="text-4xl">🏆</span>
           </div>
 
-          <p className="text-sm font-semibold tracking-[0.35em] text-green-300">
+          <p className="theme-brand-accent theme-entry-kicker text-sm font-semibold tracking-[0.35em]">
             WORLD CUP MODE
           </p>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="theme-card theme-entry-card rounded-3xl border p-6 backdrop-blur-xl">
           <h1 className="text-center text-4xl font-black tracking-tight">
             1X2 League
           </h1>
 
-          <p className="mt-3 text-center text-lg font-semibold text-slate-200">
+          <p className="theme-text mt-3 text-center text-lg font-semibold">
             ליגת ניחושים לחברים
           </p>
 
-          <p className="mt-2 text-center text-sm leading-6 text-slate-400">
+          <p className="theme-muted mt-2 text-center text-sm leading-6">
             צור ליגה, שתף לחברים, נחשו 1 / X / 2 וצברו נקודות לאורך הטורניר.
           </p>
 
           {!isCheckingUser && (
             <div className="mt-6">
               {userEmail ? (
-              <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4 text-center">
-                <p className="text-sm font-bold text-green-300">
+              <div className="theme-feedback theme-feedback-success rounded-2xl border p-4 text-center">
+                <p className="text-sm font-bold">
                   אתה מחובר למערכת
                 </p>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="theme-muted mt-1 text-xs">
                   לניהול החשבון או התנתקות לחץ על האייקון למעלה
                 </p>
               </div>
@@ -231,7 +231,7 @@ export default function Home() {
                 <Link
                   href="/login"
                   onClick={saveRedirectBeforeLogin}
-                  className="block w-full rounded-2xl bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
+                  className="theme-login-cta block w-full rounded-2xl border bg-white px-5 py-4 text-center font-black text-slate-950 shadow-lg shadow-black/20 transition hover:scale-[1.02]"
                 >
                   התחבר / הירשם
                 </Link>
@@ -252,15 +252,15 @@ export default function Home() {
           )}
 
           {myLeagues.length > 1 && (
-            <div className="rounded-2xl border border-green-400/20 bg-green-500/10 p-4">
-              <label className="mb-2 block text-sm font-bold text-green-300">
+            <div className="theme-feedback theme-feedback-success rounded-2xl border p-4">
+              <label className="mb-2 block text-sm font-bold">
                 הליגות שלי
               </label>
 
               <select
                 value={selectedLeagueCode}
                 onChange={(event) => setSelectedLeagueCode(event.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm font-bold text-white outline-none focus:border-green-400"
+                className="theme-input w-full rounded-xl border px-4 py-3 text-sm font-bold outline-none focus:border-green-400"
               >
                 {myLeagues.map((league) => (
                   <option key={league.leagueId} value={league.leagueCode}>
@@ -291,7 +291,7 @@ export default function Home() {
 
             <Link
               href="/join-league"
-              className="block w-full rounded-2xl border border-white/10 bg-slate-900/80 px-5 py-4 text-center font-bold text-slate-100 transition hover:scale-[1.02] hover:bg-slate-800"
+              className="theme-neutral-button block w-full rounded-2xl border px-5 py-4 text-center font-bold transition hover:scale-[1.02]"
             >
               הצטרף לליגה עם קוד
             </Link>
@@ -300,24 +300,24 @@ export default function Home() {
           <InstallAppHelp />
 
           <div className="mt-8 grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-2xl bg-slate-950/60 p-3 border border-white/10">
-              <p className="text-2xl font-black text-green-300">1</p>
-              <p className="text-xs text-slate-400 mt-1">בית</p>
+            <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
+              <p className="theme-home-pick-home text-2xl font-black">1</p>
+              <p className="theme-muted text-xs mt-1">בית</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-950/60 p-3 border border-white/10">
-              <p className="text-2xl font-black text-yellow-300">X</p>
-              <p className="text-xs text-slate-400 mt-1">תיקו</p>
+            <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
+              <p className="theme-home-pick-draw text-2xl font-black">X</p>
+              <p className="theme-muted text-xs mt-1">תיקו</p>
             </div>
 
-            <div className="rounded-2xl bg-slate-950/60 p-3 border border-white/10">
-              <p className="text-2xl font-black text-blue-300">2</p>
-              <p className="text-xs text-slate-400 mt-1">חוץ</p>
+            <div className="theme-panel theme-entry-panel rounded-2xl p-3 border">
+              <p className="theme-home-pick-away text-2xl font-black">2</p>
+              <p className="theme-muted text-xs mt-1">חוץ</p>
             </div>
           </div>
         </div>
 
-        <p className="mt-5 text-center text-xs text-slate-500">
+        <p className="theme-muted mt-5 text-center text-xs">
           Built for friends, football and bragging rights ⚽
         </p>
       </div>
