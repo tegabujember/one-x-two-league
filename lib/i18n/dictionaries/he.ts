@@ -67,6 +67,8 @@ export const he = {
   "join.submit": "הצטרף לליגה",
   "join.joiningLeague": "אתה מצטרף לליגה",
   "join.existingHelp": "אם כבר הצטרפת בעבר עם החשבון הזה, נחבר אותך אוטומטית לשחקן הקיים שלך.",
+  "player.emailNotConfirmed": "צריך לאשר את כתובת האימייל לפני יצירת שחקן או הצטרפות לליגה.",
+  "player.nameTaken": "השם הזה כבר תפוס בליגה הזאת. נסה שם מעט שונה, למשל Yoel2.",
   "account.kicker": "ACCOUNT",
   "account.title": "החשבון שלי",
   "account.loading": "טוען חשבון...",

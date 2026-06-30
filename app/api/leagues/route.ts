@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabaseServer";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  getConfirmedUser,
+  isEmailNotConfirmedError,
+  isUniqueIndexError,
+  PLAYER_ERROR_CODES,
+} from "@/lib/verifiedUser";
 
 type CreateLeagueBody = {
   league_name?: string;
@@ -48,14 +53,23 @@ async function createUniqueLeagueCode() {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
+  const { user, error: userError } = await getConfirmedUser();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  if (userError === "NOT_AUTHENTICATED") {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
 
-  if (userError || !user) {
+  if (userError === PLAYER_ERROR_CODES.emailNotConfirmed) {
+    return NextResponse.json(
+      {
+        error: PLAYER_ERROR_CODES.emailNotConfirmed,
+        code: PLAYER_ERROR_CODES.emailNotConfirmed,
+      },
+      { status: 403 }
+    );
+  }
+
+  if (!user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -107,6 +121,38 @@ export async function POST(request: Request) {
 
   if (playerError || !player) {
     console.error(playerError);
+
+    if (isEmailNotConfirmedError(playerError)) {
+      return NextResponse.json(
+        {
+          error: PLAYER_ERROR_CODES.emailNotConfirmed,
+          code: PLAYER_ERROR_CODES.emailNotConfirmed,
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      isUniqueIndexError(playerError, "players_league_name_ci_uidx")
+    ) {
+      return NextResponse.json(
+        {
+          error: PLAYER_ERROR_CODES.playerNameTaken,
+          code: PLAYER_ERROR_CODES.playerNameTaken,
+        },
+        { status: 409 }
+      );
+    }
+
+    if (isUniqueIndexError(playerError, "players_league_user_uidx")) {
+      return NextResponse.json(
+        {
+          error: PLAYER_ERROR_CODES.alreadyInLeague,
+          code: PLAYER_ERROR_CODES.alreadyInLeague,
+        },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json(
       { error: "League created but failed to create player" },

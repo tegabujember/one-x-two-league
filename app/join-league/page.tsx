@@ -24,6 +24,13 @@ type PlayerResponse = {
 type ExistingPlayerResponse = {
   player: Player | null;
   alreadyJoined: boolean;
+  nameTaken?: boolean;
+};
+
+type PlayerErrorResponse = {
+  code?: "EMAIL_NOT_CONFIRMED" | "PLAYER_NAME_TAKEN" | "ALREADY_IN_LEAGUE";
+  player?: Player | null;
+  alreadyJoined?: boolean;
 };
 
 type ToastType = "success" | "error" | "warning" | "info";
@@ -249,6 +256,35 @@ export default function JoinLeaguePage() {
 
     setIsLoading(true);
 
+    const availabilityResponse = await fetch(
+      `/api/leagues/${encodeURIComponent(cleanCode)}/players?name=${encodeURIComponent(
+        playerName.trim()
+      )}`,
+      { method: "GET" }
+    );
+
+    if (availabilityResponse.ok) {
+      const availability =
+        (await availabilityResponse.json()) as ExistingPlayerResponse;
+
+      if (availability.player) {
+        localStorage.setItem("last-league-code", cleanCode);
+        localStorage.setItem(
+          `selected-player-${cleanCode}`,
+          availability.player.id
+        );
+        localStorage.removeItem("redirect-after-login");
+        router.push(`/league/${encodeURIComponent(cleanCode)}`);
+        return;
+      }
+
+      if (availability.nameTaken) {
+        showToast(t("player.nameTaken"), "warning");
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const response = await fetch(
       `/api/leagues/${encodeURIComponent(cleanCode)}/players`,
       {
@@ -263,10 +299,30 @@ export default function JoinLeaguePage() {
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
+      const errorData = (await response
+        .json()
+        .catch(() => null)) as PlayerErrorResponse | null;
       console.error(errorData);
 
-      if (response.status === 401) {
+      if (
+        errorData?.code === "ALREADY_IN_LEAGUE" &&
+        errorData.player
+      ) {
+        localStorage.setItem("last-league-code", cleanCode);
+        localStorage.setItem(
+          `selected-player-${cleanCode}`,
+          errorData.player.id
+        );
+        localStorage.removeItem("redirect-after-login");
+        router.push(`/league/${encodeURIComponent(cleanCode)}`);
+        return;
+      }
+
+      if (errorData?.code === "EMAIL_NOT_CONFIRMED") {
+        showToast(t("player.emailNotConfirmed"), "warning");
+      } else if (errorData?.code === "PLAYER_NAME_TAKEN") {
+        showToast(t("player.nameTaken"), "warning");
+      } else if (response.status === 401) {
         showToast(t("join.authRequiredToast"), "warning");
         saveRedirectBeforeLogin();
         router.push(

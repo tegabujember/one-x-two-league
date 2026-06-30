@@ -69,6 +69,8 @@ export const en: Record<TranslationKey, string> = {
   "join.submit": "Join league",
   "join.joiningLeague": "You are joining league",
   "join.existingHelp": "If you previously joined with this account, we will reconnect you to your existing player automatically.",
+  "player.emailNotConfirmed": "Confirm your email before creating a player or joining a league.",
+  "player.nameTaken": "That name is already taken in this league. Try a slightly different name, such as Yoel2.",
   "account.kicker": "ACCOUNT",
   "account.title": "My account",
   "account.loading": "Loading account...",
