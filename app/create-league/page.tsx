@@ -26,6 +26,10 @@ type CreateLeagueResponse = {
   admin_code: string;
 };
 
+type CreateLeagueErrorResponse = {
+  code?: "EMAIL_NOT_CONFIRMED" | "PLAYER_NAME_TAKEN" | "ALREADY_IN_LEAGUE";
+};
+
 type ToastType = "success" | "error" | "warning" | "info";
 
 type ToastState = {
@@ -108,10 +112,16 @@ export default function CreateLeaguePage() {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
+      const errorData = (await response
+        .json()
+        .catch(() => null)) as CreateLeagueErrorResponse | null;
       console.error(errorData);
 
-      if (response.status === 401) {
+      if (errorData?.code === "EMAIL_NOT_CONFIRMED") {
+        showToast(t("player.emailNotConfirmed"), "warning");
+      } else if (errorData?.code === "PLAYER_NAME_TAKEN") {
+        showToast(t("player.nameTaken"), "warning");
+      } else if (response.status === 401) {
         showToast(t("create.authRequiredToast"), "warning");
         localStorage.setItem("redirect-after-login", "/create-league");
         router.push("/login?next=/create-league");
